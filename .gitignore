@@ -1,0 +1,3 @@
+*.qif
+*.db
+./__pycache__
