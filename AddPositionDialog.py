@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QPushButton, QLabel, QDialog, QLineEdit, QFormLayout, QMessageBox,QComboBox
+    QPushButton, QLabel, QCheckBox, QLineEdit, QFormLayout, QMessageBox,QComboBox
 )
 from PyQt6.QtCore import QDate
 from DateTableWidgetItem import CustomDateEdit
@@ -41,6 +41,21 @@ class AddPositionDialog(BaseDialog):
         self.interet = QLineEdit(self)     
         self.notes = QLineEdit(self)
 
+        # Checkbox pour ajouter à l’échéancier
+        self.ajouter_echeancier_checkbox = QCheckBox("Ajouter à l’échéancier", self)
+        self.ajouter_echeancier_checkbox.stateChanged.connect(self.on_toggle_echeancier_fields)
+
+        # Widgets pour fréquence et date de première échéance
+        self.label_frequence = QLabel("Fréquence:")
+        self.frequence = QComboBox(self)
+        self.frequence.addItems([f for f in FrequenceEcheancier.return_list()])
+
+        self.label_date_premiere = QLabel("Première échéance:")
+        self.date_premiere = CustomDateEdit()
+        self.date_premiere.setDate(QDate.currentDate())
+
+        self.set_echeancier_fields_visible(False)
+
         self.nb_part.textEdited.connect(lambda: self.format_montant(self.nb_part))
         self.val_part.textEdited.connect(lambda: self.format_montant(self.val_part))
         self.frais.textEdited.connect(lambda: self.format_montant(self.frais))
@@ -60,6 +75,9 @@ class AddPositionDialog(BaseDialog):
         self.layout.addRow(QLabel("Frais:"), self.frais) 
         self.layout.addRow(QLabel("Interêts:"), self.interet)
         self.layout.addRow(QLabel("Notes:"), self.notes)
+        self.layout.addRow(self.ajouter_echeancier_checkbox)
+        self.layout.addRow(self.label_frequence, self.frequence)
+        self.layout.addRow(self.label_date_premiere, self.date_premiere)
         
 
         # Bouton pour ajouter le compte
@@ -167,4 +185,13 @@ class AddPositionDialog(BaseDialog):
         field.setText(formatted)
         field.blockSignals(False)
         field.setCursorPosition(len(formatted))
+
+    def set_echeancier_fields_visible(self, visible: bool):
+        self.label_frequence.setVisible(visible)
+        self.frequence.setVisible(visible)
+        self.label_date_premiere.setVisible(visible)
+        self.date_premiere.setVisible(visible)
+
+    def on_toggle_echeancier_fields(self):
+        self.set_echeancier_fields_visible(self.ajouter_echeancier_checkbox.isChecked())
 

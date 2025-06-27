@@ -263,7 +263,6 @@ class AddEditOperationDialog(BaseDialog):
         type_beneficiaire = self.type_beneficiaire.currentText()
         beneficiaire = self.beneficiaire.currentText()
         frequence = self.frequence.currentText()
-        date_1_echeance = int(self.date_premiere.date().toString("yyyyMMdd"))
 
 
         if not self.ajouter_benef_checkbox.isChecked():
