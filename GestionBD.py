@@ -1109,38 +1109,36 @@ def GetOperations(compte_id):
     return result
 
 
-def GetFilteredOperations(compte_id, date_debut, date_fin, categories=None, sous_categories=None, tiers=None, bq=None):
+def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories=None, tiers=None, comptes=None, bq=None):
     conn = connect_db()
     cursor = conn.cursor()
 
-    # Valeurs par défaut si aucun filtre n'est donné
     categories = categories or []
     sous_categories = sous_categories or []
     tiers = tiers or []
+    comptes = comptes or []
 
-    # Construction dynamique des placeholders
     def placeholders(values, prefix):
         return ','.join(f':{prefix}{i}' for i in range(len(values)))
 
-    # Début de la requête
     query = f"""
     SELECT * FROM operations
-    WHERE compte_id = :compte_id
-      AND date >= :date_debut AND date <= :date_fin
+    WHERE date >= :date_debut AND date <= :date_fin
       AND (:categories_empty OR categorie IN ({placeholders(categories, 'cat')}))
       AND (:sous_categories_empty OR sous_categorie IN ({placeholders(sous_categories, 'sous')}))
       AND (:tiers_empty OR tier IN ({placeholders(tiers, 'tier')}))
     """
 
-    # Filtre sur bq si fourni
+    if comptes:
+        query += f" AND compte_id IN ({placeholders(comptes, 'compte')})"
+
     if bq is not None:
         query += " AND bq = :bq"
 
     query += " ORDER BY date ASC"
 
-    # Paramètres SQL
+    # Paramètres
     params = {
-        'compte_id': compte_id,
         'date_debut': date_debut,
         'date_fin': date_fin,
         'categories_empty': not categories,
@@ -1148,28 +1146,27 @@ def GetFilteredOperations(compte_id, date_debut, date_fin, categories=None, sous
         'tiers_empty': not tiers
     }
 
-    if bq is not None:
-        params['bq'] = int(bq)  # SQLite utilise des 0/1 pour les booléens
-
-    # Ajout des filtres dynamiques
     for i, val in enumerate(categories):
         params[f'cat{i}'] = val
     for i, val in enumerate(sous_categories):
         params[f'sous{i}'] = val
     for i, val in enumerate(tiers):
         params[f'tier{i}'] = val
+    for i, val in enumerate(comptes):
+        params[f'compte{i}'] = val
 
-    # Exécution
+    if bq is not None:
+        params['bq'] = int(bq)
+
     cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
 
-    # Construction des objets Operation
     operations = []
     for row in rows:
         operation = Operation(
             row[1], row[2], row[4], row[5], row[6], row[8], row[9], row[10],
-            row[11], row[12], compte_id, row[7], row[3], row[13], row[0], row[15],row[16],row[17]
+            row[11], row[12], row[14], row[7], row[3], row[13], row[0], row[15], row[16], row[17]
         )
         operations.append(operation)
 

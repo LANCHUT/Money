@@ -400,7 +400,6 @@ class AddEditOperationDialog(BaseDialog):
             (self.label_type_tier, self.type_tier),
             (self.label_tier, self.tier),
             (self.label_moyen_paiement, self.moyen_paiement),
-            (self.label_num_cheque, self.num_cheque),
             (self.label_categorie, self.categorie),
             (self.label_sous_categorie, self.sous_categorie),
         ]:

@@ -2,12 +2,12 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QPushButton, QLabel, QTableWidget, QTableWidgetItem, QListWidgetItem, QMessageBox,
-    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QGroupBox
+    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy
 )
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtGui import QAction,QColor
-from PyQt6.QtCore import Qt,QPoint,QUrl,QTimer
+from PyQt6.QtCore import Qt,QPoint,QUrl
 from GestionBD import *
 from CheckableComboBox import *
 from DateTableWidgetItem import *
@@ -92,10 +92,15 @@ class MoneyManager(QMainWindow):
         self.tabs = QTabWidget()
         main_layout.addWidget(self.tabs)
 
-        # --- Onglet Suivi de compte ---
-        self.suivi_compte_tab = QWidget()
-        self.tabs.addTab(self.suivi_compte_tab, "Suivi de compte")
-        self.setup_suivi_compte_tab()
+        # --- Onglet Accueil ---
+        self.accueil_tab = QWidget()
+        self.tabs.addTab(self.accueil_tab, "Accueil")
+        self.setup_accueil_tab()
+
+        # --- Onglet Opération ---
+        self.operation_tab = QWidget()
+        self.tabs.addTab(self.operation_tab, "Gestion des opérations")
+        self.setup_operation_tab()
 
         # --- Onglet Tier ---
         self.tier_tab = QWidget()
@@ -127,8 +132,8 @@ class MoneyManager(QMainWindow):
         layout = QVBoxLayout(self.echeancier_tab)
 
         self.echeance_table = QTableWidget(0, 19)
-        self.echeance_table.setHorizontalHeaderLabels(["Fréquence", "1 ère échéance", "Prochaine échéance", "Compte", "Type opération", "Compte associé", "Type de tiers", "Tiers/Placement",
-                                                       "Catégorie","Sous-Catégorie","Type bénéficiaire","Bénéficiaire","Débit","Crédit","Nb parts","Val part","Frais","Intérêts","Notes"])
+        self.echeance_table.setHorizontalHeaderLabels(["Fréquence", "1 ère\néchéance", "Prochaine\néchéance", "Compte", "Type\nopération", "Compte\nassocié", "Type\nde\ntiers", "Tiers\nPlacement",
+                                                       "Catégorie","Sous-\nCatégorie","Type\nbénéficiaire","Bénéficiaire","Débit","Crédit","Nb parts","Val part","Frais","Intérêts","Notes"])
         self.echeance_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.echeance_table.setAlternatingRowColors(True)
         self.echeance_table.setSortingEnabled(True)
@@ -289,6 +294,10 @@ class MoneyManager(QMainWindow):
         try:
             self.current_account = str(item.data(Qt.ItemDataRole.UserRole)["id"])
             selected_account = GetCompte(self.current_account)
+            self.tabs.setCurrentWidget(self.operation_tab)
+            self.reset_filters()
+            self.compte_filter.set_all_checked(False)
+            self.compte_filter.checkItemByText(selected_account.nom)
             if not selected_account:
                 return
 
@@ -1080,6 +1089,7 @@ class MoneyManager(QMainWindow):
 
         self.transaction_table.setRowCount(0)
         self._populate_transaction_table(operations, solde)
+        self.transaction_table.sortItems(0,Qt.SortOrder.AscendingOrder)
 
     def _populate_transaction_table(self, operations: list, initial_solde: float):
         self.transaction_table.setSortingEnabled(False)
@@ -1099,7 +1109,8 @@ class MoneyManager(QMainWindow):
 
     def _create_transaction_row_data(self, operation: 'Operation', previous_solde: float) -> dict:
         tier_name = self.get_tier_name(operation.tier)
-        compte_name = self.get_compte_name(operation.compte_associe) if operation.compte_associe else ''
+        compte_name = self.get_compte_name(operation.compte_id) if operation.compte_id else ''
+        compte_associe_name = self.get_compte_name(operation.compte_associe) if operation.compte_associe else ''
 
         date_item = DateTableWidgetItem(operation.date)
         date_item.setData(Qt.ItemDataRole.UserRole, operation._id)
@@ -1108,18 +1119,19 @@ class MoneyManager(QMainWindow):
             0: date_item,
             1: QTableWidgetItem(operation.type),
             2: QTableWidgetItem(compte_name),
-            3: QTableWidgetItem(operation.type_tier),
-            4: QTableWidgetItem(tier_name),
-            5: QTableWidgetItem(operation.type_beneficiaire),
-            6: QTableWidgetItem(operation.beneficiaire),
-            7: QTableWidgetItem(operation.moyen_paiement),
-            8: QTableWidgetItem(str(operation.num_cheque) if operation.num_cheque is not None else ""),
-            9: QTableWidgetItem('R' if operation.bq else ""),
-            10: QTableWidgetItem(operation.categorie),
-            11: QTableWidgetItem(operation.sous_categorie),
-            14: QTableWidgetItem(operation.notes),
-            12: QTableWidgetItem(""),  # Debit column, might be overwritten
-            13: QTableWidgetItem(""),  # Credit column, might be overwritten
+            3: QTableWidgetItem(compte_associe_name),
+            4: QTableWidgetItem(operation.type_tier),
+            5: QTableWidgetItem(tier_name),
+            6: QTableWidgetItem(operation.type_beneficiaire),
+            7: QTableWidgetItem(operation.beneficiaire),
+            8: QTableWidgetItem(operation.moyen_paiement),
+            9: QTableWidgetItem(str(operation.num_cheque) if operation.num_cheque is not None else ""),
+            10: QTableWidgetItem('R' if operation.bq else ""),
+            11: QTableWidgetItem(operation.categorie),
+            12: QTableWidgetItem(operation.sous_categorie),
+            15: QTableWidgetItem(operation.notes),
+            13: QTableWidgetItem(""),  # Debit column, might be overwritten
+            14: QTableWidgetItem(""),  # Credit column, might be overwritten
         }
 
         if operation.type.lower() in ["débit", "transfert vers"]:
@@ -1127,13 +1139,13 @@ class MoneyManager(QMainWindow):
             debit_item = NumericTableWidgetItem(operation.debit, debit_formate)
             debit_item.setForeground(QColor("red"))
             debit_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            row_data[12] = debit_item
+            row_data[13] = debit_item
         elif operation.type.lower() in ["crédit", "transfert de"]:
             credit_formate = f"+ {operation.credit:,.2f}".replace(",", " ").replace(".", ",") + " €" if operation.credit > 0 else ""
             credit_item = NumericTableWidgetItem(operation.credit, credit_formate)
             credit_item.setForeground(QColor("green"))
             credit_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            row_data[13] = credit_item
+            row_data[14] = credit_item
 
         solde = previous_solde + operation.debit + operation.credit
         solde_formate = f"{solde:,.2f}".replace(",", " ").replace(".", ",")
@@ -1146,7 +1158,7 @@ class MoneyManager(QMainWindow):
             solde_item = NumericTableWidgetItem(solde, solde_formate)
             solde_item.setForeground(QColor("green"))
         solde_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        row_data[15] = solde_item
+        row_data[16] = solde_item
         row_data['solde'] = solde
         return row_data
 
@@ -1156,7 +1168,21 @@ class MoneyManager(QMainWindow):
 
     def add_operation(self, operation):
         InsertOperation(operation)
-        self.load_operations()
+        if  not self.pointage_state['suspendu']:
+            self.load_operations()
+        else :
+            # Récupérer toutes les opérations de nouveau
+            operations = GetOperationsNotBq(self.current_account)
+            solde_depart = GetDerniereValeurPointe(self.current_account)[0]
+
+            # Recharger le tableau depuis le solde de départ
+            self.transaction_table.setRowCount(0)
+            self._populate_transaction_table(operations, solde_depart)
+
+            # Réappliquer les styles sur les lignes déjà pointées
+            for row in self.pointage_state['rows']:
+                self.transaction_table.selectRow(row)
+                self.transaction_table.item(row, 9).setText("P")  # Colonne Bq
         self.account_list.clear()
         self.load_accounts()
         self.compte_table.clearContents()
@@ -1252,6 +1278,8 @@ class MoneyManager(QMainWindow):
         # 3. Ajuste la largeur des colonnes puis réactive le tri
         self.tier_table.resizeColumnsToContents()
         self.tier_table.setSortingEnabled(True)
+        self.tiers_filter.addItem(tier.nom)
+        self.tiers_nom_to_id[tier.nom] = str(tier._id)
         
     def add_sous_categorie(self,sous_categorie):
         if InsertSousCategorie(sous_categorie):
@@ -1266,6 +1294,7 @@ class MoneyManager(QMainWindow):
             # 3. Ajuste la largeur des colonnes puis réactive le tri
             self.sous_categorie_table.resizeColumnsToContents()
             self.sous_categorie_table.setSortingEnabled(True)
+            self.sous_categorie_filter.addItem(sous_categorie.nom)
 
     def add_beneficiaire(self,beneficiaire):
         if InsertBeneficiaire(beneficiaire):
@@ -1294,6 +1323,7 @@ class MoneyManager(QMainWindow):
             # 3. Ajuste la largeur des colonnes puis réactive le tri
             self.categorie_table.resizeColumnsToContents()
             self.categorie_table.setSortingEnabled(True)
+            self.categorie_filter.addItem(categorie.nom)
 
     def add_type_beneficiaire(self,type_beneficiaire:TypeBeneficiaire):
         if InsertTypeBeneficiaire(type_beneficiaire):
@@ -1370,6 +1400,8 @@ class MoneyManager(QMainWindow):
             # 3. Ajuste la largeur des colonnes puis réactive le tri
             self.compte_table.resizeColumnsToContents()
             self.compte_table.setSortingEnabled(True)
+            self.compte_filter.addItem(compte.nom)
+            self.comptes_nom_to_id[compte.nom] = str(compte._id)
             
             
 
@@ -1431,13 +1463,11 @@ class MoneyManager(QMainWindow):
         return GetCompteName(compte_id)
 
 
-        
+    def setup_accueil_tab(self):
+        accueil_tab_layout = QHBoxLayout(self.accueil_tab)
 
-    def setup_suivi_compte_tab(self):
-        suivi_layout = QHBoxLayout(self.suivi_compte_tab)
-
-        # Left Panel - Accounts
-        left_panel = QVBoxLayout()
+        # Panel - Accounts
+        panel = QVBoxLayout()
         self.account_list = QListWidget()
         self.load_accounts()
 
@@ -1446,17 +1476,28 @@ class MoneyManager(QMainWindow):
         add_account_btn = QPushButton("Ajouter un compte")
         add_account_btn.clicked.connect(self.open_add_account_dialog)
 
-        left_panel.addWidget(QLabel("Comptes:"))
-        left_panel.addWidget(self.account_list)
-        left_panel.addWidget(add_account_btn)
+        panel.addWidget(QLabel("Comptes:"))
+        panel.addWidget(self.account_list)
+        panel.addWidget(add_account_btn)
+
+        panel_widget = QWidget()
+        panel_widget.setLayout(panel)
+        panel_widget.setMaximumWidth(500)
+
+        accueil_tab_layout.addWidget(panel_widget)
+        spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        accueil_tab_layout.addItem(spacer)
+
+    def setup_operation_tab(self):
+        operation_tab_layout = QHBoxLayout(self.operation_tab)
 
         # Right Panel - Transactions / Placements
         right_panel = QVBoxLayout()
 
-        self.transaction_table = QTableWidget(0, 16)
+        self.transaction_table = QTableWidget(0, 17)
         self.transaction_table.setHorizontalHeaderLabels([
-            "Date", "Type Opération", "Compte Associé", "Type de Tiers", "Tiers","Type Bénéficiaire", "Bénéficiaire",
-            "Moyen Paiement", "Numéro chèque", "Bq", "Catégorie", "Sous-Catégorie",
+            "Date", "Type\nOpération","Compte", "Compte\nAssocié", "Type\nde\nTiers", "Tiers","Type\nBénéficiaire", "Bénéficiaire",
+            "Moyen\nPaiement", "Numéro\nchèque", "Bq", "Catégorie", "Sous-\nCatégorie",
             "Débit", "Crédit", "Note", "Solde"
         ])
         self.transaction_table.horizontalHeader().setStretchLastSection(True)
@@ -1523,15 +1564,9 @@ class MoneyManager(QMainWindow):
         button_layout.addWidget(self.pointage_info_label)
         self.show_performance_btn.hide()  # Toujours masqué par défaut
        # --- Filtres ---
-        self.summary_group = QGroupBox("Sélections actuelles", self)
-        summary_layout = QVBoxLayout()
         self.cats_label = QLabel()
         self.sous_cats_label = QLabel()
         self.tiers_label = QLabel()
-        summary_layout.addWidget(self.cats_label)
-        summary_layout.addWidget(self.sous_cats_label)
-        summary_layout.addWidget(self.tiers_label)
-        self.summary_group.setLayout(summary_layout)
         filter_layout = QGridLayout()
 
 
@@ -1546,7 +1581,10 @@ class MoneyManager(QMainWindow):
         self.date_fin_filter.setDate(QDate.currentDate())  # Aujourd'hui
 
         self.tiers_filter = CheckableComboBox()
-        self.tiers_filter.setPlaceholderText("test")
+        self.tiers_filter.setPlaceholderText("Selectionner...")
+        self.tiers_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.tiers_filter.addSpecialItem("Tout désélectionner", "deselect_all")
+
         # Récupère les noms des tiers
         tiers_noms = [tier.nom for tier in GetTiers()]
         self.tiers_nom_to_id = {}
@@ -1566,14 +1604,28 @@ class MoneyManager(QMainWindow):
         # Tu peux alimenter ces ComboBox avec tes vraies données plus tard
         self.categorie_filter = CheckableComboBox(self)
         self.categorie_filter.setPlaceholderText("Selectionner...")
+        self.categorie_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.categorie_filter.addSpecialItem("Tout désélectionner", "deselect_all")
         self.sous_categorie_filter = CheckableComboBox(self)
         self.sous_categorie_filter.setPlaceholderText("Selectionner...")
+        self.sous_categorie_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.sous_categorie_filter.addSpecialItem("Tout désélectionner", "deselect_all")
 
         # Remplir les catégories
         for cat in GetCategorie():
             self.categorie_filter.addItem(cat.nom)
             for sous_cat in GetSousCategorie(cat.nom):
                 self.sous_categorie_filter.addItem(sous_cat.nom)
+
+        self.compte_filter = CheckableComboBox()
+        self.compte_filter.setPlaceholderText("Selectionner...")
+        self.compte_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.compte_filter.addSpecialItem("Tout désélectionner", "deselect_all")
+
+        self.comptes_nom_to_id = {}
+        for compte in GetComptes():
+            self.compte_filter.addItem(compte.nom)
+            self.comptes_nom_to_id[compte.nom] = str(compte._id)
 
         apply_filter_btn = QPushButton("Appliquer les filtres")
         apply_filter_btn.clicked.connect(self.apply_filters)
@@ -1593,35 +1645,27 @@ class MoneyManager(QMainWindow):
         # --- Filtres avancés (tiers, catégorie, sous-catégorie + boutons) ---
 
         # Colonne Tiers
-        tiers_col = QVBoxLayout()
+        tiers_col = QHBoxLayout()
         tiers_col.addWidget(QLabel("Tiers:"))
         tiers_col.addWidget(self.tiers_filter)
-        tiers_btns = QHBoxLayout()
-        tiers_btns.addWidget(QPushButton("Tout sélectionner", clicked=lambda: self.select_all_items(self.tiers_filter, True)))
-        tiers_btns.addWidget(QPushButton("Tout désélectionner", clicked=lambda: self.select_all_items(self.tiers_filter, False)))
-        tiers_col.addLayout(tiers_btns)
+
+        comptes_col = QHBoxLayout()
+        comptes_col.addWidget(QLabel("Comptes:"))
+        comptes_col.addWidget(self.compte_filter)
 
         # Colonne Catégorie
-        cat_col = QVBoxLayout()
+        cat_col = QHBoxLayout()
         cat_col.addWidget(QLabel("Catégorie:"))
         cat_col.addWidget(self.categorie_filter)
-        cat_btns = QHBoxLayout()
-        cat_btns.addWidget(QPushButton("Tout sélectionner", clicked=lambda: self.select_all_items(self.categorie_filter, True)))
-        cat_btns.addWidget(QPushButton("Tout désélectionner", clicked=lambda: self.select_all_items(self.categorie_filter, False)))
-        cat_col.addLayout(cat_btns)
 
         # Colonne Sous-Catégorie
-        sous_cat_col = QVBoxLayout()
+        sous_cat_col = QHBoxLayout()
         sous_cat_col.addWidget(QLabel("Sous-catégorie:"))
         sous_cat_col.addWidget(self.sous_categorie_filter)
-        sous_cat_btns = QHBoxLayout()
-        sous_cat_btns.addWidget(QPushButton("Tout sélectionner", clicked=lambda: self.select_all_items(self.sous_categorie_filter, True)))
-        sous_cat_btns.addWidget(QPushButton("Tout désélectionner", clicked=lambda: self.select_all_items(self.sous_categorie_filter, False)))
-        sous_cat_col.addLayout(sous_cat_btns)
-
         # Filtres combinés
         filter_selection_layout = QHBoxLayout()
         filter_selection_layout.addLayout(tiers_col)
+        filter_selection_layout.addLayout(comptes_col)
         filter_selection_layout.addLayout(cat_col)
         filter_selection_layout.addLayout(sous_cat_col)
 
@@ -1641,14 +1685,11 @@ class MoneyManager(QMainWindow):
         right_panel.addLayout(apply_reset_layout)
 
         right_panel.addLayout(filter_layout)
-        right_panel.addWidget(self.summary_group)
 
         right_panel.addLayout(self.table_stack)
         right_panel.addLayout(button_layout)
         
-
-        suivi_layout.addLayout(left_panel, 1)
-        suivi_layout.addLayout(right_panel, 3)
+        operation_tab_layout.addLayout(right_panel, 3)
 
     def select_all_items(self, combo: CheckableComboBox, checked: bool):
         for i in range(combo.model().rowCount()):
@@ -1656,14 +1697,13 @@ class MoneyManager(QMainWindow):
             if item is not None:
                 item.setCheckState(Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked)
         combo.update_display_text()  # Met à jour le texte affiché dans le champ
-        QTimer.singleShot(0, self.update_summary)
 
     def setup_tiers_tab(self):
         layout = QHBoxLayout(self.tier_tab)
 
         tiers_section = QVBoxLayout()
         self.tier_table = QTableWidget(0, 6)
-        self.tier_table.setHorizontalHeaderLabels(["Nom", "Type", "Cat. def.", "Sous-cat. def.", "Moy. paiement", "Actif"])
+        self.tier_table.setHorizontalHeaderLabels(["Nom", "Type", "Catégorie", "Sous-\ncatégorie.", "Moyen\nde\npaiement", "Actif"])
         self.tier_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tier_table.setAlternatingRowColors(True)
         self.tier_table.setSortingEnabled(True)
@@ -1677,7 +1717,7 @@ class MoneyManager(QMainWindow):
 
         types_section = QVBoxLayout()
         self.type_tier_table = QTableWidget(0, 1)
-        self.type_tier_table.setHorizontalHeaderLabels(["Type de Tier"])
+        self.type_tier_table.setHorizontalHeaderLabels(["Type\nde\nTiers"])
         self.type_tier_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.type_tier_table.setAlternatingRowColors(True)
         self.type_tier_table.setSortingEnabled(True)
@@ -2125,7 +2165,7 @@ class MoneyManager(QMainWindow):
 
     def show_context_menu_operation(self, pos: QPoint):
         item = self.transaction_table.itemAt(pos)
-        if not item:
+        if not item or self.pointage_state["actif"] :
             return
 
         row = item.row()
@@ -2166,19 +2206,6 @@ class MoneyManager(QMainWindow):
         
         menu.exec(self.history_table.viewport().mapToGlobal(pos))
 
-    def update_summary(self):
-        selected_cats = self.categorie_filter.checkedItems()
-        selected_sous_cats = self.sous_categorie_filter.checkedItems()
-        selected_tiers = self.tiers_filter.checkedItems()
-
-        cats_text = "Catégories : " + ", ".join(selected_cats) if selected_cats else "Catégories : (aucune sélection)"
-        sous_cats_text = "Sous-catégories : " + ", ".join(selected_sous_cats) if selected_sous_cats else "Sous-catégories : (aucune sélection)"
-        tiers_text = "Tiers : " + ", ".join(selected_tiers) if selected_tiers else "Tiers : (aucune sélection)"
-
-        self.cats_label.setText(cats_text)
-        self.sous_cats_label.setText(sous_cats_text)
-        self.tiers_label.setText(tiers_text)
-
     def apply_filters(self):
         if self.current_account is None:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte d'abord.")
@@ -2190,6 +2217,11 @@ class MoneyManager(QMainWindow):
             for nom in self.tiers_filter.checkedItems()
             if nom in self.tiers_nom_to_id
         ]
+
+        selected_comptes= [self.current_account]
+        for nom in self.compte_filter.checkedItems():
+            if nom in self.comptes_nom_to_id:
+                selected_comptes.append(self.comptes_nom_to_id[nom])
 
         date_debut = int(self.date_debut_filter.date().toString("yyyyMMdd"))
         date_fin = int(self.date_fin_filter.date().toString("yyyyMMdd"))
@@ -2204,7 +2236,7 @@ class MoneyManager(QMainWindow):
             # état PartiallyChecked = ne pas filtrer sur ce critère
             bq = None
 
-        self.load_operations(GetFilteredOperations(self.current_account,date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,bq),0)
+        self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq),0)
         self.transaction_table.setColumnHidden(15,True)
             
     def reset_filters(self):
@@ -2219,9 +2251,8 @@ class MoneyManager(QMainWindow):
         for tier in GetTiers():
             self.tiers_filter.addItem(tier.nom)
 
-        self.update_summary()
         self.load_operations()
-        self.transaction_table.setColumnHidden(15,False)
+        self.transaction_table.setColumnHidden(16,False)
         
 
         # Réinitialiser les dates
@@ -2294,7 +2325,7 @@ class MoneyManager(QMainWindow):
         # Réappliquer les styles sur les lignes déjà pointées
         for row in self.pointage_state['rows']:
             self.transaction_table.selectRow(row)
-            self.transaction_table.item(row, 7).setText("P")  # Colonne Bq
+            self.transaction_table.item(row, 9).setText("P")  # Colonne Bq
 
         # UI
         self.pointage_info_label.setText(f"Dernier relevé : {self.pointage_state['target']:.2f} € – Somme pointées : {self.pointage_state['somme_pointees']:.2f} € – Écart : {round(self.pointage_state['target'] - self.pointage_state['solde'],2):.2f} €")

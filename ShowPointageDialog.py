@@ -34,7 +34,6 @@ def show_pointage_dialog(parent, dernier_solde, derniere_date):
 
     def accepter():
         try:
-            print(float(solde_input.text().replace('\xa0', '').replace(",",".")))
             result['solde'] = float(solde_input.text().replace(" ","").replace(",","."))
             result['date'] = date_edit.date().toString("yyyyMMdd")
             dialog.accept()
@@ -51,7 +50,7 @@ def show_pointage_dialog(parent, dernier_solde, derniere_date):
 
 
 def handle_bq_click(row, column, table: QTableWidget, pointage_state, parent, ui_parent):
-    if not pointage_state['actif'] or column != 9:
+    if not pointage_state['actif'] or column != 9 or pointage_state["suspendu"]:
         return
 
     bq_item = table.item(row, 9)
@@ -121,7 +120,7 @@ def finalize_pointage(pointage_state, solde_cible,date,parent):
 
 def cancel_pointage(pointage_state,table:QTableWidget):
     for row in pointage_state['rows']:
-        bq_item = table.item(row, 7)
+        bq_item = table.item(row, 9)
         bq_item.setText('')
     pointage_state['actif'] = False
     pointage_state['solde'] = 0
