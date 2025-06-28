@@ -1227,7 +1227,9 @@ class MoneyManager(QMainWindow):
     def add_position(self, position:Position):
         InsertPosition(position)
         if position.type == "Achat":
-            InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round(position.nb_part*position.val_part * -1),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
+            InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
+        elif position.type == "Vente":
+            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
         type_placement = GetTypePlacement(position.nom_placement)
         last_value_placement = GetLastValueForPlacement(position.nom_placement)
         if not InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type)) and last_value_placement != position.val_part:

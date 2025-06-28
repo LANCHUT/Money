@@ -115,6 +115,8 @@ class AddPositionDialog(BaseDialog):
         notes = self.notes.text()
         montant_investit = 0
         type_placement = self.type_placement.currentText()
+        if type_placement in [TypePosition.Vente.value,TypePosition.Perte.value]:
+            nb_part *= -1
 
         # Appliquer la logique "compte associé" seulement si c'est un transfert
         if type_placement in ["Achat", "Intérêts","Vente"]:

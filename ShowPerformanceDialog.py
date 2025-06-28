@@ -33,8 +33,10 @@ class ShowPerformanceDialog(BaseDialog):
             ("Montant investi", "investi"),
             ("Dons", "dons"),
             ("Ventes", "ventes"),
+            ("Pertes", "pertes"),
             ("Intérêts cumulés", "interets"),
             ("Plus-value", "plus_value"),
+            ("Frais", "frais"),
             ("Performance globale", "performance"),
         ]
 
@@ -84,8 +86,10 @@ class ShowPerformanceDialog(BaseDialog):
         self.labels["investi"].setText(format_eur(data.get("montant_investissement", 0)))
         self.labels["dons"].setText(format_eur(data.get("don", 0)))
         self.labels["ventes"].setText(format_eur(data.get("vente", 0)))
+        self.labels["pertes"].setText(format_eur(data.get("perte", 0)))
         self.labels["interets"].setText(format_eur(data.get("cumul_interet", 0)))
         self.labels["plus_value"].setText(format_eur(data.get("plus-value", 0)))
+        self.labels["frais"].setText(format_eur(data.get("frais", 0)))
         self.labels["performance"].setText(f'{data.get("perf", 0)} %')
 
         # === Tableau : afficher les placements ===

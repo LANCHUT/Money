@@ -1903,7 +1903,7 @@ def GetPerformanceGlobaleData(compte_id: str):
 
     # Récupère toutes les positions nécessaires en une seule requête
     cursor.execute("""
-        SELECT type, nb_part, nom_placement, montant_investit, val_part, interets
+        SELECT type, nb_part, nom_placement, montant_investit, val_part, interets, frais
         FROM position
         WHERE compte_id = ?
     """, (compte_id,))
@@ -1913,10 +1913,12 @@ def GetPerformanceGlobaleData(compte_id: str):
     montant_investissement = 0
     don = 0
     cumul_interet = 0
+    montant_vente = 0
+    montant_perte = 0
     last_values = {}
 
     for p in positions:
-        type_op, nb_part, nom_placement, montant_investit, val_part, interets = p
+        type_op, nb_part, nom_placement, montant_investit, val_part, interets, frais = p
 
         # Récupération de la valeur du placement avec caching
         if nom_placement not in last_values:
@@ -1925,15 +1927,22 @@ def GetPerformanceGlobaleData(compte_id: str):
 
         if type_op in ['Achat', 'Gain de parts', 'Don gratuit']:
             valo += nb_part * valeur_part
-
-        if type_op == 'Achat':
-            montant_investissement += montant_investit
+            if type_op == 'Achat':
+                montant_investissement += montant_investit
 
         elif type_op == 'Don gratuit':
             don += nb_part * val_part
 
         elif type_op == 'Intérêts':
             cumul_interet += interets
+
+        elif type_op == 'Vente':
+            valo += nb_part * val_part
+            montant_vente += nb_part * val_part
+
+        elif type_op == "Perte de parts":
+            valo += nb_part * val_part
+            montant_perte += nb_part * val_part
         else :
             valo += nb_part * valeur_part
 
@@ -1946,9 +1955,11 @@ def GetPerformanceGlobaleData(compte_id: str):
         "valo": round(valo),
         "montant_investissement": round(montant_investissement),
         "don": round(don),
-        "vente": 0,  # Vente est toujours 0 ici
+        "vente": round(montant_vente),
+        "perte": round(montant_perte),
         "cumul_interet": round(cumul_interet),
         "plus-value": round(plus_value),
+        "frais" : round(frais),
         "perf": round(perf, 2)
     }
 
