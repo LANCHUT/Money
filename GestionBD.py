@@ -760,6 +760,22 @@ def GetAllSousCategorie():
 
     return result
 
+def GetAllEcheance():
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(f"select * from echeancier")
+    echeances = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in echeances:
+        echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[6],row[17],row[18],row[0])
+        result.append(echeance)
+
+    return result
+
 def GetAllBeneficiaire():
     conn = connect_db()
     cursor = conn.cursor()
@@ -1915,11 +1931,12 @@ def GetPerformanceGlobaleData(compte_id: str):
     cumul_interet = 0
     montant_vente = 0
     montant_perte = 0
+    montant_frais = 0
     last_values = {}
 
     for p in positions:
         type_op, nb_part, nom_placement, montant_investit, val_part, interets, frais = p
-
+        montant_frais += frais
         # Récupération de la valeur du placement avec caching
         if nom_placement not in last_values:
             last_values[nom_placement] = GetLastValueForPlacement(nom_placement)
@@ -1959,7 +1976,7 @@ def GetPerformanceGlobaleData(compte_id: str):
         "perte": round(montant_perte),
         "cumul_interet": round(cumul_interet),
         "plus-value": round(plus_value),
-        "frais" : round(frais),
+        "frais" : round(montant_frais),
         "perf": round(perf, 2)
     }
 

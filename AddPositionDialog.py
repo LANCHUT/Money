@@ -1,18 +1,21 @@
 from PyQt6.QtWidgets import (
     QPushButton, QLabel, QCheckBox, QLineEdit, QFormLayout, QMessageBox,QComboBox
 )
-from PyQt6.QtCore import QDate
+from PyQt6.QtCore import QDate,Qt
 from DateTableWidgetItem import CustomDateEdit
 from datetime import *
+from AddEditOperationDialog import get_next_echeance
 from BaseDialog import BaseDialog
 
 from GestionBD import *
 
 class AddPositionDialog(BaseDialog):
-    def __init__(self, parent=None, account_id=None):
+    def __init__(self, parent=None, account_id=None, isEcheance = False, compte_echeance = None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter une nouvelle position")
         self.account_id = account_id
+        self.isEcheance = isEcheance
+        self.compte_echeance = compte_echeance
 
         # Layout pour la pop-up
         self.layout = QFormLayout()
@@ -89,6 +92,10 @@ class AddPositionDialog(BaseDialog):
         self.type_placement.currentTextChanged.connect(self.on_type_operation_changed)
         self.on_type_operation_changed(self.type_placement.currentText())
 
+        if self.isEcheance:
+            self.ajouter_echeancier_checkbox.setCheckState(Qt.CheckState.Checked)
+            self.ajouter_echeancier_checkbox.setEnabled(False)
+
 
     def set_last_val_part(self, placement_name):
         last_val = GetLastValueForPlacement(placement_name)
@@ -125,6 +132,42 @@ class AddPositionDialog(BaseDialog):
                 montant_investit = round(nb_part*val_part + frais)
         else:
             compte_associe_id = ""
+
+        if self.ajouter_echeancier_checkbox.isChecked():
+            frequence = self.frequence.currentText()
+            date_premiere = int(self.date_premiere.date().toString("yyyyMMdd"))
+            prochaine_echeance = get_next_echeance(date_premiere, frequence)
+            compte_id = None
+            if self.compte_echeance is not None:
+                compte_id = self.compte_echeance
+            else:
+                compte_id = self.account_id
+
+            # Enregistrement dans la table des échéanciers
+            echeance = Echeance(
+                frequence,
+                date_premiere,
+                prochaine_echeance,
+                type_placement,
+                "",
+                nom_placement,
+                "",
+                "",
+                0,
+                0,
+                notes,
+                compte_id,
+                nb_part,
+                val_part,
+                frais,
+                interets,
+                compte_associe_id,
+                "",
+                ""
+                # ajoute d’autres champs nécessaires selon la structure de Echeancier
+            )
+            InsertEcheance(echeance)
+            self.parent().load_echeance()
         
         if self.account_id is not None:
             # Créer l'objet compte
@@ -134,9 +177,7 @@ class AddPositionDialog(BaseDialog):
             self.parent().add_position(position)
 
             # Fermer la pop-up après ajout
-            self.accept()
-        else:
-            QMessageBox.critical(self, "Erreur", "L'ID du compte n'a pas été transmis correctement.")
+        self.accept()
    
 
 

@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt,QPoint,QUrl
 from GestionBD import *
 from CheckableComboBox import *
 from DateTableWidgetItem import *
+from AddEditEcheanceDialog import *
 from AddEditAccountDialog import *
 from AddEditOperationDialog import *
 from AddEditTypeBeneficiaireDialog import *
@@ -138,11 +139,24 @@ class MoneyManager(QMainWindow):
         self.echeance_table.setAlternatingRowColors(True)
         self.echeance_table.setSortingEnabled(True)
 
-        generer_btn = QPushButton("Générer opérations")
-        # generer_btn.clicked.connect(self.generer_operations_echeances)
+        generer_btn = QPushButton("Ajouter une échéance")
+        generer_btn.clicked.connect(self.add_echeance)
 
         layout.addWidget(self.echeance_table)
         layout.addWidget(generer_btn)
+
+        self.load_echeance()
+    
+    def add_echeance(self):
+        dialog = EcheanceDialog(GetComptes(), self)        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            compte_choisi = dialog.selected_compte
+            if dialog.selected_type == "operation":
+                self.open_add_operation_dialog(isEcheance=True, compte_echeance = compte_choisi)
+            elif dialog.selected_type == "position":
+                self.open_add_position_dialog(isEcheance=True, compte_echeance = compte_choisi)
+                
+
 
     def load_accounts(self):
         for compte in GetComptes():
@@ -199,6 +213,17 @@ class MoneyManager(QMainWindow):
 
         self.placement_table.resizeColumnsToContents()
         self.placement_table.setSortingEnabled(True)
+
+    def load_echeance(self):
+        self.echeance_table.setSortingEnabled(False)
+        echeances = GetAllEcheance()
+        self.echeance_table.setRowCount(len(echeances))
+
+        for row, echeance in enumerate(echeances):
+            self.add_echeance_row(row, echeance)
+
+        self.echeance_table.resizeColumnsToContents()
+        self.echeance_table.setSortingEnabled(True)
 
     def load_categorie(self):
         self.categorie_table.setSortingEnabled(False)
@@ -987,16 +1012,16 @@ class MoneyManager(QMainWindow):
             dialog = ShowPerformanceDialog(self, self.current_account)
             dialog.exec()
 
-    def open_add_operation_dialog(self):
-        if self.current_account is not None:
-            dialog = AddEditOperationDialog(self, self.current_account)
+    def open_add_operation_dialog(self,isEcheance = False, compte_echeance = None):
+        if self.current_account is not None or isEcheance:
+            dialog = AddEditOperationDialog(self, self.current_account,isEcheance = isEcheance, compte_echeance=compte_echeance)
             dialog.exec()
         else:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte d'abord.")
 
-    def open_add_position_dialog(self):
-        if self.current_account is not None:
-            dialog = AddPositionDialog(self, self.current_account)
+    def open_add_position_dialog(self,isEcheance = False, compte_echeance = None):
+        if self.current_account is not None or isEcheance:
+            dialog = AddPositionDialog(self, self.current_account,isEcheance = isEcheance, compte_echeance=compte_echeance)
             dialog.exec()
         else:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte de placement d'abord.")
@@ -1056,6 +1081,27 @@ class MoneyManager(QMainWindow):
         self.placement_table.setItem(row, 2, align_center(DateTableWidgetItem(placement.date)))
         self.placement_table.setItem(row, 3, align_center(NumericTableWidgetItem(placement.val_actualise, format_montant(placement.val_actualise))))
         self.placement_table.setItem(row, 4, align_center(QTableWidgetItem(placement.origine)))
+
+    def add_echeance_row(self, row, echeance: Echeance):
+        self.echeance_table.setItem(row, 0, align_center(QTableWidgetItem(echeance.frequence)))
+        self.echeance_table.setItem(row, 1, align_center(DateTableWidgetItem(echeance.echeance1)))
+        self.echeance_table.setItem(row, 2, align_center(DateTableWidgetItem(echeance.prochaine_echeance)))
+        self.echeance_table.setItem(row, 3, align_center(QTableWidgetItem(GetCompteName(echeance.compte_id))))
+        self.echeance_table.setItem(row, 4, align_center(QTableWidgetItem(echeance.type)))
+        self.echeance_table.setItem(row, 5, align_center(QTableWidgetItem(GetCompteName(echeance.compte_associe))))
+        self.echeance_table.setItem(row, 6, align_center(QTableWidgetItem(echeance.type_tier)))
+        self.echeance_table.setItem(row, 7, align_center(QTableWidgetItem(GetTierName(echeance.tier) if GetTierName(echeance.tier) is not None else echeance.tier)))
+        self.echeance_table.setItem(row, 8, align_center(QTableWidgetItem(echeance.categorie)))
+        self.echeance_table.setItem(row, 9, align_center(QTableWidgetItem(echeance.sous_categorie)))
+        self.echeance_table.setItem(row, 10, align_center(QTableWidgetItem(echeance.type_beneficiaire)))
+        self.echeance_table.setItem(row, 11, align_center(QTableWidgetItem(echeance.beneficiaire)))
+        self.echeance_table.setItem(row, 12, align_center(NumericTableWidgetItem(echeance.debit, format_montant(echeance.debit))))
+        self.echeance_table.setItem(row, 13, align_center(NumericTableWidgetItem(echeance.credit, format_montant(echeance.credit))))
+        self.echeance_table.setItem(row, 14, align_center(NumericTableWidgetItem(echeance.nb_part, str(echeance.nb_part))))
+        self.echeance_table.setItem(row, 15, align_center(NumericTableWidgetItem(echeance.val_part, format_montant(echeance.val_part))))
+        self.echeance_table.setItem(row, 16, align_center(NumericTableWidgetItem(echeance.frais, format_montant(echeance.frais))))
+        self.echeance_table.setItem(row, 17, align_center(NumericTableWidgetItem(echeance.interets, format_montant(echeance.interets))))
+        self.echeance_table.setItem(row, 18, align_center(QTableWidgetItem(echeance.notes)))
 
     def add_compte_row(self, row, compte: Compte):
         item_nom = QTableWidgetItem(str(compte.nom))
@@ -2212,6 +2258,7 @@ class MoneyManager(QMainWindow):
         if self.current_account is None:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte d'abord.")
             return
+        self.pointage_btn.setEnabled(False)
         selected_categories = set(self.categorie_filter.checkedItems())
         selected_sous_categories = set(self.sous_categorie_filter.checkedItems())
         selected_tiers = [
@@ -2239,13 +2286,14 @@ class MoneyManager(QMainWindow):
             bq = None
 
         self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq),0)
-        self.transaction_table.setColumnHidden(15,True)
+        self.transaction_table.setColumnHidden(16,True)
             
     def reset_filters(self):
         # Vider les sélections
         self.categorie_filter.clear()
         self.sous_categorie_filter.clear()
         self.tiers_filter.clear()
+        self.pointage_btn.setEnabled(True)
         for cat in GetCategorie():
             self.categorie_filter.addItem(cat.nom)
             for sous_cat in GetSousCategorie(cat.nom):

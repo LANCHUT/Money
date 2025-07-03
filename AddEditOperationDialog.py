@@ -44,12 +44,14 @@ def set_combobox_index_by_data(combo: QComboBox, data):
         combo.setCurrentIndex(index)
 
 class AddEditOperationDialog(BaseDialog):
-    def __init__(self, parent=None, account_id=None, operation: Operation = None, isEdit=False):
+    def __init__(self, parent=None, account_id=None, operation: Operation = None, isEdit=False, isEcheance = False, compte_echeance = None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter / Modifier une opération")       
         self.account_id = account_id
         self.operation = operation
         self.isEdit = isEdit
+        self.isEcheance = isEcheance
+        self.compte_echeance = compte_echeance
 
         self.layout = QFormLayout()
 
@@ -186,6 +188,10 @@ class AddEditOperationDialog(BaseDialog):
 
         if self.operation:
             self.fill_fields()
+
+        if self.isEcheance:
+            self.ajouter_echeancier_checkbox.setCheckState(Qt.CheckState.Checked)
+            self.ajouter_echeancier_checkbox.setEnabled(False)
 
 
     def set_beneficiaire_fields_visible(self, visible: bool):
@@ -327,7 +333,7 @@ class AddEditOperationDialog(BaseDialog):
             self.operation.notes = notes
             self.operation.compte_associe = compte_associe
             self.parent().update_operation(self.operation,old_credit,old_debit,self.isEdit)
-        else:
+        elif self.operation is None and not self.isEcheance:
             # Insertion
             operation = Operation(date, type_operation, type_tier, id_tier, moyen_paiement, categorie, sous_categorie,
                                     debit, credit, notes, self.account_id, num_cheque, compte_associe,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
@@ -338,6 +344,11 @@ class AddEditOperationDialog(BaseDialog):
             frequence = self.frequence.currentText()
             date_premiere = int(self.date_premiere.date().toString("yyyyMMdd"))
             prochaine_echeance = get_next_echeance(date_premiere, frequence)
+            compte_id = None
+            if self.compte_echeance is not None:
+                compte_id = self.compte_echeance
+            else:
+                compte_id = self.account_id
 
             # Enregistrement dans la table des échéanciers
             echeance = Echeance(
@@ -352,7 +363,7 @@ class AddEditOperationDialog(BaseDialog):
                 debit,
                 credit,
                 notes,
-                self.account_id,
+                compte_id,
                 0,
                 0,
                 0,
@@ -363,6 +374,7 @@ class AddEditOperationDialog(BaseDialog):
                 # ajoute d’autres champs nécessaires selon la structure de Echeancier
             )
             InsertEcheance(echeance)
+            self.parent().load_echeance()
         self.accept()
 
     def on_category_changed(self, category):

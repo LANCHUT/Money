@@ -100,7 +100,7 @@ for txn in qif.get_transactions()[0]:  # [0] = premier compte
             cat = txn.category.strip()
 
     # Création et insertion de la transaction
-    o = Operation(date_operation,type,"",tiers_id[payee] if tiers_id[payee] else None,"",cat if cat is not None else "",subcat if subcat is not None else "",debit,credit,memo,'683acc0e0bc36d2a2149d832',bq = 1)
+    o = Operation(date_operation,type,"",tiers_id[payee] if tiers_id[payee] else None,"",cat if cat is not None else "",subcat if subcat is not None else "",debit,credit,memo,'683acc0e0bc36d2a2149d832',bq = 1,beneficiaire='',type_beneficiaire="")
 
     InsertOperation(o)
 
