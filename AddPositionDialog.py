@@ -161,6 +161,8 @@ class AddPositionDialog(BaseDialog):
                 val_part,
                 frais,
                 interets,
+                "",
+                1,
                 compte_associe_id,
                 "",
                 ""

@@ -97,7 +97,10 @@ def create_tables():
             note TEXT,
             type_beneficiaire TEXT,
             beneficiaire TEXT,
+            moyen_paiement TEXT,
+            is_position INTEGER,
             FOREIGN KEY (compte_id) REFERENCES comptes(id) ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (moyen_paiement) REFERENCES moyen_paiement(nom) ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY (tier) REFERENCES tiers(id) ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY (type_tier) REFERENCES type_tier(nom) ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY (categorie) REFERENCES categorie(nom) ON UPDATE CASCADE ON DELETE SET NULL,
@@ -293,8 +296,8 @@ def InsertEcheance(echeance: Echeance):
     cursor = conn.cursor()
 
     cursor.execute('''
-    INSERT INTO echeancier (id, frequence, echeance_1, prochaine_echeance, compte_id, type,compte_associe, type_tier, tier, categorie,sous_categorie, debit, credit, nb_part,val_part,frais,interets,note,type_beneficiaire,beneficiaire)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO echeancier (id, frequence, echeance_1, prochaine_echeance, compte_id, type,compte_associe, type_tier, tier, categorie,sous_categorie, debit, credit, nb_part,val_part,frais,interets,note,type_beneficiaire,beneficiaire,moyen_paiement,is_position)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         str(echeance._id),
         echeance.frequence,
@@ -315,7 +318,9 @@ def InsertEcheance(echeance: Echeance):
         echeance.interets,
         echeance.notes,
         echeance.type_beneficiaire,
-        echeance.beneficiaire
+        echeance.beneficiaire,
+        echeance.moyen_paiement,
+        echeance.is_position
 
     ))
 
@@ -760,6 +765,31 @@ def GetAllSousCategorie():
 
     return result
 
+def DeleteEcheance(echeance_id:str):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM echeancier WHERE id = ?", (str(echeance_id),))
+    conn.commit()
+
+    conn.close()
+
+def UpdateEcheance(echeance:Echeance):
+    DeleteEcheance(echeance._id)
+    InsertEcheance(echeance)
+
+def GetEcheance(echeance_id):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(f"select * from echeancier where id = '{echeance_id}'")
+    row = cursor.fetchone()
+
+    conn.close()
+    echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[20],row[21],row[6],row[17],row[18],row[0])
+
+    return echeance
+
+
 def GetAllEcheance():
     conn = connect_db()
     cursor = conn.cursor()
@@ -771,7 +801,7 @@ def GetAllEcheance():
 
     result = []
     for row in echeances:
-        echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[6],row[17],row[18],row[0])
+        echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[20],row[21],row[6],row[17],row[18],row[0])
         result.append(echeance)
 
     return result
@@ -1740,14 +1770,14 @@ def GetPlacements():
     conn = connect_db()
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT nom,type,date,valeur_actualise,origine FROM placement")
+    cursor.execute(f"SELECT nom,type FROM placement")
     placements = cursor.fetchall()
 
     conn.close()
 
     result = []
     for row in placements:
-        placement = Placement(row[0],row[1],row[2],row[3],row[4])
+        placement = Placement(row[0],row[1])
         result.append(placement)
 
     return result
@@ -1981,6 +2011,26 @@ def GetPerformanceGlobaleData(compte_id: str):
     }
 
 
+def GetBilanByCategorie():
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        select c.nom ,o.categorie,o.sous_categorie,(sum(o.debit)+sum(o.credit)) as somme
+        from operations o
+        inner join comptes c on o.compte_id = c.id
+        where o.date >= ? and o.date <= ?
+        group by o.compte_id,o.categorie,o.sous_categorie
+    """,(int(datetime.date(datetime.date.today().year,1,1).strftime('%Y%m%d')),int((datetime.date.today().strftime('%Y%m%d'))),))
+    rows = cursor.fetchall()
+    result = []
+
+    for row in rows:
+        result.append({"compte": row[0], "categorie": row[1], "sous_cat": row[2], "mois": "2025-04", "montant": row[3] *-1})
+    
+    return result
+
+
+
 
 def GetPerformanceByPlacement(compte_id: str):
     conn = connect_db()
@@ -2015,5 +2065,67 @@ def GetPerformanceByPlacement(compte_id: str):
 
     conn.close()
     return performance_data
+
+def GetEcheanceToday(current_date = int((datetime.date.today() + datetime.timedelta(days=2)).strftime('%Y%m%d'))):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    # Récupération groupée par nom_placement
+    cursor.execute("""
+        SELECT *
+        FROM echeancier
+        WHERE prochaine_echeance <=  ?
+    """, (current_date,))
+    echeances = cursor.fetchall()
+    return current_date,echeances
+
+def GetEcheanceForce(echeance_date,echeance_id):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    # Récupération groupée par nom_placement
+    cursor.execute("""
+        SELECT *
+        FROM echeancier
+        WHERE id = ?
+    """, (echeance_id,))
+    echeances = cursor.fetchall()
+    return echeance_date,echeances
+
+def UpdateProchaineEcheance(id,next_date):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    UPDATE echeancier
+    SET prochaine_echeance = ?
+    WHERE id = ?
+    ''', (next_date,
+          id))
+
+    conn.commit()
+    conn.close()
+
+
+def RunEcheance(current_date,echeances):
+    from Main import get_next_echeance
+    for row in echeances:
+        if row[21]:
+            montant_investit = round(row[13]*row[14] + row[15])
+            position = Position(current_date,row[5],row[8],row[13],row[14],row[15],row[16],row[17],row[4],montant_investit,row[6])
+            InsertPosition(position)
+            if position.type == "Achat":
+                InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
+            elif position.type == "Vente":
+                InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
+        else:
+            operation = Operation(current_date,row[5],row[7],row[8],row[20],row[9],row[10],row[11],row[12],row[17],row[4],"",row[6],type_beneficiaire=row[18],beneficiaire=row[19])
+            InsertOperation(operation)
+
+        UpdateProchaineEcheance(row[0],get_next_echeance(current_date,row[1]))
+
+
+        
+
 
 

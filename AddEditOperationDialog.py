@@ -44,14 +44,14 @@ def set_combobox_index_by_data(combo: QComboBox, data):
         combo.setCurrentIndex(index)
 
 class AddEditOperationDialog(BaseDialog):
-    def __init__(self, parent=None, account_id=None, operation: Operation = None, isEdit=False, isEcheance = False, compte_echeance = None):
+    def __init__(self, parent=None, account_id=None, operation: Operation = None, isEdit=False, isEcheance = False, echeance:Echeance = None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter / Modifier une opération")       
         self.account_id = account_id
         self.operation = operation
         self.isEdit = isEdit
         self.isEcheance = isEcheance
-        self.compte_echeance = compte_echeance
+        self.echeance = echeance
 
         self.layout = QFormLayout()
 
@@ -189,6 +189,9 @@ class AddEditOperationDialog(BaseDialog):
         if self.operation:
             self.fill_fields()
 
+        if self.echeance:
+            self.fill_fields_echeance()
+
         if self.isEcheance:
             self.ajouter_echeancier_checkbox.setCheckState(Qt.CheckState.Checked)
             self.ajouter_echeancier_checkbox.setEnabled(False)
@@ -224,6 +227,10 @@ class AddEditOperationDialog(BaseDialog):
         self.beneficiaire.setCompleter(self.beneficiaire_completer)
         for b in beneficiaires:
             self.beneficiaire.addItem(b.nom, userData=b.nom)
+
+    def fill_fields_echeance(self):
+        self.date_premiere.setDate(QDate.fromString(str(self.echeance.echeance1), "yyyyMMdd"))
+        set_combobox_index_by_text(self.frequence, self.echeance.frequence)
 
     def fill_fields(self):
         self.date.setDate(QDate.fromString(str(self.operation.date), "yyyyMMdd"))
@@ -316,28 +323,30 @@ class AddEditOperationDialog(BaseDialog):
         else:
             compte_associe = ""
 
-        if self.operation:
-            # Mise à jour
-            old_debit = self.operation.debit
-            old_credit = self.operation.credit
-            self.operation.date = date
-            self.operation.type = type_operation
-            self.operation.type_tier = type_tier
-            self.operation.tier = id_tier
-            self.operation.moyen_paiement = moyen_paiement
-            self.operation.num_cheque = num_cheque
-            self.operation.categorie = categorie
-            self.operation.sous_categorie = sous_categorie
-            self.operation.debit = debit
-            self.operation.credit = credit
-            self.operation.notes = notes
-            self.operation.compte_associe = compte_associe
-            self.parent().update_operation(self.operation,old_credit,old_debit,self.isEdit)
-        elif self.operation is None and not self.isEcheance:
-            # Insertion
-            operation = Operation(date, type_operation, type_tier, id_tier, moyen_paiement, categorie, sous_categorie,
-                                    debit, credit, notes, self.account_id, num_cheque, compte_associe,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
-            self.parent().add_operation(operation)
+
+        if not self.isEcheance:
+            if self.operation:
+                # Mise à jour
+                old_debit = self.operation.debit
+                old_credit = self.operation.credit
+                self.operation.date = date
+                self.operation.type = type_operation
+                self.operation.type_tier = type_tier
+                self.operation.tier = id_tier
+                self.operation.moyen_paiement = moyen_paiement
+                self.operation.num_cheque = num_cheque
+                self.operation.categorie = categorie
+                self.operation.sous_categorie = sous_categorie
+                self.operation.debit = debit
+                self.operation.credit = credit
+                self.operation.notes = notes
+                self.operation.compte_associe = compte_associe
+                self.parent().update_operation(self.operation,old_credit,old_debit,self.isEdit)
+            elif self.operation is None :
+                # Insertion
+                operation = Operation(date, type_operation, type_tier, id_tier, moyen_paiement, categorie, sous_categorie,
+                                        debit, credit, notes, self.account_id, num_cheque, compte_associe,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
+                self.parent().add_operation(operation)
 
         
         if self.ajouter_echeancier_checkbox.isChecked():
@@ -345,8 +354,9 @@ class AddEditOperationDialog(BaseDialog):
             date_premiere = int(self.date_premiere.date().toString("yyyyMMdd"))
             prochaine_echeance = get_next_echeance(date_premiere, frequence)
             compte_id = None
-            if self.compte_echeance is not None:
-                compte_id = self.compte_echeance
+            if self.echeance is not None:
+                compte_id = self.echeance.compte_id
+                prochaine_echeance = self.echeance.prochaine_echeance
             else:
                 compte_id = self.account_id
 
@@ -368,12 +378,20 @@ class AddEditOperationDialog(BaseDialog):
                 0,
                 0,
                 0,
+                moyen_paiement,
+                0,
                 compte_associe,
                 type_beneficiaire,
                 beneficiaire
                 # ajoute d’autres champs nécessaires selon la structure de Echeancier
             )
-            InsertEcheance(echeance)
+            if self.isEcheance:
+                if self.isEdit:
+                    echeance._id = self.operation._id
+                    echeance.compte_id = self.echeance.compte_id
+                    UpdateEcheance(echeance)
+                else:
+                    InsertEcheance(echeance)
             self.parent().load_echeance()
         self.accept()
 
