@@ -1,4 +1,6 @@
 import sys
+
+from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QPushButton, QLabel, QTableWidget, QTableWidgetItem, QListWidgetItem, QMessageBox,
@@ -8,7 +10,7 @@ from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_p
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from IPython.display import HTML, display
 from PyQt6.QtGui import QAction,QColor
-from PyQt6.QtCore import Qt,QPoint,QUrl
+from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot
 from GestionBD import *
 from CheckableComboBox import *
 from DateTableWidgetItem import *
@@ -39,6 +41,17 @@ import json
 import plotly
 import os
 from datetime import datetime
+from HTMLJSTemplate import generate_html_with_js
+
+
+class ClickHandler(QObject):
+    @pyqtSlot(str)
+    def handle_click(self, data_json_str):
+        import json
+        data = json.loads(data_json_str)
+        print("User clicked:", data)
+        # self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq),0)
+        # self.transaction_table.setColumnHidden(16,True)
 
 
 def sunburst_chart(data_raw):
@@ -252,6 +265,7 @@ class MoneyManager(QMainWindow):
 
         self.etat_tab = QWidget()
         self.tabs.addTab(self.etat_tab, "Etat")
+
         self.setup_etat_tab()
 
     def update_etat_graph(self):
@@ -285,16 +299,8 @@ class MoneyManager(QMainWindow):
             )
         # 1. Générez le div Plotly
         plotly_div = plotly.offline.plot(fig, include_plotlyjs='cdn', output_type='div')
-
-        # 2. Enveloppez le div Plotly dans un conteneur avec du style CSS pour le centrage
-        html_content = f"""
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
-            {plotly_div}
-        </div>
-        """
-
-        # Ensuite, vous l'affichez dans votre widget :
-        self.etat_chart.setHtml(html_content)
+        html_with_js = generate_html_with_js(plotly_div)
+        self.etat_chart.setHtml(html_with_js)
 
     def setup_etat_tab(self):
         layout = QVBoxLayout(self.etat_tab)
@@ -308,7 +314,12 @@ class MoneyManager(QMainWindow):
 
         # Zone de graphique Plotly
         self.etat_chart = QWebEngineView()
+        self.channel = QWebChannel()
+        self.click_handler = ClickHandler()
+        self.channel.registerObject('handler', self.click_handler)
+        self.etat_chart.page().setWebChannel(self.channel)
         layout.addWidget(self.etat_chart)
+
 
         # Initialiser avec un graphique vide ou le 1er affichage
         self.update_etat_graph()
