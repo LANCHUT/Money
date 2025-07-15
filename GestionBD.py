@@ -2015,7 +2015,7 @@ def GetBilanByCategorie():
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("""
-        select c.nom ,o.categorie,o.sous_categorie,(sum(o.debit)+sum(o.credit)) as somme
+        select c.nom, c.id, o.categorie,o.sous_categorie,(sum(o.debit)+sum(o.credit)) as somme
         from operations o
         inner join comptes c on o.compte_id = c.id
         where o.date >= ? and o.date <= ?
@@ -2025,7 +2025,7 @@ def GetBilanByCategorie():
     result = []
 
     for row in rows:
-        result.append({"compte": row[0], "categorie": row[1], "sous_cat": row[2], "mois": "2025-04", "montant": row[3] *-1})
+        result.append({"compte": row[0], "compte_id": row[1], "categorie": row[2], "sous_cat": row[3], "mois": "2025-04", "montant": row[4] *-1})
     
     return result
 

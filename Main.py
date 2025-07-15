@@ -10,7 +10,7 @@ from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_p
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from IPython.display import HTML, display
 from PyQt6.QtGui import QAction,QColor
-from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot
+from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal
 from GestionBD import *
 from CheckableComboBox import *
 from DateTableWidgetItem import *
@@ -40,22 +40,23 @@ import plotly.graph_objs as go
 import json
 import plotly
 import os
-from datetime import datetime
+import datetime
 from HTMLJSTemplate import generate_html_with_js
 
 
 class ClickHandler(QObject):
+    clicked =   pyqtSignal(dict)  # Signal to propagate data
+
     @pyqtSlot(str)
     def handle_click(self, data_json_str):
         import json
         data = json.loads(data_json_str)
-        print("User clicked:", data)
-        # self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq),0)
-        # self.transaction_table.setColumnHidden(16,True)
-
+        if data["last_ring"]:
+            self.clicked.emit(data)
 
 def sunburst_chart(data_raw):
     processed_data = []
+    compte_ids = []
     for entry in data_raw:
         new_entry = entry.copy()
         if new_entry["montant"] < 0:
@@ -64,6 +65,7 @@ def sunburst_chart(data_raw):
         else:
             new_entry["type_flux"] = "Dépenses"
         processed_data.append(new_entry)
+        compte_ids.append(new_entry["compte_id"])
 
     # --- Construction des listes pour le Sunburst ---
     sunburst_labels = []
@@ -80,6 +82,8 @@ def sunburst_chart(data_raw):
     COLOR_DEPENSES_BASE = 'rgb(255, 99, 71)' # Tomate (rouge)
     COLOR_REVENUS_BASE = 'rgb(60, 179, 113)' # Vert moyen
 
+    # IDS Splitter
+    var_split = "##"
     # Étape 1 : Parcourir les données traitées pour accumuler les totaux et ajouter les feuilles
     for entry in processed_data:
         type_flux = entry["type_flux"]
@@ -89,9 +93,9 @@ def sunburst_chart(data_raw):
         montant = round(entry["montant"],2)
 
         type_flux_id = type_flux
-        compte_id = f"{type_flux_id}_{compte}"
-        categorie_id = f"{compte_id}_{categorie}"
-        sous_cat_id = f"{categorie_id}_{sous_cat}"
+        compte_id = f"{type_flux_id}{var_split}{compte}"
+        categorie_id = f"{compte_id}{var_split}{categorie}"
+        sous_cat_id = f"{categorie_id}{var_split}{sous_cat}"
 
         aggregated_totals[type_flux_id] = aggregated_totals.get(type_flux_id, 0) + montant
         aggregated_totals[compte_id] = aggregated_totals.get(compte_id, 0) + montant
@@ -110,13 +114,13 @@ def sunburst_chart(data_raw):
     unique_categories = set((e["type_flux"], e["compte"], e["categorie"]) for e in processed_data)
     for type_flux, compte, categorie in unique_categories:
         type_flux_id = type_flux
-        compte_id = f"{type_flux_id}_{compte}"
-        categorie_id = f"{compte_id}_{categorie}"
+        compte_name = f"{type_flux_id}{var_split}{compte}"
+        categorie_id = f"{compte_name}{var_split}{categorie}"
 
         if categorie_id not in added_ids_to_sunburst_lists:
             sunburst_ids.append(categorie_id)
             sunburst_labels.append(categorie)
-            sunburst_parents.append(compte_id)
+            sunburst_parents.append(compte_name)
             sunburst_values.append(aggregated_totals.get(categorie_id, 0))
             sunburst_colors.append(COLOR_DEPENSES_BASE if type_flux == "Dépenses" else COLOR_REVENUS_BASE)
             added_ids_to_sunburst_lists.add(categorie_id)
@@ -125,18 +129,19 @@ def sunburst_chart(data_raw):
     unique_comptes = set((e["type_flux"], e["compte"]) for e in processed_data)
     for type_flux, compte in unique_comptes:
         type_flux_id = type_flux
-        compte_id = f"{type_flux_id}_{compte}"
+        compte_name = f"{type_flux_id}{var_split}{compte}"
 
-        if compte_id not in added_ids_to_sunburst_lists:
-            sunburst_ids.append(compte_id)
+        if compte_name not in added_ids_to_sunburst_lists:
+            sunburst_ids.append(compte_name)
             sunburst_labels.append(compte)
             sunburst_parents.append(type_flux_id)
-            sunburst_values.append(aggregated_totals.get(compte_id, 0))
+            sunburst_values.append(aggregated_totals.get(compte_name, 0))
             sunburst_colors.append(COLOR_DEPENSES_BASE if type_flux == "Dépenses" else COLOR_REVENUS_BASE)
-            added_ids_to_sunburst_lists.add(compte_id)
+            added_ids_to_sunburst_lists.add(compte_name)
 
     # Étape 4 : Ajouter les types de flux (niveau racine)
     unique_types_flux = set(e["type_flux"] for e in processed_data)
+
     for type_flux in unique_types_flux:
         type_flux_id = type_flux
 
@@ -149,15 +154,23 @@ def sunburst_chart(data_raw):
             sunburst_colors.append(COLOR_DEPENSES_BASE if type_flux == "Dépenses" else COLOR_REVENUS_BASE)
             added_ids_to_sunburst_lists.add(type_flux_id)
 
+    last_ring = max(len(y.split(var_split)) for y in sunburst_ids)
+    last_ring_values = [False] * len(sunburst_ids)
+    for index, sunburst_id in enumerate(sunburst_ids):
+        if len(sunburst_id.split(var_split)) == last_ring:
+            last_ring_values[index] = True
+
+    custom_data = list(zip(last_ring_values, compte_ids))
+
     # --- Création du graphique Sunburst ---
     fig = go.Figure(go.Sunburst(
         ids=sunburst_ids,
         labels=sunburst_labels,
         parents=sunburst_parents,
         values=sunburst_values,
+        customdata=custom_data,
         branchvalues="total",
         hovertemplate='<b>%{label}</b><br>Montant: %{value}€<extra></extra>',
-        # *** Nouvelle ligne pour les couleurs ***
         marker=dict(colors=sunburst_colors)
     ))
 
@@ -273,7 +286,7 @@ class MoneyManager(QMainWindow):
         if choix == "Bilan Période par catégorie et par compte":
             data_raw = GetBilanByCategorie()
             fig = sunburst_chart(data_raw)
-           
+
 
         elif choix == "Bilan Période par tiers et par compte":
             mois = ["2025-04", "2025-05", "2025-06"]
@@ -318,11 +331,19 @@ class MoneyManager(QMainWindow):
         self.click_handler = ClickHandler()
         self.channel.registerObject('handler', self.click_handler)
         self.etat_chart.page().setWebChannel(self.channel)
+        self.click_handler.clicked.connect(self.process_click_data)
+
         layout.addWidget(self.etat_chart)
 
 
         # Initialiser avec un graphique vide ou le 1er affichage
         self.update_etat_graph()
+
+    def process_click_data(self, data):
+
+        self.tabs.setCurrentWidget(self.operation_tab)
+        self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)
+        self.transaction_table.setColumnHidden(16,True)
 
     def setup_echeancier_tab(self):
         layout = QVBoxLayout(self.echeancier_tab)
@@ -344,16 +365,16 @@ class MoneyManager(QMainWindow):
         layout.addWidget(generer_btn)
 
         self.load_echeance()
-    
+
     def add_echeance(self):
-        dialog = EcheanceDialog(GetComptes(), self)        
+        dialog = EcheanceDialog(GetComptes(), self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             compte_choisi = dialog.selected_compte
             if dialog.selected_type == "operation":
                 self.open_add_operation_dialog(isEcheance=True, compte_echeance = compte_choisi)
             elif dialog.selected_type == "position":
                 self.open_add_position_dialog(isEcheance=True, compte_echeance = compte_choisi)
-                
+
 
 
     def load_accounts(self):
@@ -378,12 +399,12 @@ class MoneyManager(QMainWindow):
         self.position_table.setRowCount(0)
         for position in GetPositions(self.current_account):
             self.add_position_row(position)
-            
+
     def load_sous_categories(self):
         self.sous_categorie_table.setSortingEnabled(False)
         sous_categories = GetAllSousCategorie()
         self.sous_categorie_table.setRowCount(len(sous_categories))
-        
+
         for row, sous_cat in enumerate(sous_categories):
             self.add_sous_categorie_row(row, sous_cat)
 
@@ -394,7 +415,7 @@ class MoneyManager(QMainWindow):
         self.sous_categorie2_table.setSortingEnabled(False)
         beneficiaires = GetAllBeneficiaire()
         self.sous_categorie2_table.setRowCount(len(beneficiaires))
-        
+
         for row, beneficiaire in enumerate(beneficiaires):
             self.add_beneficiaire_row(row, beneficiaire)
 
@@ -509,7 +530,7 @@ class MoneyManager(QMainWindow):
         item = QListWidgetItem()
         item.setData(Qt.ItemDataRole.UserRole, {"id": compte._id, "nom": compte.nom})
         item.setSizeHint(widget.sizeHint())
-        
+
         self.account_list.addItem(item)
         self.account_list.setItemWidget(item, widget)
 
@@ -547,7 +568,7 @@ class MoneyManager(QMainWindow):
         except Exception as e:
             print("Erreur:", e)
             QMessageBox.warning(self, "Attention", "Le compte 'Total' n'est pas un compte valide, Veuillez choisir un autre compte.")
-        
+
 
     def open_add_account_dialog(self):
         dialog = AddEditAccountDialog(self)
@@ -608,7 +629,7 @@ class MoneyManager(QMainWindow):
             self.tier_table.item(row, 4).setText(dialog.moy_paiement_defaut.currentText())
             etat = "Actif" if dialog.actif.checkState().value else "Inactif"
             self.tier_table.item(row, 5).setText(etat)
-            
+
             # Mettre à jour l'ID si besoin (normalement pas nécessaire sauf si recréation)
             self.tier_table.item(row, 0).setData(Qt.ItemDataRole.UserRole, tier_id)
 
@@ -673,10 +694,10 @@ class MoneyManager(QMainWindow):
             self.compte_table.item(row, 0).setText(dialog.nom_input.text())
             self.compte_table.item(row, 2).setText(dialog.type_input.currentText())
             self.compte_table.item(row, 3).setText(dialog.banque_input.text())
-            
+
             # Mettre à jour l'ID si besoin (normalement pas nécessaire sauf si recréation)
             self.compte_table.item(row, 0).setData(Qt.ItemDataRole.UserRole, compte_id)
-            
+
 
     def delete_selected_tier(self, row):
         item_nom = self.tier_table.item(row, 0)
@@ -832,7 +853,7 @@ class MoneyManager(QMainWindow):
         DeleteBeneficiaire(nom)  # Supprime le type de bénéficiaire
         self.load_beneficiaire()
         self.load_operations()
-        
+
 
 
     def delete_selected_sous_categorie(self, row):
@@ -1183,7 +1204,7 @@ class MoneyManager(QMainWindow):
             if not echeance:
                 QMessageBox.warning(self, "Erreur", "Impossible de trouver l'echéance sélectionnée.")
                 return
-            
+
             RunEcheance(*GetEcheanceForce(echeance.prochaine_echeance,echeance_id))
             self.reset_filters()
             self.placement_table.clearContents()
@@ -1195,14 +1216,14 @@ class MoneyManager(QMainWindow):
             self.echeance_table.clearContents()
             self.load_echeance()
             QMessageBox.information(self,"Forçage réussi","L'opération a bien été écrite dans les comptes")
-        
+
         except Exception as e:
             print("Erreur lors du forçage de l'échéance:", e)
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
 
     def edit_selected_historique_placement(self, row):
         # Récupérer les informations de la ligne sélectionnée
-        date_int = int(datetime.strptime(self.history_table.item(row, 0).text(), "%d/%m/%Y").strftime("%Y%m%d"))
+        date_int = int(datetime.datetime.strptime(self.history_table.item(row, 0).text(), "%d/%m/%Y").strftime("%Y%m%d"))
         historique_placement = GetHistoriquePlacementByDate(self.current_placement,date_int)
         historique_placement.date = self.history_table.item(row, 0).text()
 
@@ -1225,7 +1246,7 @@ class MoneyManager(QMainWindow):
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
         if choix == QMessageBox.StandardButton.Yes:
-            date_int = int(datetime.strptime(self.history_table.item(row, 0).text(), "%d/%m/%Y").strftime("%Y%m%d"))
+            date_int = int(datetime.datetime.strptime(self.history_table.item(row, 0).text(), "%d/%m/%Y").strftime("%Y%m%d"))
             DeleteHistoriquePlacement(self.current_placement,date_int)
             self.show_placement_history_graph(self.placement_table.item(self.current_placement_row, 0))
             self.placement_table.clearContents()
@@ -1251,7 +1272,7 @@ class MoneyManager(QMainWindow):
                 return
             DeleteEcheance(echeance_id)
             self.load_echeance()
-        
+
 
 
     def edit_selected_operation(self, row, isEdit):
@@ -1300,7 +1321,7 @@ class MoneyManager(QMainWindow):
             self.moyen_paiement_table.item(row, 0).setText(dialog.nom.text())
             self.load_tiers()
             self.load_operations()
-            
+
     def open_performance_dialog(self):
         if self.current_account is not None:
             dialog = ShowPerformanceDialog(self, self.current_account)
@@ -1357,7 +1378,7 @@ class MoneyManager(QMainWindow):
         item = QTableWidgetItem(type_beneficiaire.nom)
         item.setData(Qt.ItemDataRole.UserRole,type_beneficiaire.nom)
         self.categorie2_table.setItem(row, 0, align(item))
-        
+
 
     def add_moyen_paiement_row(self, row, mp: MoyenPaiement):
         item = QTableWidgetItem(mp.nom)
@@ -1413,7 +1434,7 @@ class MoneyManager(QMainWindow):
         else:
             solde_str = "+ " + solde_str
             color = QColor("green")
-        
+
         item_solde = NumericTableWidgetItem(solde, solde_str)
         item_solde.setForeground(color)
         item_solde.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -1422,10 +1443,10 @@ class MoneyManager(QMainWindow):
         self.compte_table.setItem(row, 2, QTableWidgetItem(compte.type))
         self.compte_table.setItem(row, 3, QTableWidgetItem(compte.nom_banque))
 
-        
+
     def load_operations(self, operations=None, solde=None):
-        if self.current_account is None:
-            return 
+        if self.current_account is None and operations == []:
+            return
         if operations is None or solde is None:
             operations = GetOperationsNotBq(self.current_account)
             solde = GetDerniereValeurPointe(self.current_account)[0]
@@ -1551,7 +1572,7 @@ class MoneyManager(QMainWindow):
         compte_associe_name = ''
         if position.compte_associe != '':
             compte_associe_name = self.get_compte_name(position.compte_associe)
-            
+
         self.position_table.setSortingEnabled(False)
         row = self.position_table.rowCount()
         self.position_table.insertRow(row)
@@ -1569,7 +1590,7 @@ class MoneyManager(QMainWindow):
         self.position_table.resizeColumnsToContents()
         self.position_table.setSortingEnabled(True)
 
-    
+
     def add_position(self, position:Position):
         InsertPosition(position)
         if position.type == "Achat":
@@ -1592,7 +1613,7 @@ class MoneyManager(QMainWindow):
             conflit_msg.setIcon(QMessageBox.Icon.Warning)
             conflit_msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             conflit_msg.setDefaultButton(QMessageBox.StandardButton.No)
-            
+
             result = conflit_msg.exec()
 
             if result == QMessageBox.StandardButton.Yes:
@@ -1628,7 +1649,7 @@ class MoneyManager(QMainWindow):
         self.tier_table.setSortingEnabled(True)
         self.tiers_filter.addItem(tier.nom)
         self.tiers_nom_to_id[tier.nom] = str(tier._id)
-        
+
     def add_sous_categorie(self,sous_categorie):
         if InsertSousCategorie(sous_categorie):
             # 1. Suspend le tri pour empêcher le déplacement de la ligne en cours d’édition
@@ -1699,7 +1720,7 @@ class MoneyManager(QMainWindow):
             # 3. Ajuste la largeur des colonnes puis réactive le tri
             self.type_tier_table.resizeColumnsToContents()
             self.type_tier_table.setSortingEnabled(True)
-            
+
 
     def add_placement(self,historique_placement:HistoriquePlacement):
         placement = Placement(historique_placement.nom,historique_placement.type)
@@ -1732,10 +1753,10 @@ class MoneyManager(QMainWindow):
             # 3. Ajuste la largeur des colonnes puis réactive le tri
             self.moyen_paiement_table.resizeColumnsToContents()
             self.moyen_paiement_table.setSortingEnabled(True)
-            
+
 
     def add_compte(self,compte:Compte):
-        if InsertCompte(compte,parent=self):                    
+        if InsertCompte(compte,parent=self):
             self.account_list.clear()
             self.load_accounts()
             # 1. Suspend le tri pour empêcher le déplacement de la ligne en cours d’édition
@@ -1750,8 +1771,8 @@ class MoneyManager(QMainWindow):
             self.compte_table.setSortingEnabled(True)
             self.compte_filter.addItem(compte.nom)
             self.comptes_nom_to_id[compte.nom] = str(compte._id)
-            
-            
+
+
 
     def update_tier(self, tier):
         UpdateTier(tier)
@@ -1797,15 +1818,15 @@ class MoneyManager(QMainWindow):
 
     def show_about(self):
         QMessageBox.information(self, "À propos", "Money Manager v0.1\nCréé avec PyQt6.")
-    
-    @staticmethod    
+
+    @staticmethod
     def get_tier_name(tier_id: Optional[str]) -> str:
         if not tier_id:
             return ""
         tier_name = GetTierName(tier_id)
         return tier_name if tier_name else ""
-    
-    @staticmethod    
+
+    @staticmethod
     def get_compte_name(compte_id: Optional[str]) -> str:
 
         return GetCompteName(compte_id)
@@ -1898,13 +1919,13 @@ class MoneyManager(QMainWindow):
         self.cancel_pointage_btn.clicked.connect(self.annuler_pointage)
         self.cancel_pointage_btn.hide()  # Masqué par défaut
 
-        
+
 
         # Layout horizontal pour les deux boutons
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.add_transaction_btn)
         button_layout.addWidget(self.show_performance_btn)
-        button_layout.addWidget(self.pointage_btn)        
+        button_layout.addWidget(self.pointage_btn)
         button_layout.addWidget(self.cancel_pointage_btn)
         button_layout.addWidget(self.suspendre_pointage_btn)
         button_layout.addWidget(self.reprendre_pointage_btn)
@@ -2036,7 +2057,7 @@ class MoneyManager(QMainWindow):
 
         right_panel.addLayout(self.table_stack)
         right_panel.addLayout(button_layout)
-        
+
         operation_tab_layout.addLayout(right_panel, 3)
 
     def select_all_items(self, combo: CheckableComboBox, checked: bool):
@@ -2199,7 +2220,7 @@ class MoneyManager(QMainWindow):
             valeur_item = NumericTableWidgetItem(valeur, valeur_formate)
             valeur_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             self.history_table.setItem(row_position, 1, valeur_item)
-        
+
         self.history_table.resizeColumnsToContents()
 
         self.history_table.setVisible(True)
@@ -2301,7 +2322,7 @@ class MoneyManager(QMainWindow):
 
     def add_total_to_list(self):
         total = sum(compte.solde for compte in GetComptes())
-        
+
         widget = QWidget()
         layout = QHBoxLayout(widget)
 
@@ -2333,7 +2354,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2342,7 +2363,7 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.tier_table.viewport().mapToGlobal(pos))
 
     def show_context_menu_compte(self, pos: QPoint):
@@ -2353,7 +2374,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2362,12 +2383,12 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.compte_table.viewport().mapToGlobal(pos))
 
     def delete_row(self, row):
         reply = QMessageBox.question(
-            self, "Confirmation", "Supprimer ce tier ?", 
+            self, "Confirmation", "Supprimer ce tier ?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
@@ -2381,7 +2402,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2390,7 +2411,7 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.sous_categorie_table.viewport().mapToGlobal(pos))
 
 
@@ -2402,7 +2423,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2411,7 +2432,7 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.sous_categorie2_table.viewport().mapToGlobal(pos))
 
 
@@ -2423,7 +2444,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2432,7 +2453,7 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.categorie_table.viewport().mapToGlobal(pos))
 
     def show_context_menu_type_beneficiaire(self, pos: QPoint):
@@ -2443,7 +2464,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2452,7 +2473,7 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.categorie_table.viewport().mapToGlobal(pos))
 
     def show_context_menu_placement(self, pos: QPoint):
@@ -2463,7 +2484,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
         actualiser_action = QAction("Actualiser",self)
@@ -2475,7 +2496,7 @@ class MoneyManager(QMainWindow):
         menu.addAction(edit_action)
         menu.addAction(delete_action)
         menu.addAction(actualiser_action)
-        
+
         menu.exec(self.placement_table.viewport().mapToGlobal(pos))
 
     def show_context_menu_moyen_paiement(self, pos: QPoint):
@@ -2486,7 +2507,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2495,7 +2516,7 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.moyen_paiement_table.viewport().mapToGlobal(pos))
 
     def show_context_menu_type_tier(self, pos: QPoint):
@@ -2506,7 +2527,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2515,7 +2536,7 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.type_tier_table.viewport().mapToGlobal(pos))
 
     def show_context_menu_operation(self, pos: QPoint):
@@ -2526,7 +2547,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
         dupliquer_action = QAction("Dupliquer", self)
@@ -2538,7 +2559,7 @@ class MoneyManager(QMainWindow):
         menu.addAction(edit_action)
         menu.addAction(delete_action)
         menu.addAction(dupliquer_action)
-        
+
         menu.exec(self.transaction_table.viewport().mapToGlobal(pos))
 
     def show_context_menu_historique_placement(self, pos: QPoint):
@@ -2549,7 +2570,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
 
@@ -2558,7 +2579,7 @@ class MoneyManager(QMainWindow):
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
-        
+
         menu.exec(self.history_table.viewport().mapToGlobal(pos))
 
 
@@ -2570,7 +2591,7 @@ class MoneyManager(QMainWindow):
         row = item.row()
 
         menu = QMenu(self)
-        
+
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
         forcer_action = QAction("Forcer l'écriture dans les comptes", self)
@@ -2582,7 +2603,7 @@ class MoneyManager(QMainWindow):
         menu.addAction(edit_action)
         menu.addAction(delete_action)
         menu.addAction(forcer_action)
-        
+
         menu.exec(self.echeance_table.viewport().mapToGlobal(pos))
 
     def apply_filters(self):
@@ -2618,7 +2639,7 @@ class MoneyManager(QMainWindow):
 
         self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq),0)
         self.transaction_table.setColumnHidden(16,True)
-            
+
     def reset_filters(self):
         # Vider les sélections
         self.categorie_filter.clear()
@@ -2629,7 +2650,7 @@ class MoneyManager(QMainWindow):
         for cat in GetCategorie():
             self.categorie_filter.addItem(cat.nom)
             for sous_cat in GetSousCategorie(cat.nom):
-                self.sous_categorie_filter.addItem(sous_cat.nom)    
+                self.sous_categorie_filter.addItem(sous_cat.nom)
         for tier in GetTiers():
             self.tiers_filter.addItem(tier.nom)
         for compte in GetComptes():
@@ -2638,7 +2659,7 @@ class MoneyManager(QMainWindow):
 
         self.load_operations()
         self.transaction_table.setColumnHidden(16,False)
-        
+
 
         # Réinitialiser les dates
         from PyQt6.QtCore import QDate
@@ -2685,8 +2706,8 @@ class MoneyManager(QMainWindow):
         self.pointage_btn.hide()
         self.end_pointage_btn.show()
         self.cancel_pointage_btn.show()
-        self.add_transaction_btn.setEnabled(True)        
-          
+        self.add_transaction_btn.setEnabled(True)
+
 
     def handle_table_click(self, row, column):
         handle_bq_click(row, column, self.transaction_table, self.pointage_state, self, self)

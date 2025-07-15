@@ -12,7 +12,9 @@ def generate_html_with_js(plotly_div):
                 var clicked_data = {
                     id: point.id,
                     label: point.label,
-                    value: point.value
+                    value: point.value,
+                    last_ring: point.customdata[0],
+                    compte_id: point.customdata[1]
                 };
                 handler.handle_click(JSON.stringify(clicked_data));
             });
