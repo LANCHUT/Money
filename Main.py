@@ -45,14 +45,13 @@ from HTMLJSTemplate import generate_html_with_js
 
 
 class ClickHandler(QObject):
-    clicked =   pyqtSignal(dict)  # Signal to propagate data
+    clicked =   pyqtSignal(dict,bool)  # Signal to propagate data
 
     @pyqtSlot(str)
     def handle_click(self, data_json_str):
         import json
         data = json.loads(data_json_str)
-        if data["last_ring"]:
-            self.clicked.emit(data)
+        self.clicked.emit(data, data["last_ring"])
 
 def sunburst_chart(data_raw):
     processed_data = []
@@ -339,11 +338,11 @@ class MoneyManager(QMainWindow):
         # Initialiser avec un graphique vide ou le 1er affichage
         self.update_etat_graph()
 
-    def process_click_data(self, data):
-
-        self.tabs.setCurrentWidget(self.operation_tab)
-        self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)
-        self.transaction_table.setColumnHidden(16,True)
+    def process_click_data(self, data, is_last_ring):
+        if is_last_ring: # Nouvelle condition
+            self.tabs.setCurrentWidget(self.operation_tab)
+            self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)
+            self.transaction_table.setColumnHidden(16,True)
 
     def setup_echeancier_tab(self):
         layout = QVBoxLayout(self.echeancier_tab)

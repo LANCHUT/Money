@@ -2,7 +2,7 @@ import json
 
 def generate_html_with_js(plotly_div):
     js_code = """
-        <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+        <script src=\"qrc:///qtwebchannel/qwebchannel.js\"></script>
         <script>
         new QWebChannel(qt.webChannelTransport, function(channel) {
             window.handler = channel.objects.handler;
@@ -13,8 +13,8 @@ def generate_html_with_js(plotly_div):
                     id: point.id,
                     label: point.label,
                     value: point.value,
-                    last_ring: point.customdata[0],
-                    compte_id: point.customdata[1]
+                    last_ring: point.customdata && point.customdata.length > 0 ? point.customdata[0] : false,
+                    compte_id: point.customdata && point.customdata.length > 1 ? point.customdata[1] : null
                 };
                 handler.handle_click(JSON.stringify(clicked_data));
             });
@@ -24,10 +24,10 @@ def generate_html_with_js(plotly_div):
     html_content = f"""
     <html>
     <head>
-    <meta charset="utf-8">
+    <meta charset=\"utf-8\">
     </head>
     <body>
-    <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+    <div style=\"display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;\">
     {plotly_div}
     </div>
     {js_code}
