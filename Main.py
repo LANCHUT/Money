@@ -53,105 +53,196 @@ class ClickHandler(QObject):
         data = json.loads(data_json_str)
         self.clicked.emit(data, data["last_ring"])
 
-def sunburst_chart(data_raw):
+def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_column=None, root_name="Total", negative_value_treatment=None):
+    """
+    Generates a Sunburst chart from raw data with a customizable hierarchy.
+    Handles negative values by categorizing them (e.g., as "Dépenses") and converting to absolute
+    for visualization, while displaying the true (signed) total balance in the root's label.
+
+    Args:
+        data_raw (list of dict): The input data, where each dictionary represents a row.
+                                  Expected to have 'montant' and other columns specified in hierarchy_columns.
+        hierarchy_columns (list of str): A list of column names defining the hierarchy
+                                         from the outermost ring to the innermost.
+                                         Example: ["type_flux", "compte", "categorie", "sous_cat"]
+        value_column (str): The name of the column containing the numerical values for aggregation.
+                            Defaults to "montant".
+        color_column (str, optional): The name of the column to use for coloring the top-level segments.
+                                      If None, default colors (red/green for negative/positive) are used.
+                                      If specified, all segments will use the same color.
+        root_name (str): The label for the center of the sunburst chart. Defaults to "Total".
+        negative_value_treatment (dict, optional): A dictionary specifying how to handle negative values.
+                                                   Expected keys:
+                                                       "column_to_update": (str) The column whose value should be updated (e.g., "type_flux").
+                                                       "negative_label": (str) The label to assign if the original value is negative.
+                                                       "positive_label": (str) The label to assign if the original value is positive.
+                                                   If None, negative values are treated as a default 'Dépenses' type.
+                                                   Example: {"column_to_update": "type_flux", "negative_label": "Dépenses", "positive_label": "Revenus"}
+    Returns:
+        plotly.graph_objects.Figure: A Plotly Sunburst chart figure.
+    """
+
     processed_data = []
     compte_ids = []
+    true_total_balance = round(sum(entry[value_column] for entry in data_raw), 2) # Keep true balance for root label
+
     for entry in data_raw:
         new_entry = entry.copy()
-        if new_entry["montant"] < 0:
-            new_entry["type_flux"] = "Revenus"
-            new_entry["montant"] = round(abs(new_entry["montant"]),2)
-        else:
-            new_entry["type_flux"] = "Dépenses"
+        # Handle negative values: assign label, and CONVERT TO ABSOLUTE for chart size
+        if negative_value_treatment:
+            if new_entry[value_column] < 0:
+                new_entry[negative_value_treatment["column_to_update"]] = negative_value_treatment["negative_label"]
+                new_entry[value_column] = round(abs(new_entry[value_column]), 2) # CONVERT TO ABSOLUTE
+            else:
+                new_entry[negative_value_treatment["column_to_update"]] = negative_value_treatment["positive_label"]
+                new_entry[value_column] = round(new_entry[value_column], 2) # Keep as is, already positive
+        else: # Default behavior if no specific treatment is provided
+            if new_entry[value_column] < 0:
+                new_entry["type_flux"] = "Dépenses"
+                new_entry[value_column] = round(abs(new_entry[value_column]), 2) # CONVERT TO ABSOLUTE
+            else:
+                new_entry["type_flux"] = "Revenus"
+                new_entry[value_column] = round(new_entry[value_column], 2) # Keep as is, already positive
+
         processed_data.append(new_entry)
-        compte_ids.append(new_entry["compte_id"])
+        if "compte_id" in new_entry:
+            compte_ids.append(new_entry["compte_id"])
+        else:
+            compte_ids.append(None)
+
 
     # --- Construction des listes pour le Sunburst ---
     sunburst_labels = []
     sunburst_parents = []
-    sunburst_values = []
+    sunburst_values = [] # These will always be positive values for chart size
     sunburst_ids = []
-    sunburst_colors = [] # Nouvelle liste pour stocker les couleurs
+    sunburst_colors = []
 
-    # Dictionnaire pour agréger les totaux par ID unique
+    # Dictionnaire pour agréger les totaux par ID unique (now summing absolute values)
     aggregated_totals = {}
     added_ids_to_sunburst_lists = set()
 
-    # Définition des couleurs
-    COLOR_DEPENSES_BASE = 'rgb(255, 99, 71)' # Tomate (rouge)
-    COLOR_REVENUS_BASE = 'rgb(60, 179, 113)' # Vert moyen
+    # Define colors
+    COLOR_DEFAULT_NEGATIVE = 'rgb(255, 99, 71)'   # Tomato (red)
+    COLOR_DEFAULT_POSITIVE = 'rgb(60, 179, 113)'  # Medium Green
+    COLOR_ROOT_POSITIVE = 'rgb(34, 139, 34)'      # Forest Green
+    COLOR_ROOT_NEGATIVE = 'rgb(205, 92, 92)'      # Indian Red
+    COLOR_ROOT_ZERO = 'rgb(128, 128, 128)'        # Gray for zero balance - inchangé
 
     # IDS Splitter
     var_split = "##"
-    # Étape 1 : Parcourir les données traitées pour accumuler les totaux et ajouter les feuilles
+
+    # Step 1: Process leaf nodes and accumulate totals for all levels
     for entry in processed_data:
-        type_flux = entry["type_flux"]
-        compte = entry["compte"]
-        categorie = entry["categorie"]
-        sous_cat = entry["sous_cat"]
-        montant = round(entry["montant"],2)
+        current_path_components = []
+        parent_id = ""
+        current_id = ""
+        # Montant is already absolute from preprocessing for chart sizing
+        montant = entry[value_column]
 
-        type_flux_id = type_flux
-        compte_id = f"{type_flux_id}{var_split}{compte}"
-        categorie_id = f"{compte_id}{var_split}{categorie}"
-        sous_cat_id = f"{categorie_id}{var_split}{sous_cat}"
+        for i, col in enumerate(hierarchy_columns):
+            component = str(entry[col])
+            current_path_components.append(component)
+            current_id = var_split.join(current_path_components)
 
-        aggregated_totals[type_flux_id] = aggregated_totals.get(type_flux_id, 0) + montant
-        aggregated_totals[compte_id] = aggregated_totals.get(compte_id, 0) + montant
-        aggregated_totals[categorie_id] = aggregated_totals.get(categorie_id, 0) + montant
+            # Aggregate absolute values
+            aggregated_totals[current_id] = aggregated_totals.get(current_id, 0) + montant
 
-        if sous_cat_id not in added_ids_to_sunburst_lists:
-            sunburst_ids.append(sous_cat_id)
-            sunburst_labels.append(f"{sous_cat} ({montant}€)")
-            sunburst_parents.append(categorie_id)
-            sunburst_values.append(montant)
-            # Assignation de couleur basée sur le type de flux parent
-            sunburst_colors.append(COLOR_DEPENSES_BASE if type_flux == "Dépenses" else COLOR_REVENUS_BASE)
-            added_ids_to_sunburst_lists.add(sous_cat_id)
+            if i == len(hierarchy_columns) - 1:  # This is the leaf node
+                if current_id not in added_ids_to_sunburst_lists:
+                    sunburst_ids.append(current_id)
+                    # For leaf nodes, display the absolute value in label
+                    sunburst_labels.append(f"{component} ({montant}€)")
+                    sunburst_parents.append(parent_id if parent_id else root_name)
+                    sunburst_values.append(montant) # Append the absolute amount
 
-    # Étape 2 : Ajouter les catégories (niveau intermédiaire)
-    unique_categories = set((e["type_flux"], e["compte"], e["categorie"]) for e in processed_data)
-    for type_flux, compte, categorie in unique_categories:
-        type_flux_id = type_flux
-        compte_name = f"{type_flux_id}{var_split}{compte}"
-        categorie_id = f"{compte_name}{var_split}{categorie}"
+                    # Determine color based on original classification (Dépenses/Revenus)
+                    if color_column and color_column in entry:
+                        sunburst_colors.append(COLOR_DEFAULT_NEGATIVE if entry[color_column] == negative_value_treatment["negative_label"] else COLOR_DEFAULT_POSITIVE)
+                    elif negative_value_treatment and negative_value_treatment["column_to_update"] in entry:
+                         sunburst_colors.append(COLOR_DEFAULT_NEGATIVE if entry[negative_value_treatment["column_to_update"]] == negative_value_treatment["negative_label"] else COLOR_DEFAULT_POSITIVE)
+                    else:
+                        if "type_flux" in new_entry:
+                            sunburst_colors.append(COLOR_DEFAULT_NEGATIVE if new_entry["type_flux"] == "Dépenses" else COLOR_DEFAULT_POSITIVE)
+                        else:
+                            sunburst_colors.append(COLOR_DEFAULT_POSITIVE)
 
-        if categorie_id not in added_ids_to_sunburst_lists:
-            sunburst_ids.append(categorie_id)
-            sunburst_labels.append(categorie)
-            sunburst_parents.append(compte_name)
-            sunburst_values.append(aggregated_totals.get(categorie_id, 0))
-            sunburst_colors.append(COLOR_DEPENSES_BASE if type_flux == "Dépenses" else COLOR_REVENUS_BASE)
-            added_ids_to_sunburst_lists.add(categorie_id)
+                    added_ids_to_sunburst_lists.add(current_id)
 
-    # Étape 3 : Ajouter les comptes (niveau intermédiaire supérieur)
-    unique_comptes = set((e["type_flux"], e["compte"]) for e in processed_data)
-    for type_flux, compte in unique_comptes:
-        type_flux_id = type_flux
-        compte_name = f"{type_flux_id}{var_split}{compte}"
+            parent_id = current_id
 
-        if compte_name not in added_ids_to_sunburst_lists:
-            sunburst_ids.append(compte_name)
-            sunburst_labels.append(compte)
-            sunburst_parents.append(type_flux_id)
-            sunburst_values.append(aggregated_totals.get(compte_name, 0))
-            sunburst_colors.append(COLOR_DEPENSES_BASE if type_flux == "Dépenses" else COLOR_REVENUS_BASE)
-            added_ids_to_sunburst_lists.add(compte_name)
+    # Step 2: Add intermediate and root nodes
+    for i in range(len(hierarchy_columns) - 1, -1, -1):
+        col = hierarchy_columns[i]
+        unique_combinations = set()
 
-    # Étape 4 : Ajouter les types de flux (niveau racine)
-    unique_types_flux = set(e["type_flux"] for e in processed_data)
+        for entry in processed_data:
+            current_path_components = []
+            for j in range(i + 1):
+                current_path_components.append(str(entry[hierarchy_columns[j]]))
+            unique_combinations.add(tuple(current_path_components))
 
-    for type_flux in unique_types_flux:
-        type_flux_id = type_flux
+        for combo in unique_combinations:
+            current_id = var_split.join(combo)
 
-        if type_flux_id not in added_ids_to_sunburst_lists:
-            sunburst_ids.append(type_flux_id)
-            sunburst_labels.append(type_flux)
-            sunburst_parents.append("")
-            sunburst_values.append(aggregated_totals.get(type_flux_id, 0))
-            # Couleurs spécifiques pour les segments "Dépenses" et "Revenus"
-            sunburst_colors.append(COLOR_DEPENSES_BASE if type_flux == "Dépenses" else COLOR_REVENUS_BASE)
-            added_ids_to_sunburst_lists.add(type_flux_id)
+            if current_id not in added_ids_to_sunburst_lists:
+                sunburst_ids.append(current_id)
+                sunburst_labels.append(combo[-1])
+
+                parent_id = ""
+                if len(combo) > 1:
+                    parent_id = var_split.join(combo[:-1])
+                else:
+                    parent_id = root_name # Top-level items parent to the root
+
+                sunburst_parents.append(parent_id)
+                sunburst_values.append(aggregated_totals.get(current_id, 0)) # Aggregate absolute values
+
+                # Determine color based on top-level category
+                if color_column and color_column in processed_data[0]:
+                    original_entry_for_color = next((item for item in processed_data if var_split.join([str(item[c]) for c in hierarchy_columns[:len(combo)]]) == current_id), None)
+                    if original_entry_for_color:
+                        sunburst_colors.append(COLOR_DEFAULT_NEGATIVE if original_entry_for_color[color_column] == negative_value_treatment["negative_label"] else COLOR_DEFAULT_POSITIVE)
+                    else:
+                        sunburst_colors.append(COLOR_DEFAULT_POSITIVE)
+                elif negative_value_treatment and negative_value_treatment["column_to_update"] in processed_data[0]:
+                     original_entry_for_color = next((item for item in processed_data if var_split.join([str(item[c]) for c in hierarchy_columns[:len(combo)]]) == current_id), None)
+                     if original_entry_for_color:
+                         sunburst_colors.append(COLOR_DEFAULT_NEGATIVE if original_entry_for_color[negative_value_treatment["column_to_update"]] == negative_value_treatment["negative_label"] else COLOR_DEFAULT_POSITIVE)
+                     else:
+                         sunburst_colors.append(COLOR_DEFAULT_POSITIVE)
+                else:
+                    first_level_category = combo[0]
+                    sunburst_colors.append(COLOR_DEFAULT_NEGATIVE if first_level_category == "Dépenses" else COLOR_DEFAULT_POSITIVE)
+
+                added_ids_to_sunburst_lists.add(current_id)
+
+    # --- Add the ROOT node ---
+    root_label_text = ""
+    root_color_final = ''
+    if true_total_balance < 0:
+        root_label_text = f"{root_name} (Déficit: {abs(round(true_total_balance, 2))}€)"
+        root_color_final = COLOR_ROOT_NEGATIVE
+    elif true_total_balance > 0:
+        root_label_text = f"{root_name} (Surplus: {round(true_total_balance, 2)}€)"
+        root_color_final = COLOR_ROOT_POSITIVE
+    else:
+        root_label_text = f"{root_name} (Balance: 0€)"
+        root_color_final = COLOR_ROOT_ZERO
+
+    sum_of_top_level_abs_values = 0
+    if hierarchy_columns:
+        first_level_col = hierarchy_columns[0]
+        for entry in processed_data:
+            sum_of_top_level_abs_values += round(entry[value_column], 2) 
+
+    if root_name not in added_ids_to_sunburst_lists:
+        sunburst_ids.append(root_name)
+        sunburst_labels.append(root_label_text)
+        sunburst_parents.append("")
+        sunburst_values.append(sum_of_top_level_abs_values) 
+        sunburst_colors.append(root_color_final)
+        added_ids_to_sunburst_lists.add(root_name)
 
     last_ring = max(len(y.split(var_split)) for y in sunburst_ids)
     last_ring_values = [False] * len(sunburst_ids)
@@ -167,14 +258,13 @@ def sunburst_chart(data_raw):
         labels=sunburst_labels,
         parents=sunburst_parents,
         values=sunburst_values,
+        branchvalues='total',
         customdata=custom_data,
-        branchvalues="total",
-        hovertemplate='<b>%{label}</b><br>Montant: %{value}€<extra></extra>',
         marker=dict(colors=sunburst_colors)
     ))
 
     fig.update_layout(
-        title="Dépenses et Revenus par Type, Compte, Catégorie et Sous-catégorie (Juin 2025)",
+        title="Sunburst Chart", # Generic title
         height=1200,
         width=1200,
         margin=dict(t=30, l=0, r=0, b=0)
@@ -283,8 +373,8 @@ class MoneyManager(QMainWindow):
     def update_etat_graph(self):
         choix = self.etat_combobox.currentText()
         if choix == "Bilan Période par catégorie et par compte":
-            data_raw = GetBilanByCategorie()
-            fig = sunburst_chart(data_raw)
+            data_raw,hierarchy_level,negative_value_treatment = GetBilanByCategorie()
+            fig = sunburst_chart(data_raw,hierarchy_level,negative_value_treatment=negative_value_treatment)
 
 
         elif choix == "Bilan Période par tiers et par compte":

@@ -2023,11 +2023,17 @@ def GetBilanByCategorie():
     """,(int(datetime.date(datetime.date.today().year,1,1).strftime('%Y%m%d')),int((datetime.date.today().strftime('%Y%m%d'))),))
     rows = cursor.fetchall()
     result = []
+    hierarchy_level = ["type_flux","compte","categorie","sous_cat"]
+    negative_treatment = {
+    "column_to_update": "type_flux",
+    "negative_label": "Dépenses",
+    "positive_label": "Revenus"
+}
 
     for row in rows:
-        result.append({"compte": row[0], "compte_id": row[1], "categorie": row[2], "sous_cat": row[3], "mois": "2025-04", "montant": row[4] *-1})
+        result.append({"compte": row[0], "compte_id": row[1], "categorie": row[2], "sous_cat": row[3], "montant": row[4]})
     
-    return result
+    return result,hierarchy_level,negative_treatment
 
 
 
