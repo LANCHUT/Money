@@ -305,7 +305,7 @@ class MoneyManager(QMainWindow):
         RunEcheance(*GetEcheanceToday())
 
         self.setup_ui()
-        self.showFullScreen()
+        self.showMaximized()
 
     def setup_ui(self):
         # Menu Bar
