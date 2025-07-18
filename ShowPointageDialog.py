@@ -50,10 +50,10 @@ def show_pointage_dialog(parent, dernier_solde, derniere_date):
 
 
 def handle_bq_click(row, column, table: QTableWidget, pointage_state, parent, ui_parent):
-    if not pointage_state['actif'] or column != 9 or pointage_state["suspendu"]:
+    if not pointage_state['actif'] or column != 10 or pointage_state["suspendu"]:
         return
 
-    bq_item = table.item(row, 9)
+    bq_item = table.item(row, 10)
     op_id_item = table.item(row, 0)
     if not op_id_item:
         return
@@ -64,8 +64,8 @@ def handle_bq_click(row, column, table: QTableWidget, pointage_state, parent, ui
     op_id = op_id_item.data(Qt.ItemDataRole.UserRole)
     is_already_pointed = bq_item.text() == 'P'
 
-    debit_item = table.item(row, 12)
-    credit_item = table.item(row, 13)
+    debit_item = table.item(row, 13)
+    credit_item = table.item(row, 14)
 
     montant = 0
     if debit_item and debit_item.text():
@@ -120,7 +120,7 @@ def finalize_pointage(pointage_state, solde_cible,date,parent):
 
 def cancel_pointage(pointage_state,table:QTableWidget):
     for row in pointage_state['rows']:
-        bq_item = table.item(row, 9)
+        bq_item = table.item(row, 10)
         bq_item.setText('')
     pointage_state['actif'] = False
     pointage_state['solde'] = 0

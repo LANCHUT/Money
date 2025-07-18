@@ -1654,7 +1654,7 @@ class MoneyManager(QMainWindow):
             # Réappliquer les styles sur les lignes déjà pointées
             for row in self.pointage_state['rows']:
                 self.transaction_table.selectRow(row)
-                self.transaction_table.item(row, 9).setText("P")  # Colonne Bq
+                self.transaction_table.item(row, 10).setText("P")  # Colonne Bq
         self.account_list.clear()
         self.load_accounts()
         self.compte_table.clearContents()
@@ -2836,7 +2836,7 @@ class MoneyManager(QMainWindow):
         # Réappliquer les styles sur les lignes déjà pointées
         for row in self.pointage_state['rows']:
             self.transaction_table.selectRow(row)
-            self.transaction_table.item(row, 9).setText("P")  # Colonne Bq
+            self.transaction_table.item(row, 10).setText("P")  # Colonne Bq
 
         # UI
         self.pointage_info_label.setText(f"Dernier relevé : {self.pointage_state['target']:.2f} € – Somme pointées : {self.pointage_state['somme_pointees']:.2f} € – Écart : {round(self.pointage_state['target'] - self.pointage_state['solde'],2):.2f} €")
