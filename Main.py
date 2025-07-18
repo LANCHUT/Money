@@ -446,6 +446,8 @@ class MoneyManager(QMainWindow):
                 self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),tiers=[data["tiers_id"]],comptes=[data["compte_id"]]),0)
             self.tabs.setCurrentWidget(self.operation_tab)
             self.transaction_table.setColumnHidden(16,True)
+            self.pointage_btn.setEnabled(False)
+            self.add_transaction_btn.setEnabled(False)
 
     def setup_echeancier_tab(self):
         layout = QVBoxLayout(self.echeancier_tab)
@@ -641,6 +643,7 @@ class MoneyManager(QMainWindow):
             self.current_account = str(item.data(Qt.ItemDataRole.UserRole)["id"])
             selected_account = GetCompte(self.current_account)
             self.tabs.setCurrentWidget(self.operation_tab)
+            self.add_transaction_btn.setEnabled(True)
             self.reset_filters()
             self.compte_filter.set_all_checked(False)
             self.compte_filter.checkItemByText(selected_account.nom)
