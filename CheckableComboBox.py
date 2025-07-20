@@ -11,6 +11,8 @@ class CheckableComboBox(QComboBox):
         self.setEditable(True)
         self.lineEdit().setReadOnly(True)
         self.lineEdit().setPlaceholderText("Sélectionner...")
+        self.addSpecialItem("Tout sélectionner", "select_all")
+        self.addSpecialItem("Tout désélectionner", "deselect_all")
 
     def addItem(self, text):
         """Ajoute un item classique, coché ou non."""

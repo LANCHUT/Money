@@ -672,7 +672,7 @@ def GetSousCategorie(categorie:str):
     conn = connect_db()
     cursor = conn.cursor()
 
-    cursor.execute(f"select nom from sous_categorie where categorie_parent = ?",(categorie,))
+    cursor.execute(f"select nom from sous_categorie where categorie_parent = ? order by nom asc",(categorie,))
     sous_categories = cursor.fetchall()
 
     conn.close()
@@ -680,6 +680,22 @@ def GetSousCategorie(categorie:str):
     result = []
     for row in sous_categories:
         sous_categorie = SousCategorie(row[0],categorie)
+        result.append(sous_categorie)
+
+    return result
+
+def GetSousCategorieFiltre():
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(f"select nom from sous_categorie order by nom asc")
+    sous_categories = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in sous_categories:
+        sous_categorie = SousCategorie(row[0],None)
         result.append(sous_categorie)
 
     return result
@@ -858,7 +874,7 @@ def GetCategorie():
     conn = connect_db()
     cursor = conn.cursor()
 
-    cursor.execute(f"select * from categorie")
+    cursor.execute(f"select * from categorie order by nom asc")
     categories = cursor.fetchall()
 
     conn.close()
@@ -1155,13 +1171,14 @@ def GetOperations(compte_id):
     return result
 
 
-def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories=None, tiers=None, comptes=None, bq=None):
+def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories=None, tiers=None, comptes=None, bq=None, type_tiers = None):
     conn = connect_db()
     cursor = conn.cursor()
 
     categories = categories or []
     sous_categories = sous_categories or []
     tiers = tiers or []
+    type_tiers = type_tiers or []
     comptes = comptes or []
 
     def placeholders(values, prefix):
@@ -1173,6 +1190,7 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
       AND (:categories_empty OR categorie IN ({placeholders(categories, 'cat')}))
       AND (:sous_categories_empty OR sous_categorie IN ({placeholders(sous_categories, 'sous')}))
       AND (:tiers_empty OR tier IN ({placeholders(tiers, 'tier')}))
+      AND (:type_tiers_empty OR type_tier IN ({placeholders(type_tiers,'type_tiers')}))
     """
 
     if comptes:
@@ -1189,7 +1207,8 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
         'date_fin': date_fin,
         'categories_empty': not categories,
         'sous_categories_empty': not sous_categories,
-        'tiers_empty': not tiers
+        'tiers_empty': not tiers,
+        'type_tiers_empty': not type_tiers
     }
 
     for i, val in enumerate(categories):
@@ -1198,12 +1217,13 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
         params[f'sous{i}'] = val
     for i, val in enumerate(tiers):
         params[f'tier{i}'] = val
+    for i, val in enumerate(type_tiers):
+        params[f'type_tiers{i}'] = val
     for i, val in enumerate(comptes):
         params[f'compte{i}'] = val
 
     if bq is not None:
         params['bq'] = int(bq)
-
     cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
@@ -1802,7 +1822,7 @@ def InsertTypeTier(typeTier: TypeTier, parent=None) -> bool:
 def GetTypeTier():
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM type_tier")
+    cursor.execute("SELECT * FROM type_tier order by nom asc")
     types_tier = cursor.fetchall()
 
     result = []
@@ -2011,7 +2031,7 @@ def GetPerformanceGlobaleData(compte_id: str):
     }
 
 
-def GetBilanByCategorie():
+def GetBilanByCategorie(date_debut:int,date_fin:int):
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("""
@@ -2020,7 +2040,7 @@ def GetBilanByCategorie():
         inner join comptes c on o.compte_id = c.id
         where o.date >= ? and o.date <= ?
         group by o.compte_id,o.categorie,o.sous_categorie
-    """,(int(datetime.date(datetime.date.today().year,1,1).strftime('%Y%m%d')),int((datetime.date.today().strftime('%Y%m%d'))),))
+    """,(date_debut,date_fin,))
     rows = cursor.fetchall()
     result = []
     hierarchy_level = ["type_flux","compte","categorie","sous_cat"]
@@ -2035,7 +2055,7 @@ def GetBilanByCategorie():
     
     return result,hierarchy_level,negative_treatment
 
-def GetBilanByTiers():
+def GetBilanByTiers(date_debut:int,date_fin:int):
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("""
@@ -2045,7 +2065,7 @@ def GetBilanByTiers():
         inner join tiers t  on o.tier = t.id
         where o.date >= ? and o.date <= ?
         group by o.compte_id,o.tier
-    """,(int(datetime.date(datetime.date.today().year,1,1).strftime('%Y%m%d')),int((datetime.date.today().strftime('%Y%m%d'))),))
+    """,(date_debut,date_fin,))
     rows = cursor.fetchall()
     result = []
     hierarchy_level = ["type_flux","compte","type_tiers","tiers"]
