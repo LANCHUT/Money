@@ -406,6 +406,7 @@ class MoneyManager(QMainWindow):
         self.date_fin_filter_etat.setDate(QDate.currentDate())  # Aujourd'hui
 
         self.apply_filters_etat_btn = QPushButton("Appliquer les filtres")
+        self.reload_etat_btn = QPushButton("Recharger le graphique")
 
         # Combobox pour sélectionner l'analyse
         self.etat_combobox = QComboBox()
@@ -418,9 +419,12 @@ class MoneyManager(QMainWindow):
         filter_layout.addWidget(self.date_fin_filter_etat)
         filter_layout.addSpacing(10) # Still good to add a stretch at the end
         filter_layout.addWidget(self.apply_filters_etat_btn)
+        filter_layout.addSpacing(10)
+        filter_layout.addWidget(self.reload_etat_btn)
         filter_layout.addStretch(1)
 
         self.apply_filters_etat_btn.clicked.connect(self.apply_filters_etat)
+        self.reload_etat_btn.clicked.connect(self.apply_filters_etat)
 
         layout.addLayout(filter_layout)
         layout.addWidget(self.etat_combobox)
@@ -475,12 +479,16 @@ class MoneyManager(QMainWindow):
 
     def add_echeance(self):
         dialog = EcheanceDialog(GetComptes(), self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            compte_choisi = dialog.selected_compte
-            if dialog.selected_type == "operation":
-                self.open_add_operation_dialog(isEcheance=True, compte_echeance = compte_choisi)
-            elif dialog.selected_type == "position":
-                self.open_add_position_dialog(isEcheance=True, compte_echeance = compte_choisi)
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            compte_choisi_id = dialog.get_selected_compte_id()
+            if compte_choisi_id is not None:
+                type = GetCompteType(compte_choisi_id)      
+                if type in ["Courant","Epargne"]:
+                    self.open_add_operation_dialog(isEcheance=True, echeance=None)
+                else:
+                    self.open_add_position_dialog(isEcheance=True, echeance=None)
 
 
 

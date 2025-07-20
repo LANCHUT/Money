@@ -392,6 +392,8 @@ class AddEditOperationDialog(BaseDialog):
                     UpdateEcheance(echeance)
                 else:
                     InsertEcheance(echeance)
+            else:
+                InsertEcheance(echeance)
             self.parent().load_echeance()
         self.accept()
 
@@ -406,9 +408,15 @@ class AddEditOperationDialog(BaseDialog):
     def on_tier_changed(self, new_tier_name):
         match = next((t for t in GetTiersActif() if t.nom == new_tier_name), None)
         if match:
-            index = self.moyen_paiement.findText(match.moyen_paiement)
-            if index >= 0:
-                self.moyen_paiement.setCurrentIndex(index)
+            index_mp = self.moyen_paiement.findText(match.moyen_paiement)
+            if index_mp >= 0:
+                self.moyen_paiement.setCurrentIndex(index_mp)
+            index_cat = self.categorie.findText(match.categorie)
+            if index_cat >=0:
+                self.categorie.setCurrentIndex(index_cat)
+            index_sous_cat = self.sous_categorie.findText(match.sous_categorie)
+            if index_sous_cat >=0:
+                self.sous_categorie.setCurrentIndex(index_sous_cat)
 
     def on_type_tier_changed(self, new_type):
         tiers = GetTiersActifByType(new_type)
