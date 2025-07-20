@@ -411,10 +411,10 @@ class MoneyManager(QMainWindow):
         self.etat_combobox = QComboBox()
         self.etat_combobox.addItems(["Bilan Période par catégorie","Bilan Période par tiers"])
         self.etat_combobox.currentIndexChanged.connect(self.update_etat_graph)
-        filter_layout.addWidget(QLabel("Date début: "))
+        filter_layout.addWidget(QLabel("Date début période: "))
         filter_layout.addWidget(self.date_debut_filter_etat)
         filter_layout.addSpacing(10) # Add 10 pixels of spacing
-        filter_layout.addWidget(QLabel("Date fin: "))
+        filter_layout.addWidget(QLabel("Date fin période: "))
         filter_layout.addWidget(self.date_fin_filter_etat)
         filter_layout.addSpacing(10) # Still good to add a stretch at the end
         filter_layout.addWidget(self.apply_filters_etat_btn)
@@ -440,11 +440,13 @@ class MoneyManager(QMainWindow):
         self.update_etat_graph()
 
     def process_click_data(self, data, is_last_ring):
+        date_debut = int(self.date_debut_filter_etat.date().toString("yyyyMMdd"))
+        date_fin = int(self.date_fin_filter_etat.date().toString("yyyyMMdd"))
         if is_last_ring: # Nouvelle condition
             if self.etat_combobox.currentText() == "Bilan Période par catégorie":
-                self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)          
+                self.load_operations(GetFilteredOperations(date_debut=date_debut,date_fin=date_fin,categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)          
             elif self.etat_combobox.currentText() == "Bilan Période par tiers":
-                self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),tiers=[data["tiers_id"]],comptes=[data["compte_id"]]),0)
+                self.load_operations(GetFilteredOperations(date_debut=date_debut,date_fin=date_fin,tiers=[data["tiers_id"]],comptes=[data["compte_id"]]),0)
             self.tabs.setCurrentWidget(self.operation_tab)
             self.transaction_table.setColumnHidden(16,True)
             self.pointage_btn.setEnabled(False)
@@ -2042,7 +2044,8 @@ class MoneyManager(QMainWindow):
         self.cats_label = QLabel()
         self.sous_cats_label = QLabel()
         self.tiers_label = QLabel()
-        filter_layout = QGridLayout()
+        self.type_tiers_label = QLabel()
+        filter_layout = QHBoxLayout()
 
 
         self.bq_filter = QCheckBox()
@@ -2057,8 +2060,11 @@ class MoneyManager(QMainWindow):
 
         self.tiers_filter = CheckableComboBox()
         self.tiers_filter.setPlaceholderText("Selectionner...")
-        self.tiers_filter.addSpecialItem("Tout sélectionner", "select_all")
-        self.tiers_filter.addSpecialItem("Tout désélectionner", "deselect_all")
+
+
+        self.type_tiers_filter = CheckableComboBox()
+        self.type_tiers_filter.setPlaceholderText("Selectionner...")
+
 
         # Récupère les noms des tiers
         tiers_noms = [tier.nom for tier in GetTiers()]
@@ -2068,34 +2074,30 @@ class MoneyManager(QMainWindow):
         for tier in GetTiers():
             self.tiers_filter.addItem(tier.nom)
             self.tiers_nom_to_id[tier.nom] = str(tier._id)
-        # Configure le completer
+        self.tiers_filter.setEditable(True)
         tiers_completer = QCompleter(tiers_noms, self)
         tiers_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         tiers_completer.setFilterMode(Qt.MatchFlag.MatchContains)
-
         # Attache le completer au champ
         self.tiers_filter.setCompleter(tiers_completer)
 
+        for type_tiers in GetTypeTier():
+            self.type_tiers_filter.addItem(type_tiers.nom)
         # Tu peux alimenter ces ComboBox avec tes vraies données plus tard
-        self.categorie_filter = CheckableComboBox(self)
+        self.categorie_filter = CheckableComboBox()
         self.categorie_filter.setPlaceholderText("Selectionner...")
-        self.categorie_filter.addSpecialItem("Tout sélectionner", "select_all")
-        self.categorie_filter.addSpecialItem("Tout désélectionner", "deselect_all")
-        self.sous_categorie_filter = CheckableComboBox(self)
+
+        self.sous_categorie_filter = CheckableComboBox()
         self.sous_categorie_filter.setPlaceholderText("Selectionner...")
-        self.sous_categorie_filter.addSpecialItem("Tout sélectionner", "select_all")
-        self.sous_categorie_filter.addSpecialItem("Tout désélectionner", "deselect_all")
 
         # Remplir les catégories
         for cat in GetCategorie():
             self.categorie_filter.addItem(cat.nom)
-            for sous_cat in GetSousCategorie(cat.nom):
-                self.sous_categorie_filter.addItem(sous_cat.nom)
+        for sous_cat in GetSousCategorieFiltre():
+            self.sous_categorie_filter.addItem(sous_cat.nom)
 
         self.compte_filter = CheckableComboBox()
         self.compte_filter.setPlaceholderText("Selectionner...")
-        self.compte_filter.addSpecialItem("Tout sélectionner", "select_all")
-        self.compte_filter.addSpecialItem("Tout désélectionner", "deselect_all")
 
         self.comptes_nom_to_id = {}
         for compte in GetComptes():
@@ -2107,12 +2109,12 @@ class MoneyManager(QMainWindow):
         self.reset_filter_button = QPushButton("Réinitialiser les filtres")
         self.reset_filter_button.clicked.connect(self.reset_filters)
 
-        filter_layout.addWidget(QLabel("Date début:"), 0, 0)
-        filter_layout.addWidget(self.date_debut_filter, 0, 1)
-        filter_layout.addWidget(QLabel("Date fin:"), 0, 2)
-        filter_layout.addWidget(self.date_fin_filter, 0, 3)
-        filter_layout.addWidget(QLabel("Pointées:"),0,4)
-        filter_layout.addWidget(self.bq_filter,0,5)
+        filter_layout.addWidget(QLabel("Date début période:"))
+        filter_layout.addWidget(self.date_debut_filter)
+        filter_layout.addWidget(QLabel("Date fin période:"))
+        filter_layout.addWidget(self.date_fin_filter)
+        filter_layout.addWidget(QLabel("Pointées:"))
+        filter_layout.addWidget(self.bq_filter)
 
         # --- Filtres principaux (dates, pointées) ---
         right_panel.addLayout(filter_layout)  # Tu peux garder le layout grille pour les filtres date & pointées
@@ -2123,6 +2125,11 @@ class MoneyManager(QMainWindow):
         tiers_col = QHBoxLayout()
         tiers_col.addWidget(QLabel("Tiers:"))
         tiers_col.addWidget(self.tiers_filter)
+
+        # Colonne Tiers
+        type_tiers_col = QHBoxLayout()
+        type_tiers_col.addWidget(QLabel("Type de tiers:"))
+        type_tiers_col.addWidget(self.type_tiers_filter)
 
         comptes_col = QHBoxLayout()
         comptes_col.addWidget(QLabel("Comptes:"))
@@ -2140,6 +2147,7 @@ class MoneyManager(QMainWindow):
         # Filtres combinés
         filter_selection_layout = QHBoxLayout()
         filter_selection_layout.addLayout(tiers_col)
+        filter_selection_layout.addLayout(type_tiers_col)
         filter_selection_layout.addLayout(comptes_col)
         filter_selection_layout.addLayout(cat_col)
         filter_selection_layout.addLayout(sous_cat_col)
@@ -2718,6 +2726,7 @@ class MoneyManager(QMainWindow):
             return
         self.pointage_btn.setEnabled(False)
         selected_categories = set(self.categorie_filter.checkedItems())
+        selected_type_tiers = set(self.type_tiers_filter.checkedItems())
         selected_sous_categories = set(self.sous_categorie_filter.checkedItems())
         selected_tiers = [
             self.tiers_nom_to_id[nom]
@@ -2743,7 +2752,7 @@ class MoneyManager(QMainWindow):
             # état PartiallyChecked = ne pas filtrer sur ce critère
             bq = None
 
-        self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq),0)
+        self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq,selected_type_tiers),0)
         self.transaction_table.setColumnHidden(16,True)
 
     def reset_filters(self):
@@ -2751,14 +2760,27 @@ class MoneyManager(QMainWindow):
         self.categorie_filter.clear()
         self.sous_categorie_filter.clear()
         self.tiers_filter.clear()
+        self.type_tiers_filter.clear()
         self.compte_filter.clear()
         self.pointage_btn.setEnabled(True)
+        self.categorie_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.categorie_filter.addSpecialItem("Tout désélectionner", "deselect_all")
         for cat in GetCategorie():
             self.categorie_filter.addItem(cat.nom)
-            for sous_cat in GetSousCategorie(cat.nom):
-                self.sous_categorie_filter.addItem(sous_cat.nom)
+        self.sous_categorie_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.sous_categorie_filter.addSpecialItem("Tout désélectionner", "deselect_all")
+        for sous_cat in GetSousCategorieFiltre():
+            self.sous_categorie_filter.addItem(sous_cat.nom)
+        self.tiers_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.tiers_filter.addSpecialItem("Tout désélectionner", "deselect_all")
         for tier in GetTiers():
             self.tiers_filter.addItem(tier.nom)
+        self.type_tiers_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.type_tiers_filter.addSpecialItem("Tout désélectionner", "deselect_all")
+        for type_tier in GetTypeTier():
+            self.type_tiers_filter.addItem(type_tier.nom)
+        self.compte_filter.addSpecialItem("Tout sélectionner", "select_all")
+        self.compte_filter.addSpecialItem("Tout désélectionner", "deselect_all")
         for compte in GetComptes():
             self.compte_filter.addItem(compte.nom)
         self.compte_filter.checkItemByText(GetCompteName(self.current_account))
