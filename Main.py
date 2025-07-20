@@ -53,7 +53,7 @@ class ClickHandler(QObject):
         data = json.loads(data_json_str)
         self.clicked.emit(data, data["last_ring"])
 
-def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_column=None, root_name="Total", negative_value_treatment=None):
+def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_column=None, root_name="Balance", negative_value_treatment=None):
     """
     Generates a Sunburst chart from raw data with a customizable hierarchy.
     Handles negative values by categorizing them (e.g., as "Dépenses") and converting to absolute
@@ -84,6 +84,7 @@ def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_co
 
     processed_data = []
     compte_ids = []
+    tiers_ids = []
     true_total_balance = round(sum(entry[value_column] for entry in data_raw), 2) # Keep true balance for root label
 
     for entry in data_raw:
@@ -109,6 +110,11 @@ def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_co
             compte_ids.append(new_entry["compte_id"])
         else:
             compte_ids.append(None)
+        
+        if "tiers_id" in new_entry:
+            tiers_ids.append(new_entry["tiers_id"])
+        else:
+            tiers_ids.append(None)
 
 
     # --- Construction des listes pour le Sunburst ---
@@ -250,7 +256,7 @@ def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_co
         if len(sunburst_id.split(var_split)) == last_ring:
             last_ring_values[index] = True
 
-    custom_data = list(zip(last_ring_values, compte_ids))
+    custom_data = list(zip(last_ring_values, compte_ids,tiers_ids))
 
     # --- Création du graphique Sunburst ---
     fig = go.Figure(go.Sunburst(
@@ -372,8 +378,12 @@ class MoneyManager(QMainWindow):
 
     def update_etat_graph(self):
         choix = self.etat_combobox.currentText()
-        if choix == "Bilan Période par catégorie et par compte":
+        if choix == "Bilan Période par catégorie":
             data_raw,hierarchy_level,negative_value_treatment = GetBilanByCategorie()
+            fig = sunburst_chart(data_raw,hierarchy_level,negative_value_treatment=negative_value_treatment)
+
+        elif choix == "Bilan Période par tiers":
+            data_raw,hierarchy_level,negative_value_treatment = GetBilanByTiers()
             fig = sunburst_chart(data_raw,hierarchy_level,negative_value_treatment=negative_value_treatment)
 
 
@@ -409,7 +419,7 @@ class MoneyManager(QMainWindow):
 
         # Combobox pour sélectionner l'analyse
         self.etat_combobox = QComboBox()
-        self.etat_combobox.addItems(["Bilan Période par catégorie et par compte", "Bilan Période par tiers et par compte"])  # à adapter
+        self.etat_combobox.addItems(["Bilan Période par catégorie","Bilan Période par tiers", "Bilan Période par tiers et par compte"])  # à adapter
         self.etat_combobox.currentIndexChanged.connect(self.update_etat_graph)
 
         layout.addWidget(self.etat_combobox)
@@ -430,9 +440,14 @@ class MoneyManager(QMainWindow):
 
     def process_click_data(self, data, is_last_ring):
         if is_last_ring: # Nouvelle condition
+            if self.etat_combobox.currentText() == "Bilan Période par catégorie":
+                self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)          
+            elif self.etat_combobox.currentText() == "Bilan Période par tiers":
+                self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),tiers=[data["tiers_id"]],comptes=[data["compte_id"]]),0)
             self.tabs.setCurrentWidget(self.operation_tab)
-            self.load_operations(GetFilteredOperations(date_debut=int(datetime.date(datetime.date.today().year, 1, 1).strftime('%Y%m%d')),date_fin=int((datetime.date.today().strftime('%Y%m%d'))),categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)
             self.transaction_table.setColumnHidden(16,True)
+            self.pointage_btn.setEnabled(False)
+            self.add_transaction_btn.setEnabled(False)
 
     def setup_echeancier_tab(self):
         layout = QVBoxLayout(self.echeancier_tab)
@@ -628,6 +643,7 @@ class MoneyManager(QMainWindow):
             self.current_account = str(item.data(Qt.ItemDataRole.UserRole)["id"])
             selected_account = GetCompte(self.current_account)
             self.tabs.setCurrentWidget(self.operation_tab)
+            self.add_transaction_btn.setEnabled(True)
             self.reset_filters()
             self.compte_filter.set_all_checked(False)
             self.compte_filter.checkItemByText(selected_account.nom)
@@ -1638,7 +1654,7 @@ class MoneyManager(QMainWindow):
             # Réappliquer les styles sur les lignes déjà pointées
             for row in self.pointage_state['rows']:
                 self.transaction_table.selectRow(row)
-                self.transaction_table.item(row, 9).setText("P")  # Colonne Bq
+                self.transaction_table.item(row, 10).setText("P")  # Colonne Bq
         self.account_list.clear()
         self.load_accounts()
         self.compte_table.clearContents()
@@ -2820,7 +2836,7 @@ class MoneyManager(QMainWindow):
         # Réappliquer les styles sur les lignes déjà pointées
         for row in self.pointage_state['rows']:
             self.transaction_table.selectRow(row)
-            self.transaction_table.item(row, 9).setText("P")  # Colonne Bq
+            self.transaction_table.item(row, 10).setText("P")  # Colonne Bq
 
         # UI
         self.pointage_info_label.setText(f"Dernier relevé : {self.pointage_state['target']:.2f} € – Somme pointées : {self.pointage_state['somme_pointees']:.2f} € – Écart : {round(self.pointage_state['target'] - self.pointage_state['solde'],2):.2f} €")

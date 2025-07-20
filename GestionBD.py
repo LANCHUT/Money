@@ -2035,6 +2035,30 @@ def GetBilanByCategorie():
     
     return result,hierarchy_level,negative_treatment
 
+def GetBilanByTiers():
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        select c.nom,c.id,t.type,t.nom,t.id,(sum(o.debit)+sum(o.credit)) as somme
+        from operations o
+        inner join comptes c on o.compte_id = c.id
+        inner join tiers t  on o.tier = t.id
+        where o.date >= ? and o.date <= ?
+        group by o.compte_id,o.tier
+    """,(int(datetime.date(datetime.date.today().year,1,1).strftime('%Y%m%d')),int((datetime.date.today().strftime('%Y%m%d'))),))
+    rows = cursor.fetchall()
+    result = []
+    hierarchy_level = ["type_flux","compte","type_tiers","tiers"]
+    negative_treatment = {
+    "column_to_update": "type_flux",
+    "negative_label": "Dépenses",
+    "positive_label": "Revenus"
+}
+
+    for row in rows:
+        result.append({"compte": row[0], "compte_id": row[1], "type_tiers": row[2], "tiers": row[3],"tiers_id" : row[4], "montant": row[5]})
+    
+    return result,hierarchy_level,negative_treatment
 
 
 

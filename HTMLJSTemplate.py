@@ -14,7 +14,8 @@ def generate_html_with_js(plotly_div):
                     label: point.label,
                     value: point.value,
                     last_ring: point.customdata && point.customdata.length > 0 ? point.customdata[0] : false,
-                    compte_id: point.customdata && point.customdata.length > 1 ? point.customdata[1] : null
+                    compte_id: point.customdata && point.customdata.length > 1 ? point.customdata[1] : null,
+                    tiers_id: point.customdata && point.customdata.length > 1 ? point.customdata[2] : null
                 };
                 handler.handle_click(JSON.stringify(clicked_data));
             });
