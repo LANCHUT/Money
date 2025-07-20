@@ -486,9 +486,9 @@ class MoneyManager(QMainWindow):
             if compte_choisi_id is not None:
                 type = GetCompteType(compte_choisi_id)      
                 if type in ["Courant","Epargne"]:
-                    self.open_add_operation_dialog(isEcheance=True, echeance=None)
+                    self.open_add_operation_dialog(isEcheance=True, echeance=None, compte_choisi_id = compte_choisi_id)
                 else:
-                    self.open_add_position_dialog(isEcheance=True, echeance=None)
+                    self.open_add_position_dialog(isEcheance=True, echeance=None,compte_choisi_id = compte_choisi_id)
 
 
 
@@ -1443,16 +1443,16 @@ class MoneyManager(QMainWindow):
             dialog = ShowPerformanceDialog(self, self.current_account)
             dialog.exec()
 
-    def open_add_operation_dialog(self,isEcheance = False, echeance = None):
+    def open_add_operation_dialog(self,isEcheance = False, echeance = None,compte_choisi_id = None):
         if self.current_account is not None or isEcheance:
-            dialog = AddEditOperationDialog(self, self.current_account,isEcheance = isEcheance, echeance=echeance)
+            dialog = AddEditOperationDialog(self, self.current_account,isEcheance = isEcheance, echeance=echeance,compte_choisi_id = compte_choisi_id)
             dialog.exec()
         else:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte d'abord.")
 
-    def open_add_position_dialog(self,isEcheance = False, echeance = None):
+    def open_add_position_dialog(self,isEcheance = False, echeance = None, compte_choisi_id = None):
         if self.current_account is not None or isEcheance:
-            dialog = AddPositionDialog(self, self.current_account,isEcheance = isEcheance, echeance=echeance)
+            dialog = AddPositionDialog(self, self.current_account,isEcheance = isEcheance, echeance=echeance, compte_choisi_id = compte_choisi_id)
             dialog.exec()
         else:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte de placement d'abord.")
@@ -2791,10 +2791,10 @@ class MoneyManager(QMainWindow):
         self.compte_filter.addSpecialItem("Tout désélectionner", "deselect_all")
         for compte in GetComptes():
             self.compte_filter.addItem(compte.nom)
-        self.compte_filter.checkItemByText(GetCompteName(self.current_account))
-
-        self.load_operations()
-        self.transaction_table.setColumnHidden(16,False)
+        if self.current_account is not None:
+            self.compte_filter.checkItemByText(GetCompteName(self.current_account))
+            self.load_operations()
+            self.transaction_table.setColumnHidden(16,False)
 
 
         # Réinitialiser les dates

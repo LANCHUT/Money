@@ -10,12 +10,13 @@ from BaseDialog import BaseDialog
 from GestionBD import *
 
 class AddPositionDialog(BaseDialog):
-    def __init__(self, parent=None, account_id=None, isEcheance = False, echeance = None):
+    def __init__(self, parent=None, account_id=None, isEcheance = False, echeance = None, compte_choisi_id = None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter une nouvelle position")
         self.account_id = account_id
         self.isEcheance = isEcheance
         self.echeance = echeance
+        self.compte_choisi_id = compte_choisi_id
 
         # Layout pour la pop-up
         self.layout = QFormLayout()
@@ -141,6 +142,8 @@ class AddPositionDialog(BaseDialog):
             if self.echeance is not None:
                 compte_id = self.echeance.compte_id
                 prochaine_echeance = self.echeance.prochaine_echeance
+            elif self.compte_choisi_id is not None:
+                compte_id = self.compte_choisi_id
             else:
                 compte_id = self.account_id
 

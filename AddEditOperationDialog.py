@@ -44,7 +44,7 @@ def set_combobox_index_by_data(combo: QComboBox, data):
         combo.setCurrentIndex(index)
 
 class AddEditOperationDialog(BaseDialog):
-    def __init__(self, parent=None, account_id=None, operation: Operation = None, isEdit=False, isEcheance = False, echeance:Echeance = None):
+    def __init__(self, parent=None, account_id=None, operation: Operation = None, isEdit=False, isEcheance = False, echeance:Echeance = None, compte_choisi_id = None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter / Modifier une opération")       
         self.account_id = account_id
@@ -52,6 +52,7 @@ class AddEditOperationDialog(BaseDialog):
         self.isEdit = isEdit
         self.isEcheance = isEcheance
         self.echeance = echeance
+        self.compte_choisi_id = compte_choisi_id
 
         self.layout = QFormLayout()
 
@@ -357,6 +358,8 @@ class AddEditOperationDialog(BaseDialog):
             if self.echeance is not None:
                 compte_id = self.echeance.compte_id
                 prochaine_echeance = self.echeance.prochaine_echeance
+            elif self.compte_choisi_id is not None:
+                compte_id = self.compte_choisi_id
             else:
                 compte_id = self.account_id
 

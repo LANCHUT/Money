@@ -87,7 +87,7 @@ class Operation():
 
 class Position():
 
-    def __init__(self,date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe = None, _id = None) -> None:
+    def __init__(self,date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe = None, _id = None):
         if _id is None:
             self._id = ObjectId()
         else:
