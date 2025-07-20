@@ -2011,7 +2011,7 @@ def GetPerformanceGlobaleData(compte_id: str):
     }
 
 
-def GetBilanByCategorie():
+def GetBilanByCategorie(date_debut:int,date_fin:int):
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("""
@@ -2020,7 +2020,7 @@ def GetBilanByCategorie():
         inner join comptes c on o.compte_id = c.id
         where o.date >= ? and o.date <= ?
         group by o.compte_id,o.categorie,o.sous_categorie
-    """,(int(datetime.date(datetime.date.today().year,1,1).strftime('%Y%m%d')),int((datetime.date.today().strftime('%Y%m%d'))),))
+    """,(date_debut,date_fin,))
     rows = cursor.fetchall()
     result = []
     hierarchy_level = ["type_flux","compte","categorie","sous_cat"]
@@ -2035,7 +2035,7 @@ def GetBilanByCategorie():
     
     return result,hierarchy_level,negative_treatment
 
-def GetBilanByTiers():
+def GetBilanByTiers(date_debut:int,date_fin:int):
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("""
@@ -2045,7 +2045,7 @@ def GetBilanByTiers():
         inner join tiers t  on o.tier = t.id
         where o.date >= ? and o.date <= ?
         group by o.compte_id,o.tier
-    """,(int(datetime.date(datetime.date.today().year,1,1).strftime('%Y%m%d')),int((datetime.date.today().strftime('%Y%m%d'))),))
+    """,(date_debut,date_fin,))
     rows = cursor.fetchall()
     result = []
     hierarchy_level = ["type_flux","compte","type_tiers","tiers"]

@@ -376,39 +376,20 @@ class MoneyManager(QMainWindow):
 
         self.setup_etat_tab()
 
+    def apply_filters_etat(self):
+        self.update_etat_graph()
+
     def update_etat_graph(self):
+        date_debut = int(self.date_debut_filter_etat.date().toString("yyyyMMdd"))
+        date_fin = int(self.date_fin_filter_etat.date().toString("yyyyMMdd"))
         choix = self.etat_combobox.currentText()
         if choix == "Bilan Période par catégorie":
-            data_raw,hierarchy_level,negative_value_treatment = GetBilanByCategorie()
+            data_raw,hierarchy_level,negative_value_treatment = GetBilanByCategorie(date_debut,date_fin)
             fig = sunburst_chart(data_raw,hierarchy_level,negative_value_treatment=negative_value_treatment)
 
         elif choix == "Bilan Période par tiers":
-            data_raw,hierarchy_level,negative_value_treatment = GetBilanByTiers()
+            data_raw,hierarchy_level,negative_value_treatment = GetBilanByTiers(date_debut,date_fin)
             fig = sunburst_chart(data_raw,hierarchy_level,negative_value_treatment=negative_value_treatment)
-
-
-        elif choix == "Bilan Période par tiers et par compte":
-            mois = ["2025-04", "2025-05", "2025-06"]
-            beneficiaires = ["Salaire", "Aides", "Investissements"]
-            data = [
-                [2200, 2300, 2250],
-                [300, 320, 310],
-                [150, 180, 200]
-            ]
-
-            fig = go.Figure(data=go.Heatmap(
-                z=data,
-                x=mois,
-                y=beneficiaires,
-                colorscale="Viridis"
-            ))
-
-            fig.update_layout(
-                title="Revenus mensuels par Bénéficiaire",
-                xaxis_title="Mois",
-                yaxis_title="Source",
-                height=600
-            )
         # 1. Générez le div Plotly
         plotly_div = plotly.offline.plot(fig, include_plotlyjs='cdn', output_type='div')
         html_with_js = generate_html_with_js(plotly_div)
@@ -416,12 +397,32 @@ class MoneyManager(QMainWindow):
 
     def setup_etat_tab(self):
         layout = QVBoxLayout(self.etat_tab)
+        filter_layout = QHBoxLayout(self.etat_tab)
+
+        self.date_debut_filter_etat = CustomDateEdit()
+        self.date_debut_filter_etat.setDate(QDate(QDate.currentDate().year(), 1, 1))  # Par défaut, 1 mois avant
+
+        self.date_fin_filter_etat = CustomDateEdit()
+        self.date_fin_filter_etat.setDate(QDate.currentDate())  # Aujourd'hui
+
+        self.apply_filters_etat_btn = QPushButton("Appliquer les filtres")
 
         # Combobox pour sélectionner l'analyse
         self.etat_combobox = QComboBox()
-        self.etat_combobox.addItems(["Bilan Période par catégorie","Bilan Période par tiers", "Bilan Période par tiers et par compte"])  # à adapter
+        self.etat_combobox.addItems(["Bilan Période par catégorie","Bilan Période par tiers"])
         self.etat_combobox.currentIndexChanged.connect(self.update_etat_graph)
+        filter_layout.addWidget(QLabel("Date début: "))
+        filter_layout.addWidget(self.date_debut_filter_etat)
+        filter_layout.addSpacing(10) # Add 10 pixels of spacing
+        filter_layout.addWidget(QLabel("Date fin: "))
+        filter_layout.addWidget(self.date_fin_filter_etat)
+        filter_layout.addSpacing(10) # Still good to add a stretch at the end
+        filter_layout.addWidget(self.apply_filters_etat_btn)
+        filter_layout.addStretch(1)
 
+        self.apply_filters_etat_btn.clicked.connect(self.apply_filters_etat)
+
+        layout.addLayout(filter_layout)
         layout.addWidget(self.etat_combobox)
 
         # Zone de graphique Plotly
