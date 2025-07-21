@@ -4,13 +4,13 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QPushButton, QLabel, QTableWidget, QTableWidgetItem, QListWidgetItem, QMessageBox,
-    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy
+    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy,QFileDialog
 )
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from IPython.display import HTML, display
 from PyQt6.QtGui import QAction,QColor
-from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal
+from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths
 from GestionBD import *
 from CheckableComboBox import *
 from DateTableWidgetItem import *
@@ -298,19 +298,124 @@ class NumericTableWidgetItem(QTableWidgetItem):
         return super().__lt__(other)
     
 class MoneyManager(QMainWindow):
+
+    def create_new_db_dialog(self):
+        """Ouvre un dialogue pour créer un nouveau fichier .db."""
+        # Propose un répertoire par défaut, par exemple le répertoire des documents de l'utilisateur
+        default_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        
+        # Propose un nom de fichier par défaut
+        default_filename = os.path.join(default_dir, "nouvelle_base.db")
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Créer une nouvelle base de données",
+            default_filename,
+            "Fichiers de base de données SQLite (*.db);;Tous les fichiers (*.*)"
+        )
+
+        if file_path:
+            # S'assurer que l'extension .db est présente
+            if not file_path.lower().endswith(".db"):
+                file_path += ".db"
+            
+            # Tenter de créer un fichier vide pour s'assurer du chemin valide
+            try:
+                # Créer le fichier vide (sqlite3.connect le fera aussi, mais c'est une vérif explicite)
+                open(file_path, 'a').close() 
+                self.set_current_db(file_path, is_new=True)
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Erreur de création de fichier",
+                    f"Impossible de créer le fichier à cet emplacement : {e}"
+                )
+                print(f"Erreur de création de fichier: {e}")
+        else:
+            QMessageBox.information(
+                self,
+                "Opération annulée",
+                "Création de la nouvelle base de données annulée."
+            )
+            print("Création de la nouvelle DB annulée.")
+    def run_echeance_if_db_ready(self):
+        """Exécute RunEcheance seulement si une DB est active."""
+        if self.current_db_path:
+            try:
+                current_date, echeances = GetEcheanceToday(db_path=self.current_db_path)
+                RunEcheance(current_date, echeances, db_path=self.current_db_path)
+            except Exception as e:
+                print(f"Erreur lors du traitement des échéances : {e}")
+                # Vous pourriez afficher un QMessageBox ici si l'erreur est critique
+
+    def initialize_db_on_startup(self):
+        """Gère la logique d'initialisation de la DB au démarrage de l'application."""
+        if self.current_db_path:
+            # Tente de se connecter et d'initialiser les tables pour la DB chargée
+            try:
+                create_tables(self.current_db_path)
+                self.run_echeance_if_db_ready() # Exécute RunEcheance seulement si la DB est prête
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Erreur de chargement DB",
+                    f"Impossible de charger la base de données '{os.path.basename(self.current_db_path)}' : {e}\n"
+                    "Veuillez sélectionner ou créer une nouvelle base de données."
+                )
+                print(f"Erreur de chargement DB : {e}")
+                self.current_db_path = None # Réinitialiser le chemin si échec
+                self.settings.remove("last_db_path") # Supprimer le chemin invalide
+
+        self.update_ui_for_db_status()
+
+    def update_ui_for_db_status(self):
+        # Cette fonction peut être appelée pour ajuster l'interface utilisateur
+        # en fonction de si une DB est chargée ou non.
+        if self.current_db_path:
+            self.setWindowTitle(f"Money Manager - [{os.path.basename(self.current_db_path)}]")
+            # Vous pourriez activer/désactiver certains boutons ici
+            # self.test_button.setEnabled(True)
+        else:
+            self.setWindowTitle("Money Manager - [Aucune base de données chargée]")
+            # self.test_button.setEnabled(False)
+
+    def load_last_db_path(self):
+        """Charge le chemin de la dernière DB utilisée depuis les paramètres."""
+        last_path = self.settings.value("last_db_path", "")
+        if last_path and os.path.exists(last_path):
+            self.current_db_path = last_path
+        else:
+            print("Aucune dernière DB valide trouvée ou le fichier n'existe pas.")
+    def save_last_db_path(self, path):
+        """Sauvegarde le chemin de la DB actuelle dans les paramètres."""
+        self.settings.setValue("last_db_path", path)
+
     def __init__(self):
         super().__init__()
-        create_tables()  # Mieux ici qu'en dehors
-        self.current_account = None
-        self.audio_output = QAudioOutput()
-        self.player = QMediaPlayer()
-        self.pointage_state = {'actif': False, 'solde': 0.0, 'date': '','ops' : set(),'rows' : set(),'suspendu': False}
-
         self.setWindowTitle("Money Manager")
 
-        RunEcheance(*GetEcheanceToday())
+        # Initialisation des états de la DB
+        self.current_db_path = None
+        self.current_account = None # Gardez ceci si vous l'utilisez pour l'état de l'application
+        self.pointage_state = {'actif': False, 'solde': 0.0, 'date': '','ops' : set(),'rows' : set(),'suspendu': False}
 
+        # Initialisation pour l'audio (s'assurer que QAudioOutput et QMediaPlayer sont importés de QtMultimedia)
+        self.audio_output = QAudioOutput()
+        self.player = QMediaPlayer()
+        self.player.setAudioOutput(self.audio_output) # Associer la sortie audio au lecteur
+
+        self.settings = QSettings("VotreOrganisation", "MoneyManager") # Remplacez par le nom de votre organisation/app
+
+        # Tenter de charger la dernière DB utilisée
+        self.load_last_db_path()
+
+        # Configurer l'interface utilisateur
         self.setup_ui()
+
+        # Gérer la logique de démarrage de la DB
+        self.initialize_db_on_startup()
+
+        # Maximiser la fenêtre
         self.showMaximized()
 
     def setup_ui(self):
@@ -322,6 +427,18 @@ class MoneyManager(QMainWindow):
         exit_action = QAction("Quitter", self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
+
+        open_action = QAction("Ouvrir", self)
+        open_action.triggered.connect(self.open_db)
+        file_menu.addAction(open_action)
+
+        new_db_action = QAction("Nouveau", self)
+        new_db_action.triggered.connect(self.new_db)
+        file_menu.addAction(new_db_action)
+
+        # import_action = QAction("Importer", self)
+        # import_action.triggered.connect(self.import_data)
+        # file_menu.addAction(import_action)
 
         about_action = QAction("À propos", self)
         about_action.triggered.connect(self.show_about)
@@ -493,7 +610,7 @@ class MoneyManager(QMainWindow):
 
 
     def load_accounts(self):
-        for compte in GetComptes():
+        for compte in GetComptes(self.current_db_path):
             self.add_account_to_list(compte)
         self.add_total_to_list()  # Ajoute le total à la fin
 
@@ -1934,6 +2051,107 @@ class MoneyManager(QMainWindow):
 
     def show_about(self):
         QMessageBox.information(self, "À propos", "Money Manager v0.1\nCréé avec PyQt6.")
+
+    def open_db(self):
+        """
+        Ouvre un explorateur de fichiers pour sélectionner des fichiers .db.
+        """
+        file_filter = "Fichiers de base de données (*.db);;Tous les fichiers (*.*)"
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Sélectionner un fichier .db",
+            "",
+            file_filter
+        )
+
+        if file_path:
+            self.current_db_path = file_path
+            self.set_current_db(self.current_db_path)
+        else:
+            QMessageBox.warning(
+                self,
+                "Aucun fichier",
+                "Aucun fichier de base de données sélectionné."
+            )
+            self.current_db_path = None # Réinitialiser si aucun fichier n'est sélectionné
+        
+
+    def new_db(self):
+        """
+        Permet à l'utilisateur de créer une nouvelle base de données SQLite (.db).
+        """
+        # Propose un répertoire par défaut, par exemple le répertoire des documents de l'utilisateur
+        default_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        
+        # Propose un nom de fichier par défaut
+        default_filename = os.path.join(default_dir, "ma_nouvelle_base.db") # Nom de fichier par défaut plus explicite
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Créer une nouvelle base de données",
+            default_filename,
+            "Fichiers de base de données SQLite (*.db);;Tous les fichiers (*.*)"
+        )
+
+        if file_path:
+            # S'assurer que l'extension .db est présente
+            if not file_path.lower().endswith(".db"):
+                file_path += ".db"
+            
+            # Tenter de définir et d'initialiser la nouvelle DB
+            self.set_current_db(file_path, is_new=True) # Important: c'est une nouvelle DB
+        else:
+            QMessageBox.information(
+                self,
+                "Opération annulée",
+                "Création de la nouvelle base de données annulée."
+            )
+
+    def set_current_db(self, db_path, is_new=False):
+        """Définit le chemin de la DB actuelle et initialise/sauvegarde."""
+        self.current_db_path = db_path
+        self.save_last_db_path(db_path)
+
+        try:
+            # create_tables va créer les tables si elles n'existent pas
+            create_tables(self.current_db_path)
+            if is_new:
+                QMessageBox.information(
+                    self,
+                    "Nouvelle base de données",
+                    f"La nouvelle base de données '{os.path.basename(self.current_db_path)}' a été créée avec succès."
+                )
+            else:
+                 QMessageBox.information(
+                    self,
+                    "Fichier sélectionné",
+                    f"Le fichier de base de données '{os.path.basename(self.current_db_path)}' a été chargé avec succès."
+                )
+            self.run_echeance_if_db_ready()
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Erreur de base de données",
+                f"Erreur lors de l'initialisation des tables pour '{os.path.basename(self.current_db_path)}' : {e}\n"
+                "Le fichier pourrait être corrompu ou les permissions insuffisantes."
+            )
+            self.current_db_path = None
+            self.settings.remove("last_db_path")
+        
+        self.update_ui_for_db_status()
+        # Tenter de charger la dernière DB utilisée
+        self.load_last_db_path()
+
+        # Configurer l'interface utilisateur
+        self.setup_ui()
+
+        # Gérer la logique de démarrage de la DB
+        self.initialize_db_on_startup()
+
+        # Maximiser la fenêtre
+        self.showMaximized()
 
     @staticmethod
     def get_tier_name(tier_id: Optional[str]) -> str:

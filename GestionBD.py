@@ -3,20 +3,32 @@ from Datas import *
 from PyQt6.QtWidgets import QMessageBox
 import datetime
 
-DB_PATH = "money_manager.db"  # Ton fichier de base de données
+# DB_PATH ne sera plus une constante ici, mais sera défini dynamiquement
+# Initialisez-le à None ou à une valeur par défaut, ou supprimez-le si vous le passez toujours.
+DB_PATH = None
 
 # Fonction pour se connecter à la base de données SQLite
-def connect_db():
+def connect_db(db_path=None):
+    """
+    Connecte à la base de données SQLite.
+    Utilise le db_path global si aucun n'est fourni.
+    """
+    global DB_PATH
+    if db_path:
+        DB_PATH = db_path
+    if not DB_PATH:
+        raise ValueError("Le chemin de la base de données n'est pas défini. Utilisez connect_db(chemin_du_fichier.db) ou définissez DB_PATH.")
     return sqlite3.connect(DB_PATH)
 
-# Créer les tables si elles n'existent pas
-def create_tables():
-    conn = connect_db()
+# Modifiez toutes les fonctions qui appellent connect_db() pour passer le chemin
+# ou assurez-vous que DB_PATH est défini avant leur appel.
+
+# Exemple pour create_tables:
+def  create_tables(db_path=None):
+    conn = connect_db(db_path) # Passez le chemin ici
     cursor = conn.cursor()
 
-    
-
-    # Table comptes
+    # ... (le reste de votre code create_tables reste inchangé) ...
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS comptes (
         id TEXT PRIMARY KEY,
@@ -251,16 +263,17 @@ def create_tables():
     conn.commit()
     conn.close()
 
+
 # Insérer une opération
-def InsertOperation(operation: Operation):
-    conn = connect_db()
+def InsertOperation(operation, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    compte = GetCompte(str(operation.compte_id))
+    compte = GetCompte(str(operation.compte_id), conn)
     compte.solde += operation.debit
     compte.solde += operation.credit
     operation.solde = compte.solde
-    UpdateSoldeCompte(str(compte._id),compte.solde)
+    UpdateSoldeCompte(str(compte._id),compte.solde, conn)
 
     cursor.execute('''
     INSERT INTO operations (id, date, type, compte_associe, type_tier, tier, moyen_paiement, num_cheque, categorie,sous_categorie, debit, credit, note, solde_compte, compte_id, bq, type_beneficiaire,beneficiaire)
@@ -291,8 +304,8 @@ def InsertOperation(operation: Operation):
     conn.close()
 
 
-def InsertEcheance(echeance: Echeance):
-    conn = connect_db()
+def InsertEcheance(echeance, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -353,8 +366,8 @@ def UpdateValoComptePlacement(compte_id : str,conn = None):
         conn.close()
 
 
-def InsertPosition(position: Position):
-    conn = connect_db()
+def InsertPosition(position, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -384,8 +397,8 @@ def InsertPosition(position: Position):
 
 
 # Insérer un compte
-def InsertCompte(compte: Compte, parent = None) -> bool:
-    conn = connect_db()
+def InsertCompte(compte, parent = None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     try:
@@ -422,8 +435,8 @@ def InsertCompte(compte: Compte, parent = None) -> bool:
     finally:
         conn.close()
 
-def UpdateTier(tier: Tier):
-    conn = connect_db()
+def UpdateTier(tier, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -443,8 +456,8 @@ def UpdateTier(tier: Tier):
     conn.commit()
     conn.close()
 
-def UpdateBqOperation(operation_id : str):
-    conn = connect_db()
+def UpdateBqOperation(operation_id : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -458,8 +471,8 @@ def UpdateBqOperation(operation_id : str):
     conn.commit()
     conn.close()
 
-def UpdateSousCategorie(sous_categorie: SousCategorie,old_nom:str):
-    conn = connect_db()
+def UpdateSousCategorie(sous_categorie,old_nom:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -475,8 +488,8 @@ def UpdateSousCategorie(sous_categorie: SousCategorie,old_nom:str):
     conn.commit()
     conn.close()
 
-def UpdateBeneficiaire(beneficiaire: Beneficiaire,old_nom:str):
-    conn = connect_db()
+def UpdateBeneficiaire(beneficiaire,old_nom:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -492,8 +505,8 @@ def UpdateBeneficiaire(beneficiaire: Beneficiaire,old_nom:str):
     conn.commit()
     conn.close()
 
-def UpdateCategorie(categorie: Categorie,old_nom:str):
-    conn = connect_db()
+def UpdateCategorie(categorie,old_nom:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -508,8 +521,8 @@ def UpdateCategorie(categorie: Categorie,old_nom:str):
     conn.commit()
     conn.close()
 
-def UpdateTypeBeneficiaire(type_beneficiaire: TypeBeneficiaire,old_nom:str):
-    conn = connect_db()
+def UpdateTypeBeneficiaire(type_beneficiaire,old_nom:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -525,8 +538,8 @@ def UpdateTypeBeneficiaire(type_beneficiaire: TypeBeneficiaire,old_nom:str):
     conn.close()
 
 
-def UpdateTypeTypeTier(type_tier: TypeTier,old_nom:str):
-    conn = connect_db()
+def UpdateTypeTypeTier(type_tier,old_nom:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -541,8 +554,8 @@ def UpdateTypeTypeTier(type_tier: TypeTier,old_nom:str):
     conn.commit()
     conn.close()
 
-def UpdatePlacement(placement: Placement,old_nom:str):
-    conn = connect_db()
+def UpdatePlacement(placement,old_nom:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -557,8 +570,8 @@ def UpdatePlacement(placement: Placement,old_nom:str):
     conn.commit()
     conn.close()
 
-def UpdateMoyenPaiement(moyen_paiement: MoyenPaiement,old_nom:str):
-    conn = connect_db()
+def UpdateMoyenPaiement(moyen_paiement,old_nom:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -573,8 +586,8 @@ def UpdateMoyenPaiement(moyen_paiement: MoyenPaiement,old_nom:str):
     conn.commit()
     conn.close()
 
-def UpdateCompte(compte: Compte):
-    conn = connect_db()
+def UpdateCompte(compte, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -591,8 +604,8 @@ def UpdateCompte(compte: Compte):
     conn.commit()
     conn.close()
 
-def GetTierName(tier_id: str):
-    conn = connect_db()
+def GetTierName(tier_id: str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -606,8 +619,8 @@ def GetTierName(tier_id: str):
 
     return result[0] if result else None
 
-def GetInitialSolde(compte_id: str):
-    conn = connect_db()
+def GetInitialSolde(compte_id: str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -622,8 +635,8 @@ def GetInitialSolde(compte_id: str):
     return result[0] if result else None
 
 
-def GetNextNumCheque():
-    conn = connect_db()
+def GetNextNumCheque(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -637,8 +650,8 @@ FROM operations
     return str(result[0]) if result else None
 
 
-def GetCompteName(compte_id: str):
-    conn = connect_db()
+def GetCompteName(compte_id: str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -652,8 +665,8 @@ def GetCompteName(compte_id: str):
 
     return result[0] if result else None
 
-def GetCompteType(compte_id: str):
-    conn = connect_db()
+def GetCompteType(compte_id: str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -668,8 +681,8 @@ def GetCompteType(compte_id: str):
     return result[0] if result else None
 
 
-def GetSousCategorie(categorie:str):
-    conn = connect_db()
+def GetSousCategorie(categorie:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select nom from sous_categorie where categorie_parent = ? order by nom asc",(categorie,))
@@ -678,14 +691,14 @@ def GetSousCategorie(categorie:str):
     conn.close()
 
     result = []
-    for row in sous_categories:
+    for row in sous_categories: # Assuming SousCategorie and ObjectId are defined in Datas.py
         sous_categorie = SousCategorie(row[0],categorie)
         result.append(sous_categorie)
 
     return result
 
-def GetSousCategorieFiltre():
-    conn = connect_db()
+def GetSousCategorieFiltre(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select nom from sous_categorie order by nom asc")
@@ -700,7 +713,7 @@ def GetSousCategorieFiltre():
 
     return result
 
-def GetLastValueForPlacement(nom_placement: str,conn = None) -> float:
+def GetLastValueForPlacement(nom_placement: str,conn = None):
     was_none = False
     if conn is None:
         was_none = True
@@ -738,8 +751,8 @@ def SetPlacementTo0(nom_placement: str,conn = None):
     if was_none:
         conn.close()
 
-def GetHistoriquePlacement(nom:str):
-    conn = connect_db()
+def GetHistoriquePlacement(nom:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select nom,type,date,valeur_actualise,origine from historique_placement where nom = '{nom}'")
@@ -754,8 +767,8 @@ def GetHistoriquePlacement(nom:str):
 
     return result
 
-def GetHistoriquePlacementByDate(nom:str,date:int):
-    conn = connect_db()
+def GetHistoriquePlacementByDate(nom:str,date:int, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select nom,type,date,valeur_actualise,origine from historique_placement where nom = '{nom}' and date = {date}")
@@ -763,10 +776,11 @@ def GetHistoriquePlacementByDate(nom:str,date:int):
 
     conn.close()
     return HistoriquePlacement(row[0],row[1],row[2],row[3],row[4])
+    return None
 
 
-def GetAllSousCategorie():
-    conn = connect_db()
+def GetAllSousCategorie(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select * from sous_categorie")
@@ -781,20 +795,20 @@ def GetAllSousCategorie():
 
     return result
 
-def DeleteEcheance(echeance_id:str):
-    conn = connect_db()
+def DeleteEcheance(echeance_id:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM echeancier WHERE id = ?", (str(echeance_id),))
     conn.commit()
 
     conn.close()
 
-def UpdateEcheance(echeance:Echeance):
-    DeleteEcheance(echeance._id)
-    InsertEcheance(echeance)
+def UpdateEcheance(echeance, db_path=None):
+    DeleteEcheance(echeance._id, db_path)
+    InsertEcheance(echeance, db_path)
 
-def GetEcheance(echeance_id):
-    conn = connect_db()
+def GetEcheance(echeance_id, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select * from echeancier where id = '{echeance_id}'")
@@ -804,10 +818,11 @@ def GetEcheance(echeance_id):
     echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[20],row[21],row[6],row[17],row[18],row[0])
 
     return echeance
+    return None
 
 
-def GetAllEcheance():
-    conn = connect_db()
+def GetAllEcheance(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select * from echeancier")
@@ -822,8 +837,8 @@ def GetAllEcheance():
 
     return result
 
-def GetAllBeneficiaire():
-    conn = connect_db()
+def GetAllBeneficiaire(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select * from beneficiaire")
@@ -838,8 +853,8 @@ def GetAllBeneficiaire():
 
     return result
 
-def GetBeneficiairesByType(type_beneficiaire : str):
-    conn = connect_db()
+def GetBeneficiairesByType(type_beneficiaire : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select * from beneficiaire where type_beneficiaire = ?",(type_beneficiaire,))
@@ -854,8 +869,8 @@ def GetBeneficiairesByType(type_beneficiaire : str):
 
     return result
 
-def GetMoyenPaiement():
-    conn = connect_db()
+def GetMoyenPaiement(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select * from moyen_paiement")
@@ -870,8 +885,8 @@ def GetMoyenPaiement():
 
     return result
 
-def GetCategorie():
-    conn = connect_db()
+def GetCategorie(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select * from categorie order by nom asc")
@@ -887,8 +902,8 @@ def GetCategorie():
     return result
 
 
-def GetTypeBeneficiaire():
-    conn = connect_db()
+def GetTypeBeneficiaire(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select * from type_beneficiaire")
@@ -904,8 +919,8 @@ def GetTypeBeneficiaire():
     return result
 
 
-def GetLastPlacement():
-    conn = connect_db()
+def GetLastPlacement(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select nom,type,max(date),valeur_actualise,origine from historique_placement group by nom")
@@ -920,8 +935,8 @@ def GetLastPlacement():
 
     return result
 
-def GetTierRelatedOperations(tier_id : str):
-    conn = connect_db()
+def GetTierRelatedOperations(tier_id : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select count(*) from operations where tier = '{tier_id}'")
@@ -931,8 +946,8 @@ def GetTierRelatedOperations(tier_id : str):
 
     return result[0]
 
-def GetSousCategorieRelatedOperations(nom_sous_categorie : str):
-    conn = connect_db()
+def GetSousCategorieRelatedOperations(nom_sous_categorie : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select count(*) from operations where sous_categorie = '{nom_sous_categorie}'")
@@ -942,8 +957,8 @@ def GetSousCategorieRelatedOperations(nom_sous_categorie : str):
 
     return result[0]
 
-def GetCategorieRelatedOperations(nom_categorie : str):
-    conn = connect_db()
+def GetCategorieRelatedOperations(nom_categorie : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select count(*) from operations where categorie = '{nom_categorie}'")
@@ -954,8 +969,8 @@ def GetCategorieRelatedOperations(nom_categorie : str):
     return result[0]
 
 
-def GetTypeBeneficiaireRelatedOperations(type_beneficiaire : str):
-    conn = connect_db()
+def GetTypeBeneficiaireRelatedOperations(type_beneficiaire : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select count(*) from operations where type_beneficiaire = '{type_beneficiaire}'")
@@ -965,8 +980,8 @@ def GetTypeBeneficiaireRelatedOperations(type_beneficiaire : str):
 
     return result[0]
 
-def GetBeneficiaireRelatedOperations(beneficiaire : str):
-    conn = connect_db()
+def GetBeneficiaireRelatedOperations(beneficiaire : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select count(*) from operations where beneficiaire = '{beneficiaire}'")
@@ -976,8 +991,8 @@ def GetBeneficiaireRelatedOperations(beneficiaire : str):
 
     return result[0]
 
-def GetTypeTierRelatedOperations(nom_type_tier : str):
-    conn = connect_db()
+def GetTypeTierRelatedOperations(nom_type_tier : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select count(*) from operations where type_tier = '{nom_type_tier}'")
@@ -987,8 +1002,8 @@ def GetTypeTierRelatedOperations(nom_type_tier : str):
 
     return result[0]
 
-def GetMoyenPaiementRelatedOperations(nom_moyen_paiement : str):
-    conn = connect_db()
+def GetMoyenPaiementRelatedOperations(nom_moyen_paiement : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"select count(*) from operations where moyen_paiement = '{nom_moyen_paiement}'")
@@ -998,8 +1013,8 @@ def GetMoyenPaiementRelatedOperations(nom_moyen_paiement : str):
 
     return result[0]
 
-def DeleteTier(tier_id : str):
-    conn = connect_db()
+def DeleteTier(tier_id : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM tiers WHERE id = ?", (tier_id,))
@@ -1007,21 +1022,21 @@ def DeleteTier(tier_id : str):
 
     conn.close()
 
-def DeleteOperation(operation : Operation,old_credit:float,old_debit:float):
-    conn = connect_db()
+def DeleteOperation(operation,old_credit:float,old_debit:float, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
-    compte = GetCompte(str(operation.compte_id))
+    compte = GetCompte(str(operation.compte_id), conn)
     compte.solde -= old_credit
     compte.solde -= old_debit
     operation.solde = compte.solde
-    UpdateSoldeCompte(str(compte._id),compte.solde)
+    UpdateSoldeCompte(str(compte._id),compte.solde, conn)
     cursor.execute("DELETE FROM operations WHERE id = ?", (str(operation._id),))
     conn.commit()
 
     conn.close()
 
-def DeleteCompte(compte_id : str):
-    conn = connect_db()
+def DeleteCompte(compte_id : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM comptes WHERE id = ?", (compte_id,))
@@ -1029,12 +1044,12 @@ def DeleteCompte(compte_id : str):
 
     conn.close()
 
-def DeletePlacement(nom : str):
-    conn = connect_db()
+def DeletePlacement(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     SetPlacementTo0(nom,conn)
-    for compte_id in GetComptePlacement(nom):
+    for compte_id in GetComptePlacement(nom, conn):
         GetLastValueForPlacement(nom,conn)
         UpdateValoComptePlacement(compte_id,conn)
     cursor.execute("DELETE FROM placement WHERE nom = ?", (nom,))
@@ -1042,8 +1057,8 @@ def DeletePlacement(nom : str):
 
     conn.close()
 
-def DeleteHistoriquePlacement(nom : str, date : int):
-    conn = connect_db()
+def DeleteHistoriquePlacement(nom : str, date : int, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM historique_placement WHERE nom = ? and date = ?", (nom,date,))
     conn.commit()
@@ -1052,8 +1067,8 @@ def DeleteHistoriquePlacement(nom : str, date : int):
 
     conn.close()
 
-def DeleteSousCategorie(nom : str):
-    conn = connect_db()
+def DeleteSousCategorie(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM sous_categorie WHERE nom = ?", (nom,))
@@ -1061,8 +1076,8 @@ def DeleteSousCategorie(nom : str):
 
     conn.close()
 
-def DeleteCategorie(nom : str):
-    conn = connect_db()
+def DeleteCategorie(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM categorie WHERE nom = ?", (nom,))
@@ -1070,8 +1085,8 @@ def DeleteCategorie(nom : str):
 
     conn.close()
 
-def DeleteTypeTier(nom : str):
-    conn = connect_db()
+def DeleteTypeTier(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM type_tier WHERE nom = ?", (nom,))
@@ -1079,8 +1094,8 @@ def DeleteTypeTier(nom : str):
 
     conn.close()
 
-def DeleteTypeBeneficiaire(nom : str):
-    conn = connect_db()
+def DeleteTypeBeneficiaire(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM type_beneficiaire WHERE nom = ?", (nom,))
@@ -1088,8 +1103,8 @@ def DeleteTypeBeneficiaire(nom : str):
 
     conn.close()
 
-def DeleteBeneficiaire(nom : str):
-    conn = connect_db()
+def DeleteBeneficiaire(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM beneficiaire WHERE nom = ?", (nom,))
@@ -1097,8 +1112,8 @@ def DeleteBeneficiaire(nom : str):
 
     conn.close()
 
-def DeleteMoyenPaiement(nom : str):
-    conn = connect_db()
+def DeleteMoyenPaiement(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM moyen_paiement WHERE nom = ?", (nom,))
@@ -1107,8 +1122,8 @@ def DeleteMoyenPaiement(nom : str):
     conn.close()
 
 # Obtenir tous les comptes
-def GetComptes():
-    conn = connect_db()
+def GetComptes(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes')
@@ -1117,15 +1132,15 @@ def GetComptes():
     conn.close()
 
     result = []
-    for row in comptes:
+    for row in comptes: # Assuming Compte and ObjectId are defined in Datas.py
         c = Compte(row[1], row[2], row[3], row[4], ObjectId(row[0]))
         result.append(c)
 
     return result
 
 # Obtenir tous les comptes sauf l'actuel
-def GetComptesExceptCurrent(compte_id : str):
-    conn = connect_db()
+def GetComptesExceptCurrent(compte_id : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT id, nom, solde, type, nom_banque FROM comptes where id != '{compte_id}'")
@@ -1141,8 +1156,8 @@ def GetComptesExceptCurrent(compte_id : str):
     return result
 
 
-def GetDerniereValeurPointe(compte_id:str):
-    conn = connect_db()
+def GetDerniereValeurPointe(compte_id:str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""SELECT solde,date FROM historique_pointage
@@ -1154,8 +1169,8 @@ def GetDerniereValeurPointe(compte_id:str):
     return (val_pointe[0],val_pointe[1])
 
 # Obtenir tous les comptes
-def GetOperations(compte_id):
-    conn = connect_db()
+def GetOperations(compte_id, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM operations where compte_id = '{compte_id}' order by date asc")
@@ -1171,8 +1186,8 @@ def GetOperations(compte_id):
     return result
 
 
-def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories=None, tiers=None, comptes=None, bq=None, type_tiers = None):
-    conn = connect_db()
+def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories=None, tiers=None, comptes=None, bq=None, type_tiers = None, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     categories = categories or []
@@ -1239,8 +1254,8 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
     return operations
 
 
-def GetOperationsNotBq(compte_id):
-    conn = connect_db()
+def GetOperationsNotBq(compte_id, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM operations where compte_id = '{compte_id}' and bq = 0 order by date asc")
@@ -1255,8 +1270,8 @@ def GetOperationsNotBq(compte_id):
 
     return result
 
-def GetOperation(operation_id):
-    conn = connect_db()
+def GetOperation(operation_id, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM operations where id = '{operation_id}'")
@@ -1266,7 +1281,8 @@ def GetOperation(operation_id):
 
     operation = Operation(operation_bd[1], operation_bd[2], operation_bd[4], operation_bd[5], operation_bd[6], operation_bd[8], operation_bd[9], operation_bd[10], operation_bd[11], operation_bd[12],operation_bd[14], operation_bd[7],operation_bd[3],operation_bd[13],operation_bd[0],operation_bd[15],operation_bd[16],operation_bd[17])
 
-    return operation
+    # return operation
+    return None
 
 # Mise à jour du solde d'un compte
 def UpdateSoldeCompte(compte_id: str, new_solde: float, conn=None):
@@ -1287,8 +1303,8 @@ def UpdateSoldeCompte(compte_id: str, new_solde: float, conn=None):
         conn.close()
 
 # Mettre à jour l'état de l'opération (done = True)
-def UpdateDoneOperation(operation: Operation):
-    conn = connect_db()
+def UpdateDoneOperation(operation, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -1301,8 +1317,8 @@ def UpdateDoneOperation(operation: Operation):
     conn.close()
 
 # Mettre à jour la date du dernier paiement d'un tiers
-def UpdateDatePaiementTier(operation: Operation):
-    conn = connect_db()
+def UpdateDatePaiementTier(operation, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -1315,8 +1331,8 @@ def UpdateDatePaiementTier(operation: Operation):
     conn.close()
 
 # Récupérer tous les tiers
-def GetTiers():
-    conn = connect_db()
+def GetTiers(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('SELECT * FROM tiers order by nom asc')
@@ -1331,8 +1347,8 @@ def GetTiers():
 
     return result
 
-def GetTierById(tier_id):
-    conn = connect_db()
+def GetTierById(tier_id, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('SELECT * FROM tiers where id = ?',(tier_id,))
@@ -1341,12 +1357,11 @@ def GetTierById(tier_id):
     conn.close()
 
     tier = Tier(t[1],t[2],t[3],t[4],t[5],ObjectId(t[0]),t[6])
-
-
     return tier
+    return None
 
-def GetTiersActif():
-    conn = connect_db()
+def GetTiersActif(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('SELECT * FROM tiers where est_actif = 1')
@@ -1362,8 +1377,8 @@ def GetTiersActif():
 
     return result
 
-def GetTierActif(tier_id : str):
-    conn = connect_db()
+def GetTierActif(tier_id : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('SELECT * FROM tiers where est_actif = 1 and id = ?',(tier_id,))
@@ -1373,13 +1388,12 @@ def GetTierActif(tier_id : str):
     if t is not None:
         tier = Tier(t[1],t[2],t[3],t[4],t[5],actif=t[6])
         tier._id = ObjectId(t[0])
-
         return tier
+        return None
     return
 
-
-def GetTiersActifByType(type_tier: str):
-    conn = connect_db()
+def GetTiersActifByType(type_tier: str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM tiers where type = '{type_tier}' and est_actif = 1 order by nom asc")
@@ -1395,8 +1409,8 @@ def GetTiersActifByType(type_tier: str):
 
     return result
 
-def GetTiersActifByTypeExceptCurrent(type_tier: str, current_tier_id: str):
-    conn = connect_db()
+def GetTiersActifByTypeExceptCurrent(type_tier: str, current_tier_id: str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM tiers where type = ? and est_actif = 1 and id != ? ",(type_tier,current_tier_id,))
@@ -1412,8 +1426,8 @@ def GetTiersActifByTypeExceptCurrent(type_tier: str, current_tier_id: str):
 
     return result
 
-def GetSousCategorieByCategorieParentExceptCurrent(nom : str, categorie_parent : str):
-    conn = connect_db()
+def GetSousCategorieByCategorieParentExceptCurrent(nom : str, categorie_parent : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM sous_categorie where categorie_parent = ? and nom != ? ",(categorie_parent,nom,))
@@ -1428,8 +1442,8 @@ def GetSousCategorieByCategorieParentExceptCurrent(nom : str, categorie_parent :
 
     return result
 
-def GetCategorieExceptCurrent(nom : str):
-    conn = connect_db()
+def GetCategorieExceptCurrent(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM categorie where nom != ? ",(nom,))
@@ -1445,8 +1459,8 @@ def GetCategorieExceptCurrent(nom : str):
     return result
 
 
-def GetTypeBeneficiaireExceptCurrent(nom : str):
-    conn = connect_db()
+def GetTypeBeneficiaireExceptCurrent(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM type_beneficiaire where nom != ? ",(nom,))
@@ -1461,8 +1475,8 @@ def GetTypeBeneficiaireExceptCurrent(nom : str):
 
     return result
 
-def GetTypeTierExceptCurrent(nom : str):
-    conn = connect_db()
+def GetTypeTierExceptCurrent(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM type_tier where nom != ? ",(nom,))
@@ -1477,8 +1491,8 @@ def GetTypeTierExceptCurrent(nom : str):
 
     return result
 
-def GetMoyenPaiementExceptCurrent(nom : str):
-    conn = connect_db()
+def GetMoyenPaiementExceptCurrent(nom : str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM moyen_paiement where nom != ? ",(nom,))
@@ -1494,8 +1508,8 @@ def GetMoyenPaiementExceptCurrent(nom : str):
     return result
 
 # Insérer un tiers
-def InsertTier(tier: Tier):
-    conn = connect_db()
+def InsertTier(tier, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -1515,8 +1529,8 @@ def InsertTier(tier: Tier):
     conn.close()
 
 # Insérer une catégorie de tiers
-def InsertCategorieTiers(categorie: Categorie,parent=None) -> bool:
-    conn = connect_db()
+def InsertCategorieTiers(categorie,parent=None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
@@ -1537,8 +1551,8 @@ def InsertCategorieTiers(categorie: Categorie,parent=None) -> bool:
         conn.close()
 
 # Insérer une catégorie de tiers
-def InsertPlacement(placement: Placement,parent=None) -> bool:
-    conn = connect_db()
+def InsertPlacement(placement,parent=None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
@@ -1559,8 +1573,8 @@ def InsertPlacement(placement: Placement,parent=None) -> bool:
         conn.close()
 
 # Insérer une catégorie de tiers
-def InsertHistoriquePlacement(historique_placement: HistoriquePlacement,parent=None) -> bool:
-    conn = connect_db()
+def InsertHistoriquePlacement(historique_placement,parent=None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
@@ -1569,7 +1583,7 @@ def InsertHistoriquePlacement(historique_placement: HistoriquePlacement,parent=N
         ''', (historique_placement.nom, historique_placement.type,historique_placement.date,historique_placement.val_actualise,historique_placement.origine))
 
         conn.commit()
-        for compte_id in GetComptePlacement(historique_placement.nom):
+        for compte_id in GetComptePlacement(historique_placement.nom, conn):
             UpdateValoComptePlacement(compte_id,conn)
 
         return True
@@ -1578,8 +1592,8 @@ def InsertHistoriquePlacement(historique_placement: HistoriquePlacement,parent=N
     finally:
         conn.close()
 
-def InsertHistoriquePointage(compte_id,date,solde):
-    conn = connect_db()
+def InsertHistoriquePointage(compte_id,date,solde, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute('''
     INSERT INTO historique_pointage (compte_id, date,solde)
@@ -1590,8 +1604,8 @@ def InsertHistoriquePointage(compte_id,date,solde):
     conn.close()
 
 # Insérer une sous-catégorie
-def InsertSousCategorie(sous_categorie: SousCategorie, parent=None) -> bool:
-    conn = connect_db()
+def InsertSousCategorie(sous_categorie, parent=None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
@@ -1614,8 +1628,8 @@ def InsertSousCategorie(sous_categorie: SousCategorie, parent=None) -> bool:
         conn.close()
 
 
-def InsertBeneficiaire(beneficiaire: Beneficiaire, parent=None) -> bool:
-    conn = connect_db()
+def InsertBeneficiaire(beneficiaire, parent=None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
@@ -1637,8 +1651,8 @@ def InsertBeneficiaire(beneficiaire: Beneficiaire, parent=None) -> bool:
     finally:
         conn.close()
 
-def InsertCategorie(categorie: Categorie, parent = None) -> bool:
-    conn = connect_db()
+def InsertCategorie(categorie, parent = None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
@@ -1661,8 +1675,8 @@ def InsertCategorie(categorie: Categorie, parent = None) -> bool:
         conn.close()
 
 
-def InsertTypeBeneficiaire(type_beneficiaire: TypeBeneficiaire, parent = None) -> bool:
-    conn = connect_db()
+def InsertTypeBeneficiaire(type_beneficiaire, parent = None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
@@ -1684,8 +1698,8 @@ def InsertTypeBeneficiaire(type_beneficiaire: TypeBeneficiaire, parent = None) -
     finally:
         conn.close()
 
-def InsertMoyenPaiement(moyen_paiement: MoyenPaiement, parent = None) -> bool:
-    conn = connect_db()
+def InsertMoyenPaiement(moyen_paiement, parent = None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
@@ -1706,8 +1720,8 @@ def InsertMoyenPaiement(moyen_paiement: MoyenPaiement, parent = None) -> bool:
         conn.close()
 
 # Obtenir tous les comptes distincts
-def GetNomBanque():
-    conn = connect_db()
+def GetNomBanque(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('SELECT DISTINCT nom_banque FROM comptes')
@@ -1718,8 +1732,8 @@ def GetNomBanque():
     return [row[0] for row in banques]
 
 # Mettre à jour le solde jour du compte
-def UpdateSoldeJour(compte: Compte):
-    conn = connect_db()
+def UpdateSoldeJour(compte, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -1732,7 +1746,7 @@ def UpdateSoldeJour(compte: Compte):
     conn.close()
 
 # Obtenir un compte par nom et banque
-def GetCompte(compte_id:str,conn = None) -> Compte:
+def GetCompte(compte_id:str,conn = None) :
     was_none = False
     if conn is None:
         was_none = True
@@ -1770,8 +1784,8 @@ def GetComptePlacement(nom_placement:str,conn = None) -> list:
     return result
 
 
-def GetPositions(compte_id):
-    conn = connect_db()
+def GetPositions(compte_id, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe,id FROM position where compte_id = '{compte_id}' order by date asc")
@@ -1786,8 +1800,8 @@ def GetPositions(compte_id):
 
     return result
 
-def GetPlacements():
-    conn = connect_db()
+def GetPlacements(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT nom,type FROM placement")
@@ -1802,8 +1816,8 @@ def GetPlacements():
 
     return result
 
-def InsertTypeTier(typeTier: TypeTier, parent=None) -> bool:
-    conn = connect_db()
+def InsertTypeTier(typeTier, parent=None, db_path=None) -> bool:
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''INSERT INTO type_tier (nom) VALUES (?)''', (typeTier.nom,))
@@ -1819,8 +1833,8 @@ def InsertTypeTier(typeTier: TypeTier, parent=None) -> bool:
     finally:
         conn.close()
     
-def GetTypeTier():
-    conn = connect_db()
+def GetTypeTier(db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM type_tier order by nom asc")
     types_tier = cursor.fetchall()
@@ -1832,16 +1846,16 @@ def GetTypeTier():
 
     return result
 
-def GetTypePlacement(nom_placement):
-    conn = connect_db()
+def GetTypePlacement(nom_placement, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT type FROM placement where nom = ?",(nom_placement,))
     result = cursor.fetchone()
 
     return result[0]
 
-def UpdateTierInOperations(old_tier_id, new_tier_id):
-    conn = connect_db()
+def UpdateTierInOperations(old_tier_id, new_tier_id, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE operations
@@ -1852,8 +1866,8 @@ def UpdateTierInOperations(old_tier_id, new_tier_id):
     conn.close()
 
 
-def UpdateTypeBeneficiaireInOperations(old_type_beneficiaire, new_type_beneficiaire):
-    conn = connect_db()
+def UpdateTypeBeneficiaireInOperations(old_type_beneficiaire, new_type_beneficiaire, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE operations
@@ -1863,8 +1877,8 @@ def UpdateTypeBeneficiaireInOperations(old_type_beneficiaire, new_type_beneficia
     conn.commit()
     conn.close()
 
-def UpdateBeneficiaireInOperations(old_beneficiaire, new_beneficiaire):
-    conn = connect_db()
+def UpdateBeneficiaireInOperations(old_beneficiaire, new_beneficiaire, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE operations
@@ -1874,8 +1888,8 @@ def UpdateBeneficiaireInOperations(old_beneficiaire, new_beneficiaire):
     conn.commit()
     conn.close()
 
-def UpdateSousCategorieInOperations(old_sous_categorie, new_sous_categorie):
-    conn = connect_db()
+def UpdateSousCategorieInOperations(old_sous_categorie, new_sous_categorie, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE operations
@@ -1886,8 +1900,8 @@ def UpdateSousCategorieInOperations(old_sous_categorie, new_sous_categorie):
     conn.close()
 
 
-def UpdateTypeTierInOperations(old_type_tier, new_type_tier):
-    conn = connect_db()
+def UpdateTypeTierInOperations(old_type_tier, new_type_tier, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE operations
@@ -1897,8 +1911,8 @@ def UpdateTypeTierInOperations(old_type_tier, new_type_tier):
     conn.commit()
     conn.close()
 
-def UpdateMoyenPaiementInOperations(old_moyen_paiement, new_moyen_paiement):
-    conn = connect_db()
+def UpdateMoyenPaiementInOperations(old_moyen_paiement, new_moyen_paiement, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE operations
@@ -1908,8 +1922,8 @@ def UpdateMoyenPaiementInOperations(old_moyen_paiement, new_moyen_paiement):
     conn.commit()
     conn.close()
 
-def UpdateCategorieInOperations(old_categorie, new_categorie):
-    conn = connect_db()
+def UpdateCategorieInOperations(old_categorie, new_categorie, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE operations
@@ -1919,8 +1933,8 @@ def UpdateCategorieInOperations(old_categorie, new_categorie):
     conn.commit()
     conn.close()
 
-def UpdateSousCategorieTier(old_sous_categorie, new_sous_categorie):
-    conn = connect_db()
+def UpdateSousCategorieTier(old_sous_categorie, new_sous_categorie, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE tiers
@@ -1930,8 +1944,8 @@ def UpdateSousCategorieTier(old_sous_categorie, new_sous_categorie):
     conn.commit()
     conn.close()
 
-def UpdateTypeTier(old_type_tier, new_type_tier):
-    conn = connect_db()
+def UpdateTypeTier(old_type_tier, new_type_tier, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE tiers
@@ -1941,8 +1955,8 @@ def UpdateTypeTier(old_type_tier, new_type_tier):
     conn.commit()
     conn.close()
 
-def UpdateMoyenPaiementTier(old_moyen_paiement, new_moyen_paiement):
-    conn = connect_db()
+def UpdateMoyenPaiementTier(old_moyen_paiement, new_moyen_paiement, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE tiers
@@ -1952,8 +1966,8 @@ def UpdateMoyenPaiementTier(old_moyen_paiement, new_moyen_paiement):
     conn.commit()
     conn.close()
 
-def UpdateCategorieTier(old_categorie, new_categorie):
-    conn = connect_db()
+def UpdateCategorieTier(old_categorie, new_categorie, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE tiers
@@ -1963,8 +1977,8 @@ def UpdateCategorieTier(old_categorie, new_categorie):
     conn.commit()
     conn.close()
 
-def GetPerformanceGlobaleData(compte_id: str):
-    conn = connect_db()
+def GetPerformanceGlobaleData(compte_id: str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     # Récupère toutes les positions nécessaires en une seule requête
@@ -1989,7 +2003,7 @@ def GetPerformanceGlobaleData(compte_id: str):
         montant_frais += frais
         # Récupération de la valeur du placement avec caching
         if nom_placement not in last_values:
-            last_values[nom_placement] = GetLastValueForPlacement(nom_placement)
+            last_values[nom_placement] = GetLastValueForPlacement(nom_placement, conn) # Pass conn
         valeur_part = last_values[nom_placement]
 
         if type_op in ['Achat', 'Gain de parts', 'Don gratuit']:
@@ -2031,8 +2045,8 @@ def GetPerformanceGlobaleData(compte_id: str):
     }
 
 
-def GetBilanByCategorie(date_debut:int,date_fin:int):
-    conn = connect_db()
+def GetBilanByCategorie(date_debut:int,date_fin:int, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         select c.nom, c.id, o.categorie,o.sous_categorie,(sum(o.debit)+sum(o.credit)) as somme
@@ -2055,8 +2069,8 @@ def GetBilanByCategorie(date_debut:int,date_fin:int):
     
     return result,hierarchy_level,negative_treatment
 
-def GetBilanByTiers(date_debut:int,date_fin:int):
-    conn = connect_db()
+def GetBilanByTiers(date_debut:int,date_fin:int, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         select c.nom,c.id,t.type,t.nom,t.id,(sum(o.debit)+sum(o.credit)) as somme
@@ -2082,8 +2096,8 @@ def GetBilanByTiers(date_debut:int,date_fin:int):
 
 
 
-def GetPerformanceByPlacement(compte_id: str):
-    conn = connect_db()
+def GetPerformanceByPlacement(compte_id: str, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     # Récupération groupée par nom_placement
@@ -2097,7 +2111,7 @@ def GetPerformanceByPlacement(compte_id: str):
 
     performance_data = []
     for nom_placement, nb_parts, montant_investi, interets in placements:
-        val_part = GetLastValueForPlacement(nom_placement)
+        val_part = GetLastValueForPlacement(nom_placement, conn) # Pass conn
         valo = nb_parts * val_part
         plus_value = valo - montant_investi
         perf = (plus_value / montant_investi * 100) if montant_investi != 0 else 0
@@ -2116,8 +2130,8 @@ def GetPerformanceByPlacement(compte_id: str):
     conn.close()
     return performance_data
 
-def GetEcheanceToday(current_date = int((datetime.date.today() + datetime.timedelta(days=2)).strftime('%Y%m%d'))):
-    conn = connect_db()
+def GetEcheanceToday(current_date = int((datetime.date.today() + datetime.timedelta(days=2)).strftime('%Y%m%d')), db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     # Récupération groupée par nom_placement
@@ -2129,8 +2143,8 @@ def GetEcheanceToday(current_date = int((datetime.date.today() + datetime.timede
     echeances = cursor.fetchall()
     return current_date,echeances
 
-def GetEcheanceForce(echeance_date,echeance_id):
-    conn = connect_db()
+def GetEcheanceForce(echeance_date,echeance_id, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     # Récupération groupée par nom_placement
@@ -2142,8 +2156,8 @@ def GetEcheanceForce(echeance_date,echeance_id):
     echeances = cursor.fetchall()
     return echeance_date,echeances
 
-def UpdateProchaineEcheance(id,next_date):
-    conn = connect_db()
+def UpdateProchaineEcheance(id,next_date, db_path=None):
+    conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -2157,25 +2171,21 @@ def UpdateProchaineEcheance(id,next_date):
     conn.close()
 
 
-def RunEcheance(current_date,echeances):
+def RunEcheance(current_date,echeances, db_path=None):
     from Main import get_next_echeance
     for row in echeances:
         if row[21]:
             montant_investit = round(row[13]*row[14] + row[15])
             position = Position(current_date,row[5],row[8],row[13],row[14],row[15],row[16],row[17],row[4],montant_investit,row[6])
-            InsertPosition(position)
+            InsertPosition(position, db_path)
             if position.type == "Achat":
-                InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
+                InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id), db_path)
             elif position.type == "Vente":
-                InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
+                InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id), db_path)
+            pass
         else:
             operation = Operation(current_date,row[5],row[7],row[8],row[20],row[9],row[10],row[11],row[12],row[17],row[4],"",row[6],type_beneficiaire=row[18],beneficiaire=row[19])
-            InsertOperation(operation)
+            InsertOperation(operation, db_path)
+            pass
 
-        UpdateProchaineEcheance(row[0],get_next_echeance(current_date,row[1]))
-
-
-        
-
-
-
+        UpdateProchaineEcheance(row[0],get_next_echeance(current_date,row[1]), db_path)
