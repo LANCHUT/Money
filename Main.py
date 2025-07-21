@@ -410,14 +410,30 @@ class MoneyManager(QMainWindow):
         self.load_last_db_path()
 
         # Configurer l'interface utilisateur
-        self.setup_ui()
+        if self.current_db_path is not None:
+            self.setup_ui()
 
-        # Gérer la logique de démarrage de la DB
-        self.initialize_db_on_startup()
+            # Gérer la logique de démarrage de la DB
+            self.initialize_db_on_startup()
+            
+        else:
+            menu_bar = self.menuBar()
+            file_menu = menu_bar.addMenu("Fichier")
 
-        # Maximiser la fenêtre
+            exit_action = QAction("Quitter", self)
+            exit_action.triggered.connect(self.close)
+            file_menu.addAction(exit_action)
+
+            open_action = QAction("Ouvrir", self)
+            open_action.triggered.connect(self.open_db)
+            file_menu.addAction(open_action)
+
+            new_db_action = QAction("Nouveau", self)
+            new_db_action.triggered.connect(self.new_db)
+            file_menu.addAction(new_db_action)
+            
         self.showMaximized()
-
+           
     def setup_ui(self):
         # Menu Bar
         menu_bar = self.menuBar()
