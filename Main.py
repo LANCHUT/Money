@@ -431,7 +431,7 @@ class MoneyManager(QMainWindow):
             new_db_action = QAction("Nouveau", self)
             new_db_action.triggered.connect(self.new_db)
             file_menu.addAction(new_db_action)
-            
+
         self.showMaximized()
            
     def setup_ui(self):
@@ -2066,7 +2066,7 @@ class MoneyManager(QMainWindow):
         self.load_operations()
 
     def show_about(self):
-        QMessageBox.information(self, "À propos", "Money Manager v0.1\nCréé avec PyQt6.")
+        QMessageBox.information(self, "À propos", "Money Manager v1.0\nPropriété de Langello Corp et de tous ses ayants droits.")
 
     def open_db(self):
         """
