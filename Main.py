@@ -4,12 +4,12 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QPushButton, QLabel, QTableWidget, QTableWidgetItem, QListWidgetItem, QMessageBox,
-    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy,QFileDialog
+    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy,QFileDialog,
 )
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from IPython.display import HTML, display
-from PyQt6.QtGui import QAction,QColor,QCursor
+from PyQt6.QtGui import QAction,QColor,QCursor,QIcon
 from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths
 from GestionBD import *
 from CheckableComboBox import *
@@ -395,6 +395,8 @@ class MoneyManager(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Money Manager")
+        icon_path = "Money.ico"
+        self.setWindowIcon(QIcon(icon_path))
 
         # Initialisation des états de la DB
         self.current_db_path = None
