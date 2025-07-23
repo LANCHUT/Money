@@ -235,7 +235,7 @@ def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_co
         root_label_text = f"{root_name} (Surplus: {round(true_total_balance, 2)}€)"
         root_color_final = COLOR_ROOT_POSITIVE
     else:
-        root_label_text = f"{root_name} (Balance: 0€)"
+        root_label_text = f"{root_name} (Equilibre: 0€)"
         root_color_final = COLOR_ROOT_ZERO
 
     sum_of_top_level_abs_values = 0
@@ -433,6 +433,10 @@ class MoneyManager(QMainWindow):
             new_db_action = QAction("Nouveau", self)
             new_db_action.triggered.connect(self.new_db)
             file_menu.addAction(new_db_action)
+
+            import_qif_action = QAction("Importer", self)
+            import_qif_action.triggered.connect(self.import_qif)
+            file_menu.addAction(import_qif_action)
 
         self.showMaximized()
            
@@ -2242,7 +2246,6 @@ class MoneyManager(QMainWindow):
         add_account_btn = QPushButton("Ajouter un compte")
         add_account_btn.clicked.connect(self.open_add_account_dialog)
 
-        panel.addWidget(QLabel("Comptes:"))
         panel.addWidget(self.account_list)
         panel.addWidget(add_account_btn)
 
@@ -2482,7 +2485,6 @@ class MoneyManager(QMainWindow):
         self.tier_table.setSortingEnabled(True)
         self.tier_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tier_table.customContextMenuRequested.connect(self.show_context_menu_tier)
-        tiers_section.addWidget(QLabel("Tiers:"))
         tiers_section.addWidget(self.tier_table)
         add_btn = QPushButton("Ajouter un tier")
         add_btn.clicked.connect(self.open_add_tier_dialog)
@@ -2497,7 +2499,6 @@ class MoneyManager(QMainWindow):
         self.type_tier_table.setSortingEnabled(True)
         self.type_tier_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.type_tier_table.customContextMenuRequested.connect(self.show_context_menu_type_tier)
-        types_section.addWidget(QLabel("Types de Tier:"))
         types_section.addWidget(self.type_tier_table)
         add_type_btn = QPushButton("Ajouter type de tier")
         add_type_btn.clicked.connect(self.open_add_type_tier_dialog)
@@ -2519,7 +2520,6 @@ class MoneyManager(QMainWindow):
         self.categorie_table.setAlternatingRowColors(True)
         self.categorie_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.categorie_table.customContextMenuRequested.connect(self.show_context_menu_categorie)
-        cat_section.addWidget(QLabel("Catégories:"))
         cat_section.addWidget(self.categorie_table)
         add_btn = QPushButton("Ajouter catégorie")
         add_btn.clicked.connect(self.open_add_categorie_dialog)
@@ -2533,7 +2533,6 @@ class MoneyManager(QMainWindow):
         self.sous_categorie_table.setAlternatingRowColors(True)
         self.sous_categorie_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.sous_categorie_table.customContextMenuRequested.connect(self.show_context_menu_sous_categorie)
-        sous_cat_section.addWidget(QLabel("Sous-Catégories:"))
         sous_cat_section.addWidget(self.sous_categorie_table)
         add_btn2 = QPushButton("Ajouter sous-catégorie")
         add_btn2.clicked.connect(self.open_add_sous_categorie_dialog)
@@ -2556,7 +2555,6 @@ class MoneyManager(QMainWindow):
         self.compte_table.setSortingEnabled(True)
         self.compte_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.compte_table.customContextMenuRequested.connect(self.show_context_menu_compte)
-        layout.addWidget(QLabel("Comptes:"))
         layout.addWidget(self.compte_table)
         add_btn = QPushButton("Ajouter un compte")
         add_btn.clicked.connect(self.open_add_account_dialog)
@@ -2590,7 +2588,6 @@ class MoneyManager(QMainWindow):
         self.categorie2_table.setAlternatingRowColors(True)
         self.categorie2_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.categorie2_table.customContextMenuRequested.connect(self.show_context_menu_type_beneficiaire)
-        cat2_section.addWidget(QLabel("Type Bénéficiaire:"))
         cat2_section.addWidget(self.categorie2_table)
         btn_cat2 = QPushButton("Ajouter un type de bénéficiaire")
         btn_cat2.clicked.connect(self.open_add_type_beneficiaire_dialog)
@@ -2604,7 +2601,6 @@ class MoneyManager(QMainWindow):
         self.sous_categorie2_table.setAlternatingRowColors(True)
         self.sous_categorie2_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.sous_categorie2_table.customContextMenuRequested.connect(self.show_context_menu_sous_categorie2)
-        sous_cat2_section.addWidget(QLabel("Bénéficiaire:"))
         sous_cat2_section.addWidget(self.sous_categorie2_table)
         btn_sous_cat2 = QPushButton("Ajouter un bénéficiaire")
         btn_sous_cat2.clicked.connect(self.open_add_beneficiaire_dialog)
