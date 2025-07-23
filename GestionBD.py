@@ -873,7 +873,7 @@ def GetMoyenPaiement(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select * from moyen_paiement")
+    cursor.execute(f"select * from moyen_paiement order by nom asc")
     moyen_paiements = cursor.fetchall()
 
     conn.close()
@@ -906,7 +906,7 @@ def GetTypeBeneficiaire(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select * from type_beneficiaire")
+    cursor.execute(f"select * from type_beneficiaire order by nom asc")
     types_beneficiaire = cursor.fetchall()
 
     conn.close()
@@ -1127,6 +1127,22 @@ def GetComptes(db_path=None):
     cursor = conn.cursor()
 
     cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes')
+    comptes = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in comptes: # Assuming Compte and ObjectId are defined in Datas.py
+        c = Compte(row[1], row[2], row[3], row[4], ObjectId(row[0]))
+        result.append(c)
+
+    return result
+
+def GetComptesHorsPlacement(db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type == "Courant" OR type == "Epargne"')
     comptes = cursor.fetchall()
 
     conn.close()
@@ -1478,7 +1494,7 @@ def GetTypeTierExceptCurrent(nom : str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT * FROM type_tier where nom != ? ",(nom,))
+    cursor.execute(f"SELECT * FROM type_tier where nom != ? order by asc",(nom,))
     categories = cursor.fetchall()
 
     conn.close()

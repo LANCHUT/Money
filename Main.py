@@ -9,11 +9,13 @@ from PyQt6.QtWidgets import (
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from IPython.display import HTML, display
-from PyQt6.QtGui import QAction,QColor
+from PyQt6.QtGui import QAction,QColor,QCursor
 from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths
 from GestionBD import *
 from CheckableComboBox import *
 from DateTableWidgetItem import *
+from ImportDialog import *
+from ImportQIF import *
 from AddEditEcheanceDialog import *
 from AddEditAccountDialog import *
 from AddEditOperationDialog import *
@@ -452,9 +454,9 @@ class MoneyManager(QMainWindow):
         new_db_action.triggered.connect(self.new_db)
         file_menu.addAction(new_db_action)
 
-        # import_action = QAction("Importer", self)
-        # import_action.triggered.connect(self.import_data)
-        # file_menu.addAction(import_action)
+        import_qif_action = QAction("Importer", self)
+        import_qif_action.triggered.connect(self.import_qif)
+        file_menu.addAction(import_qif_action)
 
         about_action = QAction("À propos", self)
         about_action.triggered.connect(self.show_about)
@@ -2095,6 +2097,47 @@ class MoneyManager(QMainWindow):
                 "Aucun fichier de base de données sélectionné."
             )
             self.current_db_path = None # Réinitialiser si aucun fichier n'est sélectionné
+
+    def open_qif(self):
+        """
+        Ouvre un explorateur de fichiers pour sélectionner des fichiers .qif.
+        """
+        file_filter = "Fichiers de base de données (*.qif);;Tous les fichiers (*.*)"
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Sélectionner un fichier .qif",
+            "",
+            file_filter
+        )
+
+        if not file_path:
+            QMessageBox.warning(
+                self,
+                "Aucun fichier",
+                "Aucun fichier qif sélectionné."
+            )
+        return file_path
+    
+    def import_qif(self):
+        input_path = self.open_qif()
+        comptes = GetComptesHorsPlacement()
+        import_dialog = ImportDialog(comptes, self)
+        import_dialog.exec()
+        compte_id = import_dialog.get_selected_compte_id()
+
+        if compte_id:
+            QApplication.setOverrideCursor(QCursor(Qt.CursorShape.WaitCursor))
+
+            try:
+                import_qif_data(input_path, compte_id, self.current_db_path)
+            finally:
+                QApplication.setOverrideCursor(QCursor(Qt.CursorShape.ArrowCursor))
+                QMessageBox.information(self, "Importation terminée", f"Importation du fichier {input_path.split('/')[-1]} terminée")
+                self.account_list.clear()
+                self.load_accounts()
+
+
         
 
     def new_db(self):
@@ -3014,8 +3057,16 @@ class MoneyManager(QMainWindow):
             # état PartiallyChecked = ne pas filtrer sur ce critère
             bq = None
 
-        self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq,selected_type_tiers),0)
-        self.transaction_table.setColumnHidden(16,True)
+        try:
+            QApplication.setOverrideCursor(QCursor(Qt.CursorShape.WaitCursor))
+            self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq,selected_type_tiers),0)
+        finally:
+            # Always restore the cursor to the default after the operation
+            QApplication.setOverrideCursor(QCursor(Qt.CursorShape.ArrowCursor)) # Example for PyQt/PySide
+            self.transaction_table.setColumnHidden(16,True)
+
+        
+        
 
     def reset_filters(self):
         # Vider les sélections
