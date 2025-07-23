@@ -374,11 +374,11 @@ class MoneyManager(QMainWindow):
         # Cette fonction peut être appelée pour ajuster l'interface utilisateur
         # en fonction de si une DB est chargée ou non.
         if self.current_db_path:
-            self.setWindowTitle(f"Money Manager - [{os.path.basename(self.current_db_path)}]")
+            self.setWindowTitle(f"Money - [{os.path.basename(self.current_db_path)}]")
             # Vous pourriez activer/désactiver certains boutons ici
             # self.test_button.setEnabled(True)
         else:
-            self.setWindowTitle("Money Manager - [Aucune base de données chargée]")
+            self.setWindowTitle("Money - [Aucune base de données chargée]")
             # self.test_button.setEnabled(False)
 
     def load_last_db_path(self):
@@ -394,7 +394,7 @@ class MoneyManager(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Money Manager")
+        self.setWindowTitle("Money")
         icon_path = "Money.ico"
         self.setWindowIcon(QIcon(icon_path))
 
@@ -408,7 +408,7 @@ class MoneyManager(QMainWindow):
         self.player = QMediaPlayer()
         self.player.setAudioOutput(self.audio_output) # Associer la sortie audio au lecteur
 
-        self.settings = QSettings("VotreOrganisation", "MoneyManager") # Remplacez par le nom de votre organisation/app
+        self.settings = QSettings("Langello Corp", "Money") # Remplacez par le nom de votre organisation/app
 
         # Tenter de charger la dernière DB utilisée
         self.load_last_db_path()

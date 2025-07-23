@@ -8,7 +8,7 @@
 
 [Setup]
 AppName=Money
-AppVersion=1.0.0.0 ; <-- Ajouté ou mis à jour : version complète
+AppVersion=1.0.0.0
 WizardStyle=modern
 DefaultDirName={autopf}\Money
 DefaultGroupName=Money
@@ -33,10 +33,10 @@ ArchitecturesInstallIn64BitMode=x64compatible
 
 ; --------------- Informations sur l'Éditeur / l'Application ---------------
 AppPublisher=Langello Antoine
-; AppPublisherURL=https://www.votresite.com ; <-- Décommenter et personnaliser si vous avez un site
-; AppSupportURL=https://www.votresite.com/support ; <-- Décommenter et personnaliser si vous avez une page de support
-; AppUpdatesURL=https://www.votresite.com/updates ; <-- Décommenter et personnaliser si vous avez une page de mises à jour
-VersionInfoVersion=1,0,0,0
+; AppPublisherURL=https://www.votresite.com
+; AppSupportURL=https://www.votresite.com/support
+; AppUpdatesURL=https://www.votresite.com/updates
+VersionInfoVersion=1.0.0.0
 VersionInfoCompany=Money
 VersionInfoDescription=Logiciel de gestion de budget personnel
 VersionInfoCopyright=Copyright (c) 2025 Langello Corp. Tous droits réservés.
@@ -51,6 +51,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Votre programme principal Main.exe
 ; Le fichier Main.exe doit être dans le même dossier que money_setup.iss
 Source: "Main.exe"; DestDir: "{app}"
+Source: "Money.ico"; DestDir: "{app}"
 ; Si vous avez d'autres fichiers (comme MyProg.chm ou Readme.txt dans l'exemple original),
 ; assurez-vous de les inclure ici.
 ; Par exemple, si vous avez un fichier Readme.txt :
