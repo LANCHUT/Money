@@ -776,7 +776,6 @@ def GetHistoriquePlacementByDate(nom:str,date:int, db_path=None):
 
     conn.close()
     return HistoriquePlacement(row[0],row[1],row[2],row[3],row[4])
-    return None
 
 
 def GetAllSousCategorie(db_path=None):
@@ -818,7 +817,6 @@ def GetEcheance(echeance_id, db_path=None):
     echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[20],row[21],row[6],row[17],row[18],row[0])
 
     return echeance
-    return None
 
 
 def GetAllEcheance(db_path=None):
@@ -1298,7 +1296,7 @@ def GetOperation(operation_id, db_path=None):
     operation = Operation(operation_bd[1], operation_bd[2], operation_bd[4], operation_bd[5], operation_bd[6], operation_bd[8], operation_bd[9], operation_bd[10], operation_bd[11], operation_bd[12],operation_bd[14], operation_bd[7],operation_bd[3],operation_bd[13],operation_bd[0],operation_bd[15],operation_bd[16],operation_bd[17])
 
     # return operation
-    return None
+    return operation
 
 # Mise à jour du solde d'un compte
 def UpdateSoldeCompte(compte_id: str, new_solde: float, conn=None):
@@ -1404,7 +1402,6 @@ def GetTierActif(tier_id : str, db_path=None):
         tier = Tier(t[1],t[2],t[3],t[4],t[5],actif=t[6])
         tier._id = ObjectId(t[0])
         return tier
-        return None
     return
 
 def GetTiersActifByType(type_tier: str, db_path=None):

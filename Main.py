@@ -2078,7 +2078,7 @@ class MoneyManager(QMainWindow):
         self.load_operations()
 
     def show_about(self):
-        QMessageBox.information(self, "À propos", "Money Manager v1.0\nPropriété de Langello Corp et de tous ses ayants droits.")
+        QMessageBox.information(self, "À propos", "Money v1.0\nPropriété de Langello Corp et de tous ses ayants droits.")
 
     def open_db(self):
         """
