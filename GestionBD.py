@@ -1358,7 +1358,6 @@ def GetTierById(tier_id, db_path=None):
 
     tier = Tier(t[1],t[2],t[3],t[4],t[5],ObjectId(t[0]),t[6])
     return tier
-    return None
 
 def GetTiersActif(db_path=None):
     conn = connect_db(db_path)

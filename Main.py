@@ -500,6 +500,10 @@ class MoneyManager(QMainWindow):
         self.tabs.addTab(self.categories2_tab, "Gestion des Bénéficiaires")
         self.setup_categories2_tab()
 
+        self.moyen_paiement_tab = QWidget()
+        self.tabs.addTab(self.moyen_paiement_tab, "Gestion des moyens de paiement")
+        self.setup_moyen_paiement_tab()
+
         self.echeancier_tab = QWidget()
         self.tabs.addTab(self.echeancier_tab, "Gestion de l'échéancier")
         self.setup_echeancier_tab()
@@ -2515,6 +2519,22 @@ class MoneyManager(QMainWindow):
         add_btn.clicked.connect(self.open_add_account_dialog)
         layout.addWidget(add_btn)
         self.load_comptes()
+
+    def setup_moyen_paiement_tab(self):
+        layout = QVBoxLayout(self.moyen_paiement_tab)
+        self.moyen_paiement_table = QTableWidget(0, 1)
+        self.moyen_paiement_table.setHorizontalHeaderLabels(["Nom"])
+        self.moyen_paiement_table.horizontalHeader().setStretchLastSection(True)
+        self.moyen_paiement_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.moyen_paiement_table.setAlternatingRowColors(True)
+        self.moyen_paiement_table.setSortingEnabled(True)
+        self.moyen_paiement_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.moyen_paiement_table.customContextMenuRequested.connect(self.show_context_menu_moyen_paiement)
+        layout.addWidget(self.moyen_paiement_table)
+        add_btn = QPushButton("Ajouter un moyen de paiement")
+        add_btn.clicked.connect(self.open_add_moyen_paiement_dialog)
+        layout.addWidget(add_btn)
+        self.load_moyen_paiement()
 
     def setup_categories2_tab(self):
         layout = QHBoxLayout(self.categories2_tab)
