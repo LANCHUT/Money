@@ -2153,7 +2153,7 @@ def GetEcheanceToday(current_date = int((datetime.date.today() + datetime.timede
         WHERE prochaine_echeance <=  ?
     """, (current_date,))
     echeances = cursor.fetchall()
-    return current_date,echeances
+    return int(datetime.date.today().strftime('%Y%m%d')),echeances
 
 def GetEcheanceForce(echeance_date,echeance_id, db_path=None):
     conn = connect_db(db_path)
