@@ -9,14 +9,16 @@ from BaseDialog import BaseDialog
 
 from GestionBD import *
 
-class AddPositionDialog(BaseDialog):
-    def __init__(self, parent=None, account_id=None, isEcheance = False, echeance = None, compte_choisi_id = None):
+class AddEditPositionDialog(BaseDialog):
+    def __init__(self, parent=None,account_id=None, position:Position = None, isEcheance = False, echeance = None, compte_choisi_id = None, isEdit = False):
         super().__init__(parent)
         self.setWindowTitle("Ajouter une nouvelle position")
         self.account_id = account_id
+        self.position = position
         self.isEcheance = isEcheance
         self.echeance = echeance
         self.compte_choisi_id = compte_choisi_id
+        self.isEdit = isEdit
 
         # Layout pour la pop-up
         self.layout = QFormLayout()
@@ -57,6 +59,10 @@ class AddPositionDialog(BaseDialog):
         self.label_date_premiere = QLabel("Première échéance:")
         self.date_premiere = CustomDateEdit()
         self.date_premiere.setDate(QDate.currentDate())
+        if self.position:
+
+            self.fill_fields()
+            self.val_part.setReadOnly(True)
 
         self.set_echeancier_fields_visible(False)
 
@@ -96,6 +102,8 @@ class AddPositionDialog(BaseDialog):
         if self.isEcheance:
             self.ajouter_echeancier_checkbox.setCheckState(Qt.CheckState.Checked)
             self.ajouter_echeancier_checkbox.setEnabled(False)
+       
+
 
 
     def set_last_val_part(self, placement_name):
@@ -121,16 +129,16 @@ class AddPositionDialog(BaseDialog):
         interets = get_float_value(self.interet)
         date = int(self.date.date().toString("yyyyMMdd"))
         notes = self.notes.text()
-        montant_investit = 0
         type_placement = self.type_placement.currentText()
+        if nb_part == 0:
+            QMessageBox.warning(self, "Erreur", "Le champs nb_part doit être remplis.")
+            return
         if type_placement in [TypePosition.Vente.value,TypePosition.Perte.value]:
             nb_part *= -1
 
         # Appliquer la logique "compte associé" seulement si c'est un transfert
         if type_placement in ["Achat", "Intérêts","Vente"]:
             compte_associe_id = self.compte_associe.currentData()
-            if type_placement == "Achat":
-                montant_investit = round(nb_part*val_part + frais)
         else:
             compte_associe_id = ""
 
@@ -175,14 +183,22 @@ class AddPositionDialog(BaseDialog):
             InsertEcheance(echeance)
             self.parent().load_echeance()
         
-        if self.account_id is not None:
-            # Créer l'objet compte
-            position = Position(date,type_placement,nom_placement,nb_part,val_part,frais,interets, notes,self.account_id,montant_investit,compte_associe_id)
-
-            # Ajouter le compte dans la base de données SQLite
-            self.parent().add_position(position)
-
-            # Fermer la pop-up après ajout
+        if not self.isEcheance:
+            if self.position:
+                # Mise à jour
+                self.position.date = date
+                self.position.type = type_placement
+                self.position.nb_part = nb_part
+                self.position.val_part = val_part
+                self.position.frais = frais
+                self.position.interets = interets
+                self.position.notes = notes
+                self.position.compte_associe = compte_associe_id
+                self.parent().update_position(self.position,self.isEdit)
+            elif self.position is None :
+                # Créer l'objet compte
+                position = Position(date,type_placement,nom_placement,nb_part,val_part,frais,interets, notes,self.account_id,round((nb_part*nb_part + frais),2),compte_associe_id)
+                self.parent().add_position(position)
         self.accept()
    
 
@@ -243,4 +259,18 @@ class AddPositionDialog(BaseDialog):
 
     def on_toggle_echeancier_fields(self):
         self.set_echeancier_fields_visible(self.ajouter_echeancier_checkbox.isChecked())
+
+    def fill_fields(self):
+        from AddEditOperationDialog import set_combobox_index_by_text,set_combobox_index_by_data
+        self.date.setDate(QDate.fromString(str(self.position.date), "yyyyMMdd"))
+        set_combobox_index_by_text(self.type_placement, self.position.type)
+        set_combobox_index_by_text(self.placement, self.position.nom_placement)
+        self.val_part.setText(str(self.position.val_part))
+        self.nb_part.setText(str(self.position.nb_part))
+        self.frais.setText(str(self.position.frais))
+        self.interet.setText(str(self.position.interets))
+        self.notes.setText(self.position.notes)
+
+        if self.position.compte_associe:
+            set_combobox_index_by_data(self.compte_associe, self.position.compte_associe)
 

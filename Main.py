@@ -21,7 +21,7 @@ from AddEditAccountDialog import *
 from AddEditOperationDialog import *
 from AddEditTypeBeneficiaireDialog import *
 from AddEditBeneficiaireDialog import *
-from AddPositionDialog import *
+from AddEditPositionDialog import *
 from AddEditTierDialog import *
 from AddEditPlacementDialog import *
 from ReplaceTierDialog import *
@@ -395,6 +395,10 @@ class MoneyManager(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Money")
+        # Initialisation pour l'audio (s'assurer que QAudioOutput et QMediaPlayer sont importés de QtMultimedia)
+        self.audio_output = QAudioOutput()
+        self.player = QMediaPlayer()
+        self.player.setAudioOutput(self.audio_output) # Associer la sortie audio au lecteur
         icon_path = "Money.ico"
         self.setWindowIcon(QIcon(icon_path))
 
@@ -402,11 +406,6 @@ class MoneyManager(QMainWindow):
         self.current_db_path = None
         self.current_account = None # Gardez ceci si vous l'utilisez pour l'état de l'application
         self.pointage_state = {'actif': False, 'solde': 0.0, 'date': '','ops' : set(),'rows' : set(),'suspendu': False}
-
-        # Initialisation pour l'audio (s'assurer que QAudioOutput et QMediaPlayer sont importés de QtMultimedia)
-        self.audio_output = QAudioOutput()
-        self.player = QMediaPlayer()
-        self.player.setAudioOutput(self.audio_output) # Associer la sortie audio au lecteur
 
         self.settings = QSettings("Langello Corp", "Money") # Remplacez par le nom de votre organisation/app
 
@@ -592,6 +591,9 @@ class MoneyManager(QMainWindow):
         date_debut = int(self.date_debut_filter_etat.date().toString("yyyyMMdd"))
         date_fin = int(self.date_fin_filter_etat.date().toString("yyyyMMdd"))
         if is_last_ring: # Nouvelle condition
+            self.table_stack.setCurrentIndex(0)
+            self.transaction_table.clearContents()
+            self.position_table.clearContents()
             if self.etat_combobox.currentText() == "Bilan Période par catégorie":
                 self.load_operations(GetFilteredOperations(date_debut=date_debut,date_fin=date_fin,categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)          
             elif self.etat_combobox.currentText() == "Bilan Période par tiers":
@@ -1031,6 +1033,24 @@ class MoneyManager(QMainWindow):
             self.transaction_table.clearContents()
             self.load_accounts()
             self.load_operations()
+
+    def delete_selected_position(self, row):
+        choix = QMessageBox.question(
+                    self,
+                    "Suppression d'une position",
+                    "La position va être définitivement supprimée\nEtes-vous sûr de vouloir supprimer la position ?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+        if choix == QMessageBox.StandardButton.Yes:
+            item_nom = self.position_table.item(row, 0)
+            position_id = str(item_nom.data(Qt.ItemDataRole.UserRole))
+            position = GetPosition(position_id)
+            DeletePosition(position)
+            self.position_table.removeRow(row)
+            self.account_list.clear()
+            self.position_table.clearContents()
+            self.load_accounts()
+            self.load_position()
 
     def delete_selected_placement(self, row):
         choix = QMessageBox.question(
@@ -1568,6 +1588,37 @@ class MoneyManager(QMainWindow):
             print("Erreur lors de la modification de l'opération:", e)
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
 
+    def edit_selected_position(self, row, isEdit):
+        try:
+            # Récupère l'ID de l'opération à partir d'une colonne cachée ou d'une donnée stockée
+            position_id_item = self.position_table.item(row, 0)  # Assure-toi que l'ID est dans la colonne 0
+            if not position_id_item:
+                return
+
+            position_id = position_id_item.data(Qt.ItemDataRole.UserRole)
+            if not position_id:
+                return
+
+            # Récupérer l'objet Operation depuis la base de données
+            position = GetPosition(position_id)
+            if not position:
+                QMessageBox.warning(self, "Erreur", "Impossible de trouver la position sélectionnée.")
+                return
+
+            # Ouvrir le dialogue en mode édition
+            dialog = AddEditPositionDialog(
+            parent=self,
+            account_id=self.current_account,
+            position=position,
+            isEdit=isEdit
+        )
+            if dialog.exec():
+                self.load_position()
+
+        except Exception as e:
+            print("Erreur lors de la modification de l'opération:", e)
+            QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
+
     def edit_selected_moyen_paiement(self, row):
         # Récupérer les informations de la ligne sélectionnée
         item_nom = self.moyen_paiement_table.item(row, 0)
@@ -1597,7 +1648,7 @@ class MoneyManager(QMainWindow):
 
     def open_add_position_dialog(self,isEcheance = False, echeance = None, compte_choisi_id = None):
         if self.current_account is not None or isEcheance:
-            dialog = AddPositionDialog(self, self.current_account,isEcheance = isEcheance, echeance=echeance, compte_choisi_id = compte_choisi_id)
+            dialog = AddEditPositionDialog(self, self.current_account,isEcheance = isEcheance, echeance=echeance, compte_choisi_id = compte_choisi_id)
             dialog.exec()
         else:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte de placement d'abord.")
@@ -1820,7 +1871,6 @@ class MoneyManager(QMainWindow):
     def sound_effect(self,sound_path:str):
         sound_path = os.path.abspath(sound_path)
         if os.path.exists(sound_path):
-            self.player.setAudioOutput(self.audio_output)
             self.player.setSource(QUrl.fromLocalFile(sound_path))
             self.audio_output.setVolume(50)  # Volume entre 0 et 100
             self.player.play()
@@ -1836,8 +1886,10 @@ class MoneyManager(QMainWindow):
 
         self.position_table.setSortingEnabled(False)
         row = self.position_table.rowCount()
+        date_item = DateTableWidgetItem(position.date)
+        date_item.setData(Qt.ItemDataRole.UserRole, position._id)
         self.position_table.insertRow(row)
-        self.position_table.setItem(row, 0, align(DateTableWidgetItem(position.date)))
+        self.position_table.setItem(row, 0, align(date_item))
         self.position_table.setItem(row, 1, align(QTableWidgetItem(position.type)))
         self.position_table.setItem(row, 2, align(QTableWidgetItem(compte_associe_name)))
         self.position_table.setItem(row, 3, align(QTableWidgetItem(position.nom_placement)))
@@ -2077,6 +2129,17 @@ class MoneyManager(QMainWindow):
         self.load_accounts()
         self.load_operations()
 
+    def update_position(self, position:Position,isEdit):
+        if isEdit:
+            DeletePosition(position)
+            InsertPosition(position)
+        else:
+            position._id = str(ObjectId())
+            InsertPosition(position)
+        self.account_list.clear()
+        self.load_accounts()
+        self.load_position()
+
     def show_about(self):
         QMessageBox.information(self, "À propos", "Money v1.0\nPropriété de Langello Corp et de tous ses ayants droits.")
 
@@ -2285,6 +2348,8 @@ class MoneyManager(QMainWindow):
         ])
         self.position_table.horizontalHeader().setStretchLastSection(True)
         self.position_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.position_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.position_table.customContextMenuRequested.connect(self.show_context_menu_position)
         self.position_table.setSortingEnabled(True)
         self.position_table.setAlternatingRowColors(True)
 
@@ -2978,6 +3043,26 @@ class MoneyManager(QMainWindow):
         menu.addAction(dupliquer_action)
 
         menu.exec(self.transaction_table.viewport().mapToGlobal(pos))
+
+    def show_context_menu_position(self, pos: QPoint):
+        item = self.position_table.itemAt(pos)
+        if not item or self.pointage_state["actif"] :
+            return
+
+        row = item.row()
+
+        menu = QMenu(self)
+
+        edit_action = QAction("Modifier", self)
+        delete_action = QAction("Supprimer", self)
+
+        edit_action.triggered.connect(lambda: self.edit_selected_position(row,True))
+        delete_action.triggered.connect(lambda: self.delete_selected_position(row))
+
+        menu.addAction(edit_action)
+        menu.addAction(delete_action)
+
+        menu.exec(self.position_table.viewport().mapToGlobal(pos))
 
     def show_context_menu_historique_placement(self, pos: QPoint):
         item = self.history_table.itemAt(pos)

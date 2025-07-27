@@ -366,9 +366,13 @@ def UpdateValoComptePlacement(compte_id : str,conn = None):
         conn.close()
 
 
-def InsertPosition(position, db_path=None):
+def InsertPosition(position:Position, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
+    montant_investit = 0
+    if position.type == "Achat":
+        montant_investit = round((position.val_part*position.nb_part + position.frais),2)
+    position.montant_investit = montant_investit
 
     cursor.execute('''
     INSERT INTO position (id, compte_id, type, nom_placement, nb_part, val_part, frais, interets, date,notes, compte_associe, montant_investit)
@@ -1033,6 +1037,17 @@ def DeleteOperation(operation,old_credit:float,old_debit:float, db_path=None):
 
     conn.close()
 
+def DeletePosition(position:Position, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    compte = GetCompte(str(position.compte_id), conn)
+    compte.solde -= round((position.nb_part*position.val_part),2)
+    UpdateSoldeCompte(str(compte._id),compte.solde, conn)
+    cursor.execute("DELETE FROM position WHERE id = ?", (str(position._id),))
+    conn.commit()
+
+    conn.close()
+
 def DeleteCompte(compte_id : str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -1124,7 +1139,7 @@ def GetComptes(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes')
+    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes order by nom asc')
     comptes = cursor.fetchall()
 
     conn.close()
@@ -1811,6 +1826,18 @@ def GetPositions(compte_id, db_path=None):
         result.append(position)
 
     return result
+
+
+def GetPosition(position_id:str, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe,id FROM position where id = '{position_id}' order by date asc ")
+    row = cursor.fetchone()
+
+    conn.close()
+    position = Position(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11])
+    return position
 
 def GetPlacements(db_path=None):
     conn = connect_db(db_path)

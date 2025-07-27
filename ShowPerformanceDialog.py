@@ -60,7 +60,6 @@ class ShowPerformanceDialog(BaseDialog):
         right_layout = QVBoxLayout()
         main_layout.addLayout(right_layout, 1)
 
-        right_layout.addWidget(QLabel("<b>Répartition par placement</b>"))
         self.web_view = QWebEngineView()
         right_layout.addWidget(self.web_view)
 
@@ -122,7 +121,7 @@ class ShowPerformanceDialog(BaseDialog):
             texttemplate="%{value:,.2f} €",
             textinfo="label+value+percent"
         )])
-        fig.update_layout(margin=dict(t=20, b=20, l=20, r=20))
+        fig.update_layout(title = "Répartition par placement",margin=dict(t=20, b=20, l=20, r=20))
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
             fig.write_html(f.name)
