@@ -6,7 +6,7 @@ from BaseDialog import BaseDialog
 class ReplaceTierPopup(BaseDialog):
     def __init__(self, tiers_disponibles, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Tier lié à des opérations")
+        self.setWindowTitle("Tiers lié à des opérations")
         self.setModal(True)
         self.setFixedSize(400, 150)
 

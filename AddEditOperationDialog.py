@@ -69,6 +69,7 @@ class AddEditOperationDialog(BaseDialog):
             self.compte_associe.addItem(compte.nom, userData=str(compte._id))
 
         self.categorie = QComboBox(self)
+        self.categorie.addItem("")
         for cat in GetCategorie():
             self.categorie.addItem(cat.nom)
 
@@ -78,6 +79,7 @@ class AddEditOperationDialog(BaseDialog):
             self.type_tier.addItem(t.nom)
 
         self.moyen_paiement = QComboBox(self)
+        self.moyen_paiement.addItem("")
         for mp in GetMoyenPaiement():
             self.moyen_paiement.addItem(mp.nom)
 
@@ -146,7 +148,7 @@ class AddEditOperationDialog(BaseDialog):
         self.label_compte_associe = QLabel("Compte Associé:")
         self.label_type_operation = QLabel("Type:")
         self.label_type_tier = QLabel("Type Tiers:")
-        self.label_tier = QLabel("Tier:")
+        self.label_tier = QLabel("Tiers:")
         self.label_moyen_paiement = QLabel("Moyen de Paiement:")
         self.label_num_cheque = QLabel("Numéro Chèque:")
         self.label_categorie = QLabel("Catégorie:")
@@ -240,18 +242,13 @@ class AddEditOperationDialog(BaseDialog):
         self.on_type_tier_changed(self.operation.type_tier)
 
         # ComboBox tier (editable avec userData)
-        tier_name = GetTierName(self.operation.tier) or ""
-        index = self.tier.findText(tier_name, Qt.MatchFlag.MatchExactly)
-        if index >= 0:
-            self.tier.setCurrentIndex(index)
-        else:
-            self.tier.setCurrentText(tier_name)  # fallback
+        tier = GetTierById(self.operation.tier) or ""
 
-        set_combobox_index_by_text(self.moyen_paiement, self.operation.moyen_paiement)
+        self.moyen_paiement.setCurrentText(tier.moyen_paiement)
+        self.categorie.setCurrentText(tier.categorie)
+        self.sous_categorie.setCurrentText(tier.categorie)
         self.num_cheque.setText(str(self.operation.num_cheque))
-        set_combobox_index_by_text(self.categorie, self.operation.categorie)
         self.update_sous_categories(self.operation.categorie)
-        set_combobox_index_by_text(self.sous_categorie, self.operation.sous_categorie)
 
         montant = self.operation.credit or self.operation.debit or 0
         self.montant.setText("{:,.2f}".format(abs(montant)).replace(",", " "))
@@ -405,6 +402,7 @@ class AddEditOperationDialog(BaseDialog):
 
     def update_sous_categories(self, category):
         self.sous_categorie.clear()
+        self.sous_categorie.addItem("")
         for sc in GetSousCategorie(category):
             self.sous_categorie.addItem(sc.nom)
 

@@ -4,18 +4,19 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QPushButton, QLabel, QTableWidget, QTableWidgetItem, QListWidgetItem, QMessageBox,
-    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy,QFileDialog,
+    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy,QFileDialog,QGraphicsDropShadowEffect
 )
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from IPython.display import HTML, display
 from PyQt6.QtGui import QAction,QColor,QCursor,QIcon
-from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths
+from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths,QLocale
 from GestionBD import *
 from CheckableComboBox import *
 from DateTableWidgetItem import *
 from ImportDialog import *
 from ImportQIF import *
+from AddEditLoanDialog import *
 from AddEditEcheanceDialog import *
 from AddEditAccountDialog import *
 from AddEditOperationDialog import *
@@ -44,6 +45,7 @@ import plotly
 import os
 import datetime
 from HTMLJSTemplate import generate_html_with_js
+from ComputeLoan import *
 
 
 class ClickHandler(QObject):
@@ -281,7 +283,7 @@ def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_co
     return fig
 
 
-def align(item: QTableWidgetItem,alignement:Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter) -> QTableWidgetItem:
+def align(item: QTableWidgetItem,alignement:Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft) -> QTableWidgetItem:
     item.setTextAlignment(alignement)
     return item
     
@@ -644,11 +646,11 @@ class MoneyManager(QMainWindow):
             self.add_account_to_list(compte)
         self.add_total_to_list()  # Ajoute le total à la fin
 
-    def load_tiers(self):
+    def load_tiers(self,tiers = None):
         self.tier_table.setSortingEnabled(False)
         self.tier_table.setRowCount(0)
-
-        tiers = GetTiers()
+        if tiers is None:
+            tiers = GetTiers()
         self.tier_table.setRowCount(len(tiers))
 
         for row, tier in enumerate(tiers):
@@ -662,9 +664,10 @@ class MoneyManager(QMainWindow):
         for position in GetPositions(self.current_account):
             self.add_position_row(position)
 
-    def load_sous_categories(self):
+    def load_sous_categories(self,sous_categories = None):
         self.sous_categorie_table.setSortingEnabled(False)
-        sous_categories = GetAllSousCategorie()
+        if sous_categories is None:
+            sous_categories = GetAllSousCategorie()
         self.sous_categorie_table.setRowCount(len(sous_categories))
 
         for row, sous_cat in enumerate(sous_categories):
@@ -672,10 +675,12 @@ class MoneyManager(QMainWindow):
 
         self.sous_categorie_table.resizeColumnsToContents()
         self.sous_categorie_table.setSortingEnabled(True)
+        self.sous_categorie_table.sortItems(1,Qt.SortOrder.AscendingOrder)
 
-    def load_beneficiaire(self):
+    def load_beneficiaire(self,beneficiaires = None):
         self.sous_categorie2_table.setSortingEnabled(False)
-        beneficiaires = GetAllBeneficiaire()
+        if beneficiaires is None:
+            beneficiaires = GetAllBeneficiaire()
         self.sous_categorie2_table.setRowCount(len(beneficiaires))
 
         for row, beneficiaire in enumerate(beneficiaires):
@@ -683,6 +688,7 @@ class MoneyManager(QMainWindow):
 
         self.sous_categorie2_table.resizeColumnsToContents()
         self.sous_categorie2_table.setSortingEnabled(True)
+        self.sous_categorie2_table.sortItems(0,Qt.SortOrder.AscendingOrder)
 
     def load_placement(self):
         self.placement_table.setSortingEnabled(False)
@@ -796,6 +802,18 @@ class MoneyManager(QMainWindow):
         self.account_list.addItem(item)
         self.account_list.setItemWidget(item, widget)
 
+    def on_categorie_clicked(self,item):
+        self.load_sous_categories(GetSousCategorie(item.data(Qt.ItemDataRole.UserRole)))
+        self.sous_categorie_table.sortItems(0,Qt.SortOrder.AscendingOrder)
+
+    def on_categorie2_clicked(self,item):
+        self.load_beneficiaire(GetBeneficiairesByType(item.data(Qt.ItemDataRole.UserRole)))
+        self.sous_categorie2_table.sortItems(0,Qt.SortOrder.AscendingOrder)
+
+    def on_type_tier_clicked(self,item):
+        self.load_tiers(GetTiersByType(item.data(Qt.ItemDataRole.UserRole)))
+        self.tier_table.sortItems(0,Qt.SortOrder.AscendingOrder)
+
     def on_account_clicked(self, item):
         try:
             self.current_account = str(item.data(Qt.ItemDataRole.UserRole)["id"])
@@ -819,7 +837,7 @@ class MoneyManager(QMainWindow):
                 self.position_table.setRowCount(0)
                 for placement in GetPositions(str(self.current_account)):
                     self.add_position_row(placement)
-            else:
+            elif selected_account.type in ["Epargne","Courant"]:
                 self.table_stack.setCurrentIndex(0)  # Affiche transaction_table
                 self.add_transaction_btn.setText("Ajouter une opération")
                 self.add_transaction_btn.clicked.disconnect()
@@ -827,6 +845,15 @@ class MoneyManager(QMainWindow):
                 self.show_performance_btn.hide()
                 self.pointage_btn.show()
                 self.load_operations()
+            else:
+                self.table_stack.setCurrentIndex(2)
+                self.pointage_btn.hide()
+                self.show_performance_btn.hide()
+                self.add_transaction_btn.setText("Ajouter un prêt")
+                self.add_transaction_btn.clicked.disconnect()
+                self.add_transaction_btn.clicked.connect(self.open_add_pret_dialog)
+                # self.load_pret()
+
 
         except Exception as e:
             print("Erreur:", e)
@@ -969,14 +996,26 @@ class MoneyManager(QMainWindow):
         tier = GetTierById(tier_id)
         type_tier = tier.type
 
-        # 🛑 Étape de confirmation
-        reply = QMessageBox.question(
-            self,
-            "Confirmation de suppression",
-            f"Êtes-vous sûr de vouloir supprimer le tier '{tier.nom}' ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        # 🛑 Étape de confirmation : MODIFICATION ICI
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirmation de suppression")
+        msg_box.setText(f"Êtes-vous sûr de vouloir supprimer le tiers '{tier.nom}' ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
             return  # L'utilisateur a annulé
 
         if nb_operations_related > 0:
@@ -985,7 +1024,7 @@ class MoneyManager(QMainWindow):
                 QMessageBox.warning(
                     self,
                     "Suppression impossible",
-                    f"Aucun autre tier de type '{type_tier}' disponible pour le remplacement."
+                    f"Aucun autre tiers de type '{type_tier}' disponible pour le remplacement."
                 )
                 return
 
@@ -1001,13 +1040,28 @@ class MoneyManager(QMainWindow):
 
 
     def delete_selected_compte(self, row):
-        choix = QMessageBox.question(
-                    self,
-                    "Suppression d'un compte",
-                    "Toutes les opérations liés à ce compte vont être supprimées\nEtes-vous sûr de vouloir supprimer le compte ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-        if choix == QMessageBox.StandardButton.Yes:
+
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Suppression d'un compte")
+        msg_box.setText(f"Toutes les opérations liés à ce compte vont être supprimées\nEtes-vous sûr de vouloir supprimer le compte ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
+            return  # L'utilisateur a annulé
+        
+        if reply_is_yes:
             item_nom = self.compte_table.item(row, 0)
             compte_id = str(item_nom.data(Qt.ItemDataRole.UserRole))
             DeleteCompte(compte_id)
@@ -1017,13 +1071,27 @@ class MoneyManager(QMainWindow):
             self.load_accounts()
 
     def delete_selected_operation(self, row):
-        choix = QMessageBox.question(
-                    self,
-                    "Suppression d'une opération",
-                    "L'opération va être définitivement supprimée\nEtes-vous sûr de vouloir supprimer l'opération ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-        if choix == QMessageBox.StandardButton.Yes:
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Suppression d'une opération")
+        msg_box.setText(f"L'opération va être définitivement supprimée\nEtes-vous sûr de vouloir supprimer l'opération ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
+            return  # L'utilisateur a annulé
+        
+        if reply_is_yes:
             item_nom = self.transaction_table.item(row, 0)
             operation_id = str(item_nom.data(Qt.ItemDataRole.UserRole))
             operation = GetOperation(operation_id)
@@ -1035,13 +1103,27 @@ class MoneyManager(QMainWindow):
             self.load_operations()
 
     def delete_selected_position(self, row):
-        choix = QMessageBox.question(
-                    self,
-                    "Suppression d'une position",
-                    "La position va être définitivement supprimée\nEtes-vous sûr de vouloir supprimer la position ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-        if choix == QMessageBox.StandardButton.Yes:
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Suppression d'une position")
+        msg_box.setText(f"La position va être définitivement supprimée\nEtes-vous sûr de vouloir supprimer la position ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
+            return  # L'utilisateur a annulé
+        
+        if reply_is_yes:
             item_nom = self.position_table.item(row, 0)
             position_id = str(item_nom.data(Qt.ItemDataRole.UserRole))
             position = GetPosition(position_id)
@@ -1053,13 +1135,27 @@ class MoneyManager(QMainWindow):
             self.load_position()
 
     def delete_selected_placement(self, row):
-        choix = QMessageBox.question(
-                    self,
-                    "Suppression du placement",
-                    "Toutes les positions liés à ce placement vont être supprimées\nEtes-vous sûr de vouloir supprimer le placement ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-        if choix == QMessageBox.StandardButton.Yes:
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Suppression du placement")
+        msg_box.setText(f"Toutes les positions liés à ce placement vont être supprimées\nEtes-vous sûr de vouloir supprimer le placement ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
+            return  # L'utilisateur a annulé
+        
+        if reply_is_yes:
             nom = self.placement_table.item(row, 0).text()
             DeletePlacement(nom)
             self.placement_table.removeRow(row)
@@ -1074,27 +1170,48 @@ class MoneyManager(QMainWindow):
         item_nom = self.categorie2_table.item(row, 0)
         nom = str(item_nom.data(Qt.ItemDataRole.UserRole))
         nb_operations_related = GetTypeBeneficiaireRelatedOperations(nom)
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirmation de suppression")
+        msg_box.setText(f"Êtes-vous sûr de vouloir supprimer le type de bénéficiaire '{nom}' ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
 
-        reply = QMessageBox.question(
-            self,
-            "Confirmation de suppression",
-            f"Êtes-vous sûr de vouloir supprimer le type de bénéficiaire '{nom}' ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
             return  # L'utilisateur a annulé
 
         if nb_operations_related > 0:
-            choix = QMessageBox.question(
-                self,
-                "Suppression du type de bénéficiaire",
-                f"{nb_operations_related} opération(s) utilisent ce type.\n"
-                "Elles seront remplacées par une valeur vide.\n"
-                "Voulez-vous continuer ?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if choix != QMessageBox.StandardButton.Yes:
-                return  # L'utilisateur a annulé
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Suppression du type de bénéficiaire")
+            msg_box.setText(f"{nb_operations_related} opération(s) utilisent ce type.\n"
+                "Il sera remplacé par une valeur vide.\n"
+                "Voulez-vous continuer ?")
+            
+            # Création et ajout des boutons "Oui" et "Non"
+            bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+            bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+            
+            msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+            msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+            # Vérifier quel bouton a été cliqué
+            if msg_box.clickedButton() == bouton_oui:
+                reply_is_yes = True
+            else:
+                reply_is_yes = False
+
+            if not reply_is_yes:
+                return 
 
             UpdateTypeBeneficiaireInOperations(nom, "")  # Remplace par chaîne vide
 
@@ -1141,7 +1258,7 @@ class MoneyManager(QMainWindow):
         item_nom = self.sous_categorie_table.item(row, 0)
         nom = str(item_nom.data(Qt.ItemDataRole.UserRole)["nom"])
         categorie_parent = str(item_nom.data(Qt.ItemDataRole.UserRole)["categorie_parent"])
-        nb_operations_related = GetSousCategorieRelatedOperations(nom)
+        nb_operations_related = GetSousCategorieRelatedOperations(nom,categorie_parent)
 
         reply = QMessageBox.question(
             self,
@@ -1165,7 +1282,7 @@ class MoneyManager(QMainWindow):
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
                 if choix == QMessageBox.StandardButton.Yes:
-                    DeleteSousCategorie(nom)
+                    DeleteSousCategorie(nom,categorie_parent)
                     self.load_tiers()
                     self.load_operations()
                 else:
@@ -1175,18 +1292,19 @@ class MoneyManager(QMainWindow):
                 dialog = ReplaceSousCategoriePopup(autres_sous_categorie, self)
                 if dialog.exec():
                     selected_value = dialog.get_selected_sous_categorie()
-                    UpdateSousCategorieInOperations(nom, selected_value)
-                    UpdateSousCategorieTier(nom,selected_value)
+                    UpdateSousCategorieInOperations(nom, selected_value,categorie_parent)
+                    UpdateSousCategorieTier(nom,selected_value,categorie_parent)
                     self.load_tiers()
                     self.load_operations()
                 else:
                     return  # L'utilisateur a annulé
 
         # Suppression de la sous-catégorie
-        DeleteSousCategorie(nom)
+        DeleteSousCategorie(nom,categorie_parent)
+        self.load_sous_categories()
         self.load_tiers()
         self.load_operations()
-        self.sous_categorie_table.removeRow(row)
+
 
 
     def delete_selected_categorie(self, row):
@@ -1250,7 +1368,7 @@ class MoneyManager(QMainWindow):
         reply = QMessageBox.question(
             self,
             "Confirmation de suppression",
-            f"Êtes-vous sûr de vouloir supprimer le type de tier '{nom}' ?",
+            f"Êtes-vous sûr de vouloir supprimer le type de tiers '{nom}' ?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply != QMessageBox.StandardButton.Yes:
@@ -1264,8 +1382,8 @@ class MoneyManager(QMainWindow):
                 # Aucun autre sous-catégorie dispo
                 choix = QMessageBox.question(
                     self,
-                    "Suppression type tier",
-                    "Aucun autre type de tier disponible.\nVoulez-vous remplacer par une valeur vide ?",
+                    "Suppression type tiers",
+                    "Aucun autre type de tiers disponible.\nVoulez-vous remplacer par une valeur vide ?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
                 if choix == QMessageBox.StandardButton.Yes:
@@ -1653,6 +1771,13 @@ class MoneyManager(QMainWindow):
         else:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte de placement d'abord.")
 
+    def open_add_pret_dialog(self):
+        if self.current_account is not None:
+            dialog = AddEditLoanDialog(self)
+            dialog.exec()
+        else:
+            QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte de placement d'abord.")
+
     def add_tier_row(self, row, tier: Tier):
             item_nom = QTableWidgetItem(tier.nom)
             item_nom.setData(Qt.ItemDataRole.UserRole, tier._id)
@@ -1742,10 +1867,10 @@ class MoneyManager(QMainWindow):
         solde_str = f"{solde:,.2f}".replace(",", " ").replace(".", ",") + " €"
         if solde < 0:
             solde_str = solde_str.replace("-", "- ")
-            color = QColor("red")
+            color = QColor("#e74c3c")
         else:
             solde_str = "+ " + solde_str
-            color = QColor("green")
+            color = QColor("#2ecc71")
 
         item_solde = NumericTableWidgetItem(solde, solde_str)
         item_solde.setForeground(color)
@@ -1757,7 +1882,7 @@ class MoneyManager(QMainWindow):
 
 
     def load_operations(self, operations=None, solde=None):
-        if self.current_account is None and operations == []:
+        if self.current_account is None and (operations == [] or operations is None):
             return
         if operations is None or solde is None:
             operations = GetOperationsNotBq(self.current_account)
@@ -1813,13 +1938,13 @@ class MoneyManager(QMainWindow):
         if operation.type.lower() in ["débit", "transfert vers"]:
             debit_formate = f"{operation.debit:,.2f}".replace(",", " ").replace(".", ",").replace("-", "- ") + " €" if operation.debit < 0 else ""
             debit_item = NumericTableWidgetItem(operation.debit, debit_formate)
-            debit_item.setForeground(QColor("red"))
+            debit_item.setForeground(QColor("#e74c3c"))
             debit_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             row_data[13] = debit_item
         elif operation.type.lower() in ["crédit", "transfert de"]:
             credit_formate = f"+ {operation.credit:,.2f}".replace(",", " ").replace(".", ",") + " €" if operation.credit > 0 else ""
             credit_item = NumericTableWidgetItem(operation.credit, credit_formate)
-            credit_item.setForeground(QColor("green"))
+            credit_item.setForeground(QColor("#2ecc71"))
             credit_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             row_data[14] = credit_item
 
@@ -1828,11 +1953,11 @@ class MoneyManager(QMainWindow):
         if solde < 0:
             solde_formate = solde_formate.replace("-","- ") + " €"
             solde_item = NumericTableWidgetItem(solde, solde_formate)
-            solde_item.setForeground(QColor("red"))
+            solde_item.setForeground(QColor("#e74c3c"))
         else:
             solde_formate = "+ " + solde_formate + " €"
             solde_item = NumericTableWidgetItem(solde, solde_formate)
-            solde_item.setForeground(QColor("green"))
+            solde_item.setForeground(QColor("#2ecc71"))
         solde_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         row_data[16] = solde_item
         row_data['solde'] = solde
@@ -1866,7 +1991,7 @@ class MoneyManager(QMainWindow):
         self.load_accounts()
         self.compte_table.clearContents()
         self.load_comptes()
-        self.sound_effect("sound_effect/transaction.mp3")
+        self.sound_effect("sound_effect/transaction.wav")
 
     def sound_effect(self,sound_path:str):
         sound_path = os.path.abspath(sound_path)
@@ -1937,7 +2062,7 @@ class MoneyManager(QMainWindow):
             else:
                 # Ne rien faire, l'utilisateur a choisi de garder l'existant
                 QMessageBox.information(None, "Annulé", "L'opération existante a été conservée.")
-        self.sound_effect("sound_effect/transaction.mp3")
+        self.sound_effect("sound_effect/transaction.wav")
         self.account_list.clear()
         self.load_accounts()
         self.add_position_row(position)
@@ -1947,24 +2072,24 @@ class MoneyManager(QMainWindow):
         self.load_placement()
 
     def add_tier(self, tier: Tier):
-        InsertTier(tier)
+        if InsertTier(tier,self):
 
-        # 1. Suspend le tri pour empêcher le déplacement de la ligne en cours d’édition
-        self.tier_table.setSortingEnabled(False)
+            # 1. Suspend le tri pour empêcher le déplacement de la ligne en cours d’édition
+            self.tier_table.setSortingEnabled(False)
 
-        # 2. Ajoute la nouvelle ligne
-        row = self.tier_table.rowCount()
-        self.tier_table.setRowCount(row + 1)
-        self.add_tier_row(row, tier)
+            # 2. Ajoute la nouvelle ligne
+            row = self.tier_table.rowCount()
+            self.tier_table.setRowCount(row + 1)
+            self.add_tier_row(row, tier)
 
-        # 3. Ajuste la largeur des colonnes puis réactive le tri
-        self.tier_table.resizeColumnsToContents()
-        self.tier_table.setSortingEnabled(True)
-        self.tiers_filter.addItem(tier.nom)
-        self.tiers_nom_to_id[tier.nom] = str(tier._id)
+            # 3. Ajuste la largeur des colonnes puis réactive le tri
+            self.tier_table.resizeColumnsToContents()
+            self.tier_table.setSortingEnabled(True)
+            self.tiers_filter.addItem(tier.nom)
+            self.tiers_nom_to_id[tier.nom] = str(tier._id)
 
     def add_sous_categorie(self,sous_categorie):
-        if InsertSousCategorie(sous_categorie):
+        if InsertSousCategorie(sous_categorie,self):
             # 1. Suspend le tri pour empêcher le déplacement de la ligne en cours d’édition
             self.sous_categorie_table.setSortingEnabled(False)
 
@@ -1979,7 +2104,7 @@ class MoneyManager(QMainWindow):
             self.sous_categorie_filter.addItem(sous_categorie.nom)
 
     def add_beneficiaire(self,beneficiaire):
-        if InsertBeneficiaire(beneficiaire):
+        if InsertBeneficiaire(beneficiaire,self):
             # 1. Suspend le tri pour empêcher le déplacement de la ligne en cours d’édition
             self.sous_categorie2_table.setSortingEnabled(False)
 
@@ -1993,7 +2118,7 @@ class MoneyManager(QMainWindow):
             self.sous_categorie2_table.setSortingEnabled(True)
 
     def add_categorie(self,categorie):
-        if InsertCategorie(categorie):
+        if InsertCategorie(categorie,self):
             # 1. Suspend le tri pour empêcher le déplacement de la ligne en cours d’édition
             self.categorie_table.setSortingEnabled(False)
 
@@ -2090,8 +2215,8 @@ class MoneyManager(QMainWindow):
     def update_tier(self, tier):
         UpdateTier(tier)
 
-    def update_sous_categorie(self, sous_categorie,old_nom):
-        UpdateSousCategorie(sous_categorie,old_nom)
+    def update_sous_categorie(self, sous_categorie,old_nom,old_categorie):
+        return UpdateSousCategorie(sous_categorie,old_nom,old_categorie,self)
 
     def update_beneficiaire(self, beneficiaire,old_nom):
         UpdateBeneficiaire(beneficiaire,old_nom)
@@ -2124,7 +2249,7 @@ class MoneyManager(QMainWindow):
             operation._id = str(ObjectId())
             operation.bq = 0
             InsertOperation(operation)
-            self.sound_effect("sound_effect/transaction.mp3")
+            self.sound_effect("sound_effect/transaction.wav")
         self.account_list.clear()
         self.load_accounts()
         self.load_operations()
@@ -2353,10 +2478,20 @@ class MoneyManager(QMainWindow):
         self.position_table.setSortingEnabled(True)
         self.position_table.setAlternatingRowColors(True)
 
+        self.pret_table = QTableWidget(0,10)
+        self.pret_table.setHorizontalHeaderLabels([
+            "N°\nEch", "Date", "Capital restant\n dû", "Intérêts", "Capital", "Assurance", "Total", "Années", "Taux\nPériode", "Taux"
+        ])
+        self.pret_table.horizontalHeader().setStretchLastSection(True)
+        self.pret_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.pret_table.setSortingEnabled(True)
+        self.pret_table.setAlternatingRowColors(True)
+
         # Stack pour alterner entre transactions et placements
         self.table_stack = QStackedLayout()
-        self.table_stack.addWidget(self.transaction_table)  # index 0
-        self.table_stack.addWidget(self.position_table)    # index 1
+        self.table_stack.addWidget(self.transaction_table)
+        self.table_stack.addWidget(self.position_table)
+        self.table_stack.addWidget(self.pret_table) 
 
         self.add_transaction_btn = QPushButton("Ajouter une transaction")
         self.add_transaction_btn.clicked.connect(self.open_add_operation_dialog)
@@ -2551,6 +2686,7 @@ class MoneyManager(QMainWindow):
         self.tier_table.setAlternatingRowColors(True)
         self.tier_table.setSortingEnabled(True)
         self.tier_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tier_table.sortItems(0,Qt.SortOrder.AscendingOrder)
         self.tier_table.customContextMenuRequested.connect(self.show_context_menu_tier)
         tiers_section.addWidget(self.tier_table)
         add_btn = QPushButton("Ajouter un tier")
@@ -2564,12 +2700,14 @@ class MoneyManager(QMainWindow):
         self.type_tier_table.horizontalHeader().setStretchLastSection(True)
         self.type_tier_table.setAlternatingRowColors(True)
         self.type_tier_table.setSortingEnabled(True)
+        self.type_tier_table.sortItems(1,Qt.SortOrder.AscendingOrder)
         self.type_tier_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.type_tier_table.customContextMenuRequested.connect(self.show_context_menu_type_tier)
         types_section.addWidget(self.type_tier_table)
         add_type_btn = QPushButton("Ajouter type de tier")
         add_type_btn.clicked.connect(self.open_add_type_tier_dialog)
         types_section.addWidget(add_type_btn)
+        self.type_tier_table.itemClicked.connect(self.on_type_tier_clicked)
 
         layout.addLayout(tiers_section)
         layout.addLayout(types_section)
@@ -2585,12 +2723,14 @@ class MoneyManager(QMainWindow):
         self.categorie_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.categorie_table.horizontalHeader().setStretchLastSection(True)
         self.categorie_table.setAlternatingRowColors(True)
+        self.categorie_table.sortItems(1,Qt.SortOrder.AscendingOrder)
         self.categorie_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.categorie_table.customContextMenuRequested.connect(self.show_context_menu_categorie)
         cat_section.addWidget(self.categorie_table)
         add_btn = QPushButton("Ajouter catégorie")
         add_btn.clicked.connect(self.open_add_categorie_dialog)
         cat_section.addWidget(add_btn)
+        self.categorie_table.itemClicked.connect(self.on_categorie_clicked)
 
         sous_cat_section = QVBoxLayout()
         self.sous_categorie_table = QTableWidget(0, 2)
@@ -2621,6 +2761,7 @@ class MoneyManager(QMainWindow):
         self.compte_table.setAlternatingRowColors(True)
         self.compte_table.setSortingEnabled(True)
         self.compte_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.compte_table.sortItems(0,Qt.SortOrder.AscendingOrder)
         self.compte_table.customContextMenuRequested.connect(self.show_context_menu_compte)
         layout.addWidget(self.compte_table)
         add_btn = QPushButton("Ajouter un compte")
@@ -2637,6 +2778,7 @@ class MoneyManager(QMainWindow):
         self.moyen_paiement_table.setAlternatingRowColors(True)
         self.moyen_paiement_table.setSortingEnabled(True)
         self.moyen_paiement_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.moyen_paiement_table.sortItems(0,Qt.SortOrder.AscendingOrder)
         self.moyen_paiement_table.customContextMenuRequested.connect(self.show_context_menu_moyen_paiement)
         layout.addWidget(self.moyen_paiement_table)
         add_btn = QPushButton("Ajouter un moyen de paiement")
@@ -2659,6 +2801,7 @@ class MoneyManager(QMainWindow):
         btn_cat2 = QPushButton("Ajouter un type de bénéficiaire")
         btn_cat2.clicked.connect(self.open_add_type_beneficiaire_dialog)
         cat2_section.addWidget(btn_cat2)
+        self.categorie2_table.itemClicked.connect(self.on_categorie2_clicked)
 
         sous_cat2_section = QVBoxLayout()
         self.sous_categorie2_table = QTableWidget(0, 2)
@@ -2813,9 +2956,9 @@ class MoneyManager(QMainWindow):
         solde_label = QLabel(f"{total:,.2f} €".replace(",", " "))
         solde_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         if total > 0:
-            solde_label.setStyleSheet("font-weight: bold; color: green;")
+            solde_label.setStyleSheet("font-weight: bold; color: #2ecc71;")
         else:
-            solde_label.setStyleSheet("font-weight: bold; color: red;")
+            solde_label.setStyleSheet("font-weight: bold; color: #e74c3c;")
 
         layout.addWidget(name_label)
         layout.addStretch()
@@ -3289,11 +3432,39 @@ class MoneyManager(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    app.setStyleSheet("""
-        * {
-            font-size: 18px;
-        }
-    """)
+    qss = """
+    QPushButton {
+        background-color: #3a3a3a; 
+        color: #e0e0e0; 
+        border: 2px solid #007ACC;
+        border-radius: 5px;
+        padding: 8px 15px;
+        font-size: 18px;
+        min-width: 120px;
+        margin: 5px;
+    }
+
+    QPushButton:hover {
+        background-color: #4A4A4A;
+        color: #ffffff;
+        border: 2px solid #0096FF;
+    }
+
+    QPushButton:pressed {
+        background-color: #2F2F2F;
+        color: #cccccc;
+        border: 2px solid #005699;
+    }
+
+    QPushButton:disabled {
+        background-color: #303030;
+        color: #808080;
+        border: 1px solid #404040;
+    }
+    *{ font-size : 18px
+                      }
+    """
+    app.setStyleSheet(qss)
     window = MoneyManager()
     window.show()
     sys.exit(app.exec())

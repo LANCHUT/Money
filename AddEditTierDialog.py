@@ -23,6 +23,7 @@ class AddEditTierDialog(BaseDialog):
             self.type_tier.addItem(type.nom)
 
         self.cat_def = QComboBox(self)
+        self.cat_def.addItem("")
         for categorie in GetCategorie():
             self.cat_def.addItem(categorie.nom)
 
@@ -32,6 +33,7 @@ class AddEditTierDialog(BaseDialog):
         self.cat_def.currentIndexChanged.connect(self.on_categorie_changed)
 
         self.moy_paiement_defaut = QComboBox(self)
+        self.moy_paiement_defaut.addItem("")
         for moy_paiement in GetMoyenPaiement():
             self.moy_paiement_defaut.addItem(moy_paiement.nom)
 
@@ -58,7 +60,11 @@ class AddEditTierDialog(BaseDialog):
     def update_sous_categories(self, categorie):
         self.sous_cat_defaut.clear()
         sous_categories = GetSousCategorie(categorie)
-        model = QStandardItemModel()
+        model = QStandardItemModel()        
+        item = QStandardItem("")
+        item.setToolTip("")
+        model.appendRow(item)
+        self.sous_cat_defaut.addItem("")
         for sous_categorie in sous_categories:
             item = QStandardItem(sous_categorie.nom)
             item.setToolTip(sous_categorie.nom)
@@ -96,8 +102,8 @@ class AddEditTierDialog(BaseDialog):
         moy_paiement_defaut = self.moy_paiement_defaut.currentText()
         actif = self.actif.isChecked()
 
-        if not nom or not type_tier or not cat_def or not moy_paiement_defaut:
-            QMessageBox.warning(self, "Erreur", "Tous les champs doivent être remplis.")
+        if not nom :
+            QMessageBox.warning(self, "Erreur", "Le champs nom doit être remplis.")
             return
 
         if self.tier:

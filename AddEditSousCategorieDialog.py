@@ -50,12 +50,18 @@ class AddEditSousCategorieDialog(BaseDialog):
 
         if self.sous_categorie:
             old_nom = self.sous_categorie.nom
+            old_categorie = self.sous_categorie.categorie_parent
             self.sous_categorie.nom = nom
             self.sous_categorie.categorie_parent = categorie_parent
-            self.parent().update_sous_categorie(self.sous_categorie,old_nom)
+            if self.parent().update_sous_categorie(self.sous_categorie,old_nom,old_categorie):
+                self.accept()
+            else:
+                self.close()
+                
         else:
             from Datas import SousCategorie
             new_sous_categorie = SousCategorie(nom, categorie_parent)
             self.parent().add_sous_categorie(new_sous_categorie)
+            self.accept()
 
-        self.accept()
+        

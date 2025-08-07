@@ -81,8 +81,8 @@ def  create_tables(db_path=None):
             FOREIGN KEY (type_tier) REFERENCES type_tier(nom) ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY (categorie) REFERENCES categorie(nom) ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY (type_beneficiaire) REFERENCES type_beneficiaire(nom) ON UPDATE CASCADE ON DELETE SET NULL,
-            FOREIGN KEY (beneficiaire) REFERENCES beneficiaire(nom) ON UPDATE CASCADE ON DELETE SET NULL,
-            FOREIGN KEY (sous_categorie) REFERENCES sous_categorie(nom) ON UPDATE CASCADE ON DELETE SET NULL
+            FOREIGN KEY (beneficiaire,type_beneficiaire) REFERENCES beneficiaire(nom,type_beneficiaire) ON UPDATE CASCADE ON DELETE SET NULL,
+            FOREIGN KEY (categorie, sous_categorie) REFERENCES sous_categorie(categorie_parent, nom) ON UPDATE CASCADE ON DELETE SET NULL
         )
     """)
 
@@ -117,8 +117,8 @@ def  create_tables(db_path=None):
             FOREIGN KEY (type_tier) REFERENCES type_tier(nom) ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY (categorie) REFERENCES categorie(nom) ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY (type_beneficiaire) REFERENCES type_beneficiaire(nom) ON UPDATE CASCADE ON DELETE SET NULL,
-            FOREIGN KEY (beneficiaire) REFERENCES beneficiaire(nom) ON UPDATE CASCADE ON DELETE SET NULL,
-            FOREIGN KEY (sous_categorie) REFERENCES sous_categorie(nom) ON UPDATE CASCADE ON DELETE SET NULL
+            FOREIGN KEY (beneficiaire,type_beneficiaire) REFERENCES beneficiaire(nom,type_beneficiaire) ON UPDATE CASCADE ON DELETE SET NULL,
+            FOREIGN KEY (categorie, sous_categorie) REFERENCES sous_categorie(categorie_parent, nom) ON UPDATE CASCADE ON DELETE SET NULL
         )
     """)
 
@@ -132,7 +132,7 @@ def  create_tables(db_path=None):
         sous_categorie TEXT,
         moy_paiement TEXT,
         est_actif INTEGER,
-        FOREIGN KEY (sous_categorie) REFERENCES sous_categorie(nom) ON UPDATE CASCADE ON DELETE SET NULL,
+        FOREIGN KEY (categorie, sous_categorie) REFERENCES sous_categorie(categorie_parent, nom) ON UPDATE CASCADE ON DELETE SET NULL,
         FOREIGN KEY (categorie) REFERENCES categorie(nom) ON UPDATE CASCADE ON DELETE SET NULL,
         FOREIGN KEY (type) REFERENCES type_tier(nom) ON UPDATE CASCADE ON DELETE SET NULL,
         FOREIGN KEY (moy_paiement) REFERENCES moyen_paiement(nom) ON UPDATE CASCADE ON DELETE SET NULL
@@ -151,7 +151,7 @@ def  create_tables(db_path=None):
     CREATE TABLE IF NOT EXISTS sous_categorie (
         nom TEXT,
         categorie_parent TEXT,
-        PRIMARY KEY (nom),
+        PRIMARY KEY (nom, categorie_parent),
         FOREIGN KEY (categorie_parent) REFERENCES categorie(nom) ON UPDATE CASCADE ON DELETE SET NULL
     )
     ''')
@@ -160,7 +160,7 @@ def  create_tables(db_path=None):
     CREATE TABLE IF NOT EXISTS beneficiaire (
         nom TEXT,
         type_beneficiaire TEXT,
-        PRIMARY KEY (nom),
+        PRIMARY KEY (nom,type_beneficiaire),
         FOREIGN KEY (type_beneficiaire) REFERENCES type_beneficiaire(nom) ON UPDATE CASCADE ON DELETE SET NULL
     )
     ''')
@@ -475,22 +475,34 @@ def UpdateBqOperation(operation_id : str, db_path=None):
     conn.commit()
     conn.close()
 
-def UpdateSousCategorie(sous_categorie,old_nom:str, db_path=None):
+def UpdateSousCategorie(sous_categorie,old_nom:str,old_categorie:str, parent=None,db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
-
-    cursor.execute('''
-    UPDATE sous_categorie
-    SET nom = ?, categorie_parent = ?
-    WHERE nom = ?
-    ''', (sous_categorie.nom,
-          sous_categorie.categorie_parent,
-          old_nom))
+    try:
+        cursor.execute('''
+        UPDATE sous_categorie
+        SET nom = ?, categorie_parent = ?
+        WHERE nom = ? and categorie_parent = ?
+        ''', (sous_categorie.nom,
+            sous_categorie.categorie_parent,
+            old_nom,
+            old_categorie))
+        
+    except sqlite3.IntegrityError:
+        QMessageBox.warning(
+            parent,
+            "Mise à jour impossible",
+            f"La sous-catégorie {sous_categorie.nom}/{sous_categorie.categorie_parent} existe déjà."
+        )
+        return False
+    
+    
 
     conn.commit()
     conn.close()
+    return True
 
 def UpdateBeneficiaire(beneficiaire,old_nom:str, db_path=None):
     conn = connect_db(db_path)
@@ -501,10 +513,11 @@ def UpdateBeneficiaire(beneficiaire,old_nom:str, db_path=None):
     cursor.execute('''
     UPDATE beneficiaire
     SET nom = ?, type_beneficiaire = ?
-    WHERE nom = ?
+    WHERE nom = ? and type_beneficiaire = ?
     ''', (beneficiaire.nom,
           beneficiaire.type_beneficiaire,
-          old_nom))
+          old_nom,
+          beneficiaire.type_beneficiaire))
 
     conn.commit()
     conn.close()
@@ -689,7 +702,7 @@ def GetSousCategorie(categorie:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select nom from sous_categorie where categorie_parent = ? order by nom asc",(categorie,))
+    cursor.execute(f"select nom from sous_categorie where categorie_parent = ? order by categorie_parent,nom asc",(categorie,))
     sous_categories = cursor.fetchall()
 
     conn.close()
@@ -705,7 +718,7 @@ def GetSousCategorieFiltre(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select nom from sous_categorie order by nom asc")
+    cursor.execute(f"select distinct nom from sous_categorie order by nom asc")
     sous_categories = cursor.fetchall()
 
     conn.close()
@@ -786,7 +799,7 @@ def GetAllSousCategorie(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select * from sous_categorie")
+    cursor.execute(f"select * from sous_categorie order by categorie_parent,nom")
     sous_categories = cursor.fetchall()
 
     conn.close()
@@ -843,7 +856,7 @@ def GetAllBeneficiaire(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select * from beneficiaire")
+    cursor.execute(f"select * from beneficiaire order by nom asc")
     sous_categories = cursor.fetchall()
 
     conn.close()
@@ -948,11 +961,11 @@ def GetTierRelatedOperations(tier_id : str, db_path=None):
 
     return result[0]
 
-def GetSousCategorieRelatedOperations(nom_sous_categorie : str, db_path=None):
+def GetSousCategorieRelatedOperations(nom_sous_categorie : str,categorie_parent:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select count(*) from operations where sous_categorie = '{nom_sous_categorie}'")
+    cursor.execute(f"select count(*) from operations where sous_categorie = '{nom_sous_categorie}' and categorie = '{categorie_parent}'")
     result = cursor.fetchone()
 
     conn.close()
@@ -1080,11 +1093,11 @@ def DeleteHistoriquePlacement(nom : str, date : int, db_path=None):
 
     conn.close()
 
-def DeleteSousCategorie(nom : str, db_path=None):
+def DeleteSousCategorie(nom : str,categorie_parent:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
-    cursor.execute("DELETE FROM sous_categorie WHERE nom = ?", (nom,))
+    cursor.execute("DELETE FROM sous_categorie WHERE nom = ? and categorie_parent = ?", (nom,categorie_parent))
     conn.commit()
 
     conn.close()
@@ -1364,7 +1377,7 @@ def GetTiers(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT * FROM tiers order by nom asc')
+    cursor.execute('SELECT * FROM tiers order by type,nom asc')
     tiers = cursor.fetchall()
 
     conn.close()
@@ -1424,6 +1437,23 @@ def GetTiersActifByType(type_tier: str, db_path=None):
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM tiers where type = '{type_tier}' and est_actif = 1 order by nom asc")
+    tiers = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in tiers:
+        t = Tier(row[1],row[2],row[3],row[4],row[5])
+        t._id = ObjectId(row[0])
+        result.append(t)
+
+    return result
+
+def GetTiersByType(type_tier: str, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT * FROM tiers where type = '{type_tier}' order by nom asc")
     tiers = cursor.fetchall()
 
     conn.close()
@@ -1535,9 +1565,15 @@ def GetMoyenPaiementExceptCurrent(nom : str, db_path=None):
     return result
 
 # Insérer un tiers
-def InsertTier(tier, db_path=None):
+def InsertTier(tier,parent=None, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
+
+    for tiers in GetTiers():
+        if tier.nom.lower() == tiers.nom.lower() and tier.type == tiers.type:
+            QMessageBox.warning(parent,"Insertion impossible",f"Le tiers '{tier.nom.lower()}' existe déjà pour le type de tiers {tier.type}.")
+            conn.close()
+            return False
 
     cursor.execute('''
     INSERT INTO tiers (id, nom, type, categorie, sous_categorie, moy_paiement, est_actif)
@@ -1554,6 +1590,7 @@ def InsertTier(tier, db_path=None):
 
     conn.commit()
     conn.close()
+    return True
 
 # Insérer une catégorie de tiers
 def InsertCategorieTiers(categorie,parent=None, db_path=None) -> bool:
@@ -1648,7 +1685,7 @@ def InsertSousCategorie(sous_categorie, parent=None, db_path=None) -> bool:
         QMessageBox.warning(
             parent,
             "Insertion impossible",
-            f"La sous-categorie '{sous_categorie.nom}' existe déjà."
+            f"La sous-categorie '{sous_categorie.nom}' existe déjà pour la catégorie {sous_categorie.categorie_parent}."
         )
         return False
     finally:
@@ -1672,7 +1709,7 @@ def InsertBeneficiaire(beneficiaire, parent=None, db_path=None) -> bool:
         QMessageBox.warning(
             parent,
             "Insertion impossible",
-            f"Le bénéficiaire '{beneficiaire.nom}' existe déjà."
+            f"Le bénéficiaire '{beneficiaire.nom}' existe déjà pour le type de bénéficiaire {beneficiaire.type_beneficiaire}."
         )
         return False
     finally:
@@ -1927,14 +1964,15 @@ def UpdateBeneficiaireInOperations(old_beneficiaire, new_beneficiaire, db_path=N
     conn.commit()
     conn.close()
 
-def UpdateSousCategorieInOperations(old_sous_categorie, new_sous_categorie, db_path=None):
+def UpdateSousCategorieInOperations(old_sous_categorie, new_sous_categorie,categorie, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE operations
         SET sous_categorie = ?
         WHERE sous_categorie = ?
-    """, (new_sous_categorie, old_sous_categorie))
+        AND categorie = ?
+    """, (new_sous_categorie, old_sous_categorie,categorie))
     conn.commit()
     conn.close()
 
@@ -1972,14 +2010,15 @@ def UpdateCategorieInOperations(old_categorie, new_categorie, db_path=None):
     conn.commit()
     conn.close()
 
-def UpdateSousCategorieTier(old_sous_categorie, new_sous_categorie, db_path=None):
+def UpdateSousCategorieTier(old_sous_categorie, new_sous_categorie,categorie, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE tiers
         SET sous_categorie = ?
         WHERE sous_categorie = ?
-    """, (new_sous_categorie, old_sous_categorie))
+        AND categorie = ?
+    """, (new_sous_categorie, old_sous_categorie,categorie))
     conn.commit()
     conn.close()
 
