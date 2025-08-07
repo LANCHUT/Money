@@ -2727,7 +2727,7 @@ class MoneyManager(QMainWindow):
         self.categorie_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.categorie_table.customContextMenuRequested.connect(self.show_context_menu_categorie)
         cat_section.addWidget(self.categorie_table)
-        add_btn = QPushButton("Ajouter catégorie")
+        add_btn = QPushButton("Ajouter une catégorie")
         add_btn.clicked.connect(self.open_add_categorie_dialog)
         cat_section.addWidget(add_btn)
         self.categorie_table.itemClicked.connect(self.on_categorie_clicked)
@@ -2741,7 +2741,7 @@ class MoneyManager(QMainWindow):
         self.sous_categorie_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.sous_categorie_table.customContextMenuRequested.connect(self.show_context_menu_sous_categorie)
         sous_cat_section.addWidget(self.sous_categorie_table)
-        add_btn2 = QPushButton("Ajouter sous-catégorie")
+        add_btn2 = QPushButton("Ajouter une sous-catégorie")
         add_btn2.clicked.connect(self.open_add_sous_categorie_dialog)
         sous_cat_section.addWidget(add_btn2)
 
