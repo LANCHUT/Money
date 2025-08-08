@@ -2516,6 +2516,8 @@ class MoneyManager(QMainWindow):
                 self.load_type_beneficiaire()
                 self.tier_table.clearContents()
                 self.load_tiers()
+                self.transaction_table.clearContents()
+                self.load_operations()
 
 
         
