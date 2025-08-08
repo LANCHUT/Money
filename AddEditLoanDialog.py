@@ -153,10 +153,26 @@ class AddEditLoanDialog(BaseDialog):
         # Vérifier si un taux existe déjà pour cette date
         for i, (existing_date, _) in enumerate(self.taux_variables_data):
             if existing_date == taux_date_py:
-                reply = QMessageBox.question(self, "Taux Existant", 
-                                             f"Un taux existe déjà pour le {taux_date_py.strftime('%d/%m/%Y')}. Voulez-vous le remplacer?",
-                                             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                if reply == QMessageBox.StandardButton.Yes:
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Taux Existant")
+                msg_box.setText(f"Un taux existe déjà pour le {taux_date_py.strftime('%d/%m/%Y')}. Voulez-vous le remplacer ?")
+                
+                # Création et ajout des boutons "Oui" et "Non"
+                bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+                bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+                
+                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+                msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+                # Vérifier quel bouton a été cliqué
+                if msg_box.clickedButton() == bouton_oui:
+                    reply_is_yes = True
+                else:
+                    reply_is_yes = False
+
+                if not reply_is_yes:
+                    return  # L'utilisateur a annulé
+                if reply_is_yes:
                     self.taux_variables_data[i] = (taux_date_py, taux_value)
                     self.update_taux_variables_table()
                     self.new_taux_value_input.clear()

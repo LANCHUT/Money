@@ -89,9 +89,7 @@ class AddEditPlacementDialog(BaseDialog):
             date = int(self.date.date().toString("yyyyMMdd"))
             valeur_actualisee = get_float_value(self.val_actualisee)
             new_placement = HistoriquePlacement(nom, type, date, valeur_actualisee, "Actualisation")
-
-            if self.mode == "modifier":
-                DeleteHistoriquePlacement(nom,date)
+            DeleteHistoriquePlacement(nom,date)
 
             if InsertHistoriquePlacement(new_placement):
                 self.parent().account_list.clear()

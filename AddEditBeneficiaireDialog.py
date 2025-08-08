@@ -51,9 +51,13 @@ class AddEditBeneficiaireDialog(BaseDialog):
 
         if self.beneficiaire:
             old_nom = self.beneficiaire.nom
+            old_type_beneficiaire = self.beneficiaire.type_beneficiaire
             self.beneficiaire.nom = nom
             self.beneficiaire.type_beneficiaire = type_beneficiaire
-            self.parent().update_beneficiaire(self.beneficiaire,old_nom)
+            if self.parent().update_beneficiaire(self.beneficiaire,old_nom,old_type_beneficiaire):
+                self.accept()
+            else:
+                self.close()
         else:
             new_beneficiaire = Beneficiaire(nom, type_beneficiaire)
             self.parent().add_beneficiaire(new_beneficiaire)

@@ -357,6 +357,7 @@ def UpdateValoComptePlacement(compte_id : str,conn = None):
     valo = 0
     for nom_placement,nb_part in placements:
         val_part = GetLastValueForPlacement(nom_placement,conn)
+        val_part = 0 if val_part is None else val_part
         valo_placement = val_part*nb_part
         valo += valo_placement
     compte = GetCompte(compte_id,conn)
@@ -456,6 +457,12 @@ def UpdateTier(tier, db_path=None):
           tier.moyen_paiement,
           tier.actif,
           str(tier._id)))
+    
+    cursor.execute('''
+    UPDATE operations
+    set type_tier = ?, moyen_paiement = ?, categorie = ?, sous_categorie = ?
+    where tier = ?
+    ''',(tier.type, tier.moyen_paiement,tier.categorie,tier.sous_categorie,str(tier._id)))
 
     conn.commit()
     conn.close()
@@ -504,20 +511,30 @@ def UpdateSousCategorie(sous_categorie,old_nom:str,old_categorie:str, parent=Non
     conn.close()
     return True
 
-def UpdateBeneficiaire(beneficiaire,old_nom:str, db_path=None):
+def UpdateBeneficiaire(beneficiaire,old_nom:str, old_type_beneficiaire:str,parent = None,db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
+    try:
+        cursor.execute('''
+        UPDATE beneficiaire
+        SET nom = ?, type_beneficiaire = ?
+        WHERE nom = ? and type_beneficiaire = ?
+        ''', (beneficiaire.nom,
+            beneficiaire.type_beneficiaire,
+            old_nom,
+            old_type_beneficiaire))
 
-    cursor.execute('''
-    UPDATE beneficiaire
-    SET nom = ?, type_beneficiaire = ?
-    WHERE nom = ? and type_beneficiaire = ?
-    ''', (beneficiaire.nom,
-          beneficiaire.type_beneficiaire,
-          old_nom,
-          beneficiaire.type_beneficiaire))
+    except sqlite3.IntegrityError:
+        QMessageBox.warning(
+            parent,
+            "Mise à jour impossible",
+            f"La sous-catégorie {beneficiaire.nom}/{beneficiaire.type_beneficiaire} existe déjà."
+        )
+        return False
+    
+    
 
     conn.commit()
     conn.close()
@@ -1110,7 +1127,6 @@ def DeleteCategorie(nom : str, db_path=None):
     conn.commit()
 
     conn.close()
-
 def DeleteTypeTier(nom : str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -1129,11 +1145,11 @@ def DeleteTypeBeneficiaire(nom : str, db_path=None):
 
     conn.close()
 
-def DeleteBeneficiaire(nom : str, db_path=None):
+def DeleteBeneficiaire(nom : str,type_beneficiaire:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
-    cursor.execute("DELETE FROM beneficiaire WHERE nom = ?", (nom,))
+    cursor.execute("DELETE FROM beneficiaire WHERE nom = ? and type_beneficiaire = ?", (nom,type_beneficiaire))
     conn.commit()
 
     conn.close()
@@ -1536,7 +1552,7 @@ def GetTypeTierExceptCurrent(nom : str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT * FROM type_tier where nom != ? order by asc",(nom,))
+    cursor.execute(f"SELECT * FROM type_tier where nom != ? order by nom asc",(nom,))
     categories = cursor.fetchall()
 
     conn.close()
@@ -1756,7 +1772,7 @@ def InsertTypeBeneficiaire(type_beneficiaire, parent = None, db_path=None) -> bo
         QMessageBox.warning(
             parent,
             "Insertion impossible",
-            f"La catégorie '{type_beneficiaire.nom}' existe déjà."
+            f"Le type bénéficiaire '{type_beneficiaire.nom}' existe déjà."
         )
         return False
     finally:

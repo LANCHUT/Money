@@ -922,6 +922,7 @@ class MoneyManager(QMainWindow):
 
             # Mettre à jour l'ID si besoin (normalement pas nécessaire sauf si recréation)
             self.tier_table.item(row, 0).setData(Qt.ItemDataRole.UserRole, tier_id)
+            self.load_operations()
 
     def edit_selected_placement(self, row):
         # Récupérer uniquement les informations nécessaires
@@ -1169,6 +1170,10 @@ class MoneyManager(QMainWindow):
     def delete_selected_type_beneficiaire(self, row):
         item_nom = self.categorie2_table.item(row, 0)
         nom = str(item_nom.data(Qt.ItemDataRole.UserRole))
+        beneficiaires = GetBeneficiairesByType(nom)
+        if len(beneficiaires)> 0:
+            QMessageBox.warning(self,"Suppresion du type de bénéficiaire impossible", "Impossible de supprimer le type de bénéficiaire, des bénéficiaires l'utilisent encore")
+            return
         nb_operations_related = GetTypeBeneficiaireRelatedOperations(nom)
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Confirmation de suppression")
@@ -1222,33 +1227,56 @@ class MoneyManager(QMainWindow):
 
     def delete_selected_beneficiaire(self, row):
         item_nom = self.sous_categorie2_table.item(row, 0)
-        nom = str(item_nom.data(Qt.ItemDataRole.UserRole))
+        nom = str(item_nom.data(Qt.ItemDataRole.UserRole)["nom"])
+        type_beneficiaire = str(item_nom.data(Qt.ItemDataRole.UserRole)["type_beneficiaire"])
         nb_operations_related = GetBeneficiaireRelatedOperations(nom)
 
-        reply = QMessageBox.question(
-            self,
-            "Confirmation de suppression",
-            f"Êtes-vous sûr de vouloir supprimer le bénéficiaire '{nom}' ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirmation de suppression")
+        msg_box.setText(f"Êtes-vous sûr de vouloir supprimer le bénéficiaire '{nom}'/'{type_beneficiaire}' ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
             return  # L'utilisateur a annulé
 
         if nb_operations_related > 0:
-            choix = QMessageBox.question(
-                self,
-                "Suppression du bénéficiaire",
-                f"{nb_operations_related} opération(s) utilisent ce bénéficiaire.\n"
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Suppression du bénéficiaire")
+            msg_box.setText(f"{nb_operations_related} opération(s) utilisent ce bénéficiaire.\n"
                 "Elles seront remplacées par une valeur vide.\n"
-                "Voulez-vous continuer ?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if choix != QMessageBox.StandardButton.Yes:
-                return  # L'utilisateur a annulé
+                "Voulez-vous continuer ?")
+            
+            # Création et ajout des boutons "Oui" et "Non"
+            bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+            bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+            
+            msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+            msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+            # Vérifier quel bouton a été cliqué
+            if msg_box.clickedButton() == bouton_oui:
+                reply_is_yes = True
+            else:
+                reply_is_yes = False
+
+            if not reply_is_yes:
+                return 
 
             UpdateBeneficiaireInOperations(nom, "")  # Remplace par chaîne vide
 
-        DeleteBeneficiaire(nom)  # Supprime le type de bénéficiaire
+        DeleteBeneficiaire(nom,type_beneficiaire)  # Supprime le type de bénéficiaire
         self.load_beneficiaire()
         self.load_operations()
 
@@ -1259,14 +1287,24 @@ class MoneyManager(QMainWindow):
         nom = str(item_nom.data(Qt.ItemDataRole.UserRole)["nom"])
         categorie_parent = str(item_nom.data(Qt.ItemDataRole.UserRole)["categorie_parent"])
         nb_operations_related = GetSousCategorieRelatedOperations(nom,categorie_parent)
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirmation de suppression")
+        msg_box.setText(f"Êtes-vous sûr de vouloir supprimer la sous catégorie '{nom}' ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
 
-        reply = QMessageBox.question(
-            self,
-            "Confirmation de suppression",
-            f"Êtes-vous sûr de vouloir supprimer la sous catégorie '{nom}' ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
             return  # L'utilisateur a annulé
 
         if nb_operations_related > 0:
@@ -1275,15 +1313,29 @@ class MoneyManager(QMainWindow):
 
             if not autres_sous_categorie:
                 # Aucun autre sous-catégorie dispo
-                choix = QMessageBox.question(
-                    self,
-                    "Suppression sous-catégorie",
-                    "Aucune autre sous-catégorie disponible.\nVoulez-vous remplacer par une valeur vide ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if choix == QMessageBox.StandardButton.Yes:
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Suppression sous-catégorie")
+                msg_box.setText("Aucune autre sous-catégorie disponible.\nVoulez-vous remplacer par une valeur vide ?")
+                
+                # Création et ajout des boutons "Oui" et "Non"
+                bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+                bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+                
+                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+                msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+                # Vérifier quel bouton a été cliqué
+                if msg_box.clickedButton() == bouton_oui:
+                    reply_is_yes = True
+                else:
+                    reply_is_yes = False
+
+                if not reply_is_yes:
+                    return  # L'utilisateur a annulé
+                if reply_is_yes:
                     DeleteSousCategorie(nom,categorie_parent)
                     self.load_tiers()
+                    self.load_sous_categories()
                     self.load_operations()
                 else:
                     return  # L'utilisateur a annulé
@@ -1295,7 +1347,9 @@ class MoneyManager(QMainWindow):
                     UpdateSousCategorieInOperations(nom, selected_value,categorie_parent)
                     UpdateSousCategorieTier(nom,selected_value,categorie_parent)
                     self.load_tiers()
+                    self.load_sous_categories()
                     self.load_operations()
+                    return
                 else:
                     return  # L'utilisateur a annulé
 
@@ -1311,14 +1365,28 @@ class MoneyManager(QMainWindow):
         item_nom = self.categorie_table.item(row, 0)
         nom = str(item_nom.data(Qt.ItemDataRole.UserRole))
         nb_operations_related = GetCategorieRelatedOperations(nom)
+        sous_categorie = GetSousCategorie(nom)
+        if len(sous_categorie) > 0:
+            QMessageBox.warning(self,"Suppresion de catégorie impossible", "Impossible de supprimer la catégorie, des sous-catégories l'utilisent encore")
+            return
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirmation de suppression")
+        msg_box.setText(f"Êtes-vous sûr de vouloir supprimer la catégorie '{nom}' ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
 
-        reply = QMessageBox.question(
-            self,
-            "Confirmation de suppression",
-            f"Êtes-vous sûr de vouloir supprimer la catégorie '{nom}' ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
             return  # L'utilisateur a annulé
 
         if nb_operations_related > 0:
@@ -1326,14 +1394,28 @@ class MoneyManager(QMainWindow):
             autres_categorie = GetCategorieExceptCurrent(nom)
 
             if not autres_categorie:
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Confirmation de suppression")
+                msg_box.setText("Aucune autre catégorie disponible.\nVoulez-vous remplacer par une valeur vide ?")
+                
+                # Création et ajout des boutons "Oui" et "Non"
+                bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+                bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+                
+                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+                msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+                # Vérifier quel bouton a été cliqué
+                if msg_box.clickedButton() == bouton_oui:
+                    reply_is_yes = True
+                else:
+                    reply_is_yes = False
+
+                if not reply_is_yes:
+                    return  # L'utilisateur a annulé
+
                 # Aucun autre sous-catégorie dispo
-                choix = QMessageBox.question(
-                    self,
-                    "Suppression catégorie",
-                    "Aucune autre catégorie disponible.\nVoulez-vous remplacer par une valeur vide ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if choix == QMessageBox.StandardButton.Yes:
+                if reply_is_yes:
                     DeleteCategorie(nom)
                     self.load_tiers()
                     self.load_sous_categories()
@@ -1364,14 +1446,28 @@ class MoneyManager(QMainWindow):
         item_nom = self.type_tier_table.item(row, 0)
         nom = str(item_nom.data(Qt.ItemDataRole.UserRole))
         nb_operations_related = GetTypeTierRelatedOperations(nom)
+        tiers = GetTiersByType(nom)
+        if len(tiers)> 0:
+            QMessageBox.warning(self,"Suppresion du type de tiers impossible", "Impossible de supprimer le type de tiers, des tiers l'utilisent encore")
+            return
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirmation de suppression")
+        msg_box.setText(f"Êtes-vous sûr de vouloir supprimer le type de tiers '{nom}' ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
 
-        reply = QMessageBox.question(
-            self,
-            "Confirmation de suppression",
-            f"Êtes-vous sûr de vouloir supprimer le type de tiers '{nom}' ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
             return  # L'utilisateur a annulé
 
         if nb_operations_related > 0:
@@ -1380,13 +1476,26 @@ class MoneyManager(QMainWindow):
 
             if not autres_type_tier:
                 # Aucun autre sous-catégorie dispo
-                choix = QMessageBox.question(
-                    self,
-                    "Suppression type tiers",
-                    "Aucun autre type de tiers disponible.\nVoulez-vous remplacer par une valeur vide ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if choix == QMessageBox.StandardButton.Yes:
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Suppression type tiers")
+                msg_box.setText("Aucun autre type de tiers disponible.\nVoulez-vous remplacer par une valeur vide ?")
+                
+                # Création et ajout des boutons "Oui" et "Non"
+                bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+                bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+                
+                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+                msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+                # Vérifier quel bouton a été cliqué
+                if msg_box.clickedButton() == bouton_oui:
+                    reply_is_yes = True
+                else:
+                    reply_is_yes = False
+
+                if not reply_is_yes:
+                    return  # L'utilisateur a annulé
+                if reply_is_yes:
                     DeleteTypeTier(nom)
                     self.load_tiers()
                     self.load_operations()
@@ -1415,14 +1524,24 @@ class MoneyManager(QMainWindow):
         item_nom = self.moyen_paiement_table.item(row, 0)
         nom = str(item_nom.data(Qt.ItemDataRole.UserRole))
         nb_operations_related = GetMoyenPaiementRelatedOperations(nom)
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirmation de suppression")
+        msg_box.setText(f"Êtes-vous sûr de vouloir supprimer le moyen de paiement '{nom}' ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
 
-        reply = QMessageBox.question(
-            self,
-            "Confirmation de suppression",
-            f"Êtes-vous sûr de vouloir supprimer le moyen de paiement '{nom}' ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
             return  # L'utilisateur a annulé
 
         if nb_operations_related > 0:
@@ -1431,13 +1550,26 @@ class MoneyManager(QMainWindow):
 
             if not autres_moyen_paiement:
                 # Aucun autre sous-catégorie dispo
-                choix = QMessageBox.question(
-                    self,
-                    "Suppression moyen de paiement",
-                    "Aucun autre moyen de paiement disponible.\nVoulez-vous remplacer par une valeur vide ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if choix == QMessageBox.StandardButton.Yes:
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Suppression moyen de paiement")
+                msg_box.setText("Aucun autre moyen de paiement disponible.\nVoulez-vous remplacer par une valeur vide ?")
+                
+                # Création et ajout des boutons "Oui" et "Non"
+                bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+                bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+                
+                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+                msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+                # Vérifier quel bouton a été cliqué
+                if msg_box.clickedButton() == bouton_oui:
+                    reply_is_yes = True
+                else:
+                    reply_is_yes = False
+
+                if not reply_is_yes:
+                    return  # L'utilisateur a annulé
+                if reply_is_yes:
                     DeleteMoyenPaiement(nom)
                     self.load_tiers()
                     self.load_operations()
@@ -1527,6 +1659,7 @@ class MoneyManager(QMainWindow):
             self.categorie_table.item(row, 0).setText(dialog.nom.text())
             self.load_operations()
             self.load_type_beneficiaire()
+            self.load_beneficiaire()
 
     def edit_selected_type_tier(self, row):
         # Récupérer les informations de la ligne sélectionnée
@@ -1634,17 +1767,33 @@ class MoneyManager(QMainWindow):
             self.load_placement()
             self.account_list.clear()
             self.load_accounts()
+            self.position_table.clear()
+            self.load_position()
 
 
     def delete_selected_historique_placement(self, row):
         # Récupérer les informations de la ligne sélectionnée
-        choix = QMessageBox.question(
-                    self,
-                    "Suppression de la valeur historique du placement",
-                    "La valeur historique du placement va être supprimée\nEtes-vous sûr de vouloir supprimer cette valeur ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-        if choix == QMessageBox.StandardButton.Yes:
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Suppression de la valeur historique du placement")
+        msg_box.setText("La valeur historique du placement va être supprimée\nEtes-vous sûr de vouloir supprimer cette valeur ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
+            return  # L'utilisateur a annulé
+        
+        if reply_is_yes:
             date_int = int(datetime.datetime.strptime(self.history_table.item(row, 0).text(), "%d/%m/%Y").strftime("%Y%m%d"))
             DeleteHistoriquePlacement(self.current_placement,date_int)
             self.show_placement_history_graph(self.placement_table.item(self.current_placement_row, 0))
@@ -1655,13 +1804,27 @@ class MoneyManager(QMainWindow):
 
     def delete_selected_echeance(self, row):
         # Récupérer les informations de la ligne sélectionnée
-        choix = QMessageBox.question(
-                    self,
-                    "Suppression de l'échéance",
-                    "L'échéance va être supprimée\nEtes-vous sûr de vouloir supprimer cette valeur ?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-        if choix == QMessageBox.StandardButton.Yes:
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Suppression de l'échéance")
+        msg_box.setText("L'échéance va être supprimée\nEtes-vous sûr de vouloir supprimer cette valeur ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
+            return  # L'utilisateur a annulé
+        
+        if reply_is_yes:
             echeance_id_item = self.echeance_table.item(row, 0)  # Assure-toi que l'ID est dans la colonne 0
             if not echeance_id_item:
                 return
@@ -1802,7 +1965,9 @@ class MoneyManager(QMainWindow):
 
     def add_beneficiaire_row(self, row, beneficiaire: Beneficiaire):
         item = QTableWidgetItem(beneficiaire.nom)
-        item.setData(Qt.ItemDataRole.UserRole,beneficiaire.nom)
+        item.setData(Qt.ItemDataRole.UserRole,{
+            "nom" : beneficiaire.nom,
+            "type_beneficiaire": beneficiaire.type_beneficiaire})
         self.sous_categorie2_table.setItem(row, 0, align(item))
         self.sous_categorie2_table.setItem(row, 1, align(QTableWidgetItem(beneficiaire.type_beneficiaire)))
 
@@ -2039,22 +2204,33 @@ class MoneyManager(QMainWindow):
         last_value_placement = GetLastValueForPlacement(position.nom_placement)
         if not InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type)) and last_value_placement != position.val_part:
             # Ici on suppose que le conflit est dû à un doublon. Tu peux filtrer plus précisément avec l'erreur SQL si nécessaire.
-            conflit_msg = QMessageBox()
-            conflit_msg.setWindowTitle("Conflit détecté")
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Conflit détecté")
             date_str = str(position.date)
             year = int(date_str[:4])
             month = int(date_str[4:6])
             day = int(date_str[6:8])
             display_date = QDate(year, month, day).toString("dd/MM/yyyy")
-            conflit_msg.setText(f"Une entrée pour ce placement existe déjà. (date : {display_date}, valeur connue : {last_value_placement} € )")
-            conflit_msg.setInformativeText("Voulez-vous remplacer l'ancienne valeur par la nouvelle ?")
-            conflit_msg.setIcon(QMessageBox.Icon.Warning)
-            conflit_msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            conflit_msg.setDefaultButton(QMessageBox.StandardButton.No)
+            msg_box.setText(f"Une entrée pour ce placement existe déjà. (date : {display_date}, valeur connue : {last_value_placement} € )")
+            msg_box.setInformativeText("Voulez-vous remplacer l'ancienne valeur par la nouvelle ?")
+            msg_box.setIcon(QMessageBox.Icon.Warning)            
+            # Création et ajout des boutons "Oui" et "Non"
+            bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+            bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+            
+            msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
 
-            result = conflit_msg.exec()
+            msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+            # Vérifier quel bouton a été cliqué
+            if msg_box.clickedButton() == bouton_oui:
+                reply_is_yes = True
+            else:
+                reply_is_yes = False
 
-            if result == QMessageBox.StandardButton.Yes:
+            if not reply_is_yes:
+                return  # L'utilisateur a annulé
+
+            if reply_is_yes:
                 # Remplace l'ancienne valeur (mise à jour dans la BDD)
                 DeleteHistoriquePlacement(position.nom_placement,position.date)
                 InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type))
@@ -2133,7 +2309,7 @@ class MoneyManager(QMainWindow):
             self.categorie_filter.addItem(categorie.nom)
 
     def add_type_beneficiaire(self,type_beneficiaire:TypeBeneficiaire):
-        if InsertTypeBeneficiaire(type_beneficiaire):
+        if InsertTypeBeneficiaire(type_beneficiaire,self):
             # 1. Suspend le tri pour empêcher le déplacement de la ligne en cours d’édition
             self.categorie2_table.setSortingEnabled(False)
 
@@ -2218,8 +2394,8 @@ class MoneyManager(QMainWindow):
     def update_sous_categorie(self, sous_categorie,old_nom,old_categorie):
         return UpdateSousCategorie(sous_categorie,old_nom,old_categorie,self)
 
-    def update_beneficiaire(self, beneficiaire,old_nom):
-        UpdateBeneficiaire(beneficiaire,old_nom)
+    def update_beneficiaire(self, beneficiaire,old_nom,old_type_beneficiaire):
+        return UpdateBeneficiaire(beneficiaire,old_nom,old_type_beneficiaire,self)
 
     def update_categorie(self, categorie,old_nom):
         UpdateCategorie(categorie,old_nom)
@@ -2457,7 +2633,7 @@ class MoneyManager(QMainWindow):
         self.transaction_table.setHorizontalHeaderLabels([
             "Date", "Type\nOpération","Compte", "Compte\nAssocié", "Type\nde\nTiers", "Tiers","Type\nBénéficiaire", "Bénéficiaire",
             "Moyen\nPaiement", "Numéro\nchèque", "Bq", "Catégorie", "Sous-\nCatégorie",
-            "Débit", "Crédit", "Note", "Solde"
+            "Débit", "Crédit", "Notes", "Solde"
         ])
         self.transaction_table.horizontalHeader().setStretchLastSection(True)
         self.transaction_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -3012,11 +3188,26 @@ class MoneyManager(QMainWindow):
         menu.exec(self.compte_table.viewport().mapToGlobal(pos))
 
     def delete_row(self, row):
-        reply = QMessageBox.question(
-            self, "Confirmation", "Supprimer ce tier ?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply == QMessageBox.StandardButton.Yes:
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirmation")
+        msg_box.setText("Supprimer ce tier ?")
+        
+        # Création et ajout des boutons "Oui" et "Non"
+        bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+        bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+        
+        msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+        msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+        # Vérifier quel bouton a été cliqué
+        if msg_box.clickedButton() == bouton_oui:
+            reply_is_yes = True
+        else:
+            reply_is_yes = False
+
+        if not reply_is_yes:
+            return  # L'utilisateur a annulé
+        if reply_is_yes:
             self.dele(row)  # méthode à implémenter
 
     def show_context_menu_sous_categorie(self, pos: QPoint):
