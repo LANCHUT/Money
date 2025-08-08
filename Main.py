@@ -2506,6 +2506,16 @@ class MoneyManager(QMainWindow):
                 QMessageBox.information(self, "Importation terminée", f"Importation du fichier {input_path.split('/')[-1]} terminée")
                 self.account_list.clear()
                 self.load_accounts()
+                self.categorie_table.clearContents()
+                self.load_categorie()
+                self.sous_categorie_table.clearContents()
+                self.load_sous_categories()
+                self.categorie2_table.clearContents()
+                self.load_beneficiaire()
+                self.sous_categorie2_table.clearContents()
+                self.load_type_beneficiaire()
+                self.tier_table.clearContents()
+                self.load_tiers()
 
 
         
