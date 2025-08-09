@@ -4,7 +4,7 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QPushButton, QLabel, QTableWidget, QTableWidgetItem, QListWidgetItem, QMessageBox,
-    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy,QFileDialog,QGraphicsDropShadowEffect
+    QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy,QFileDialog,QGroupBox
 )
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
@@ -827,18 +827,21 @@ class MoneyManager(QMainWindow):
                 return
 
             if selected_account.type == "Placement":
-                self.table_stack.setCurrentIndex(1)  # Affiche position_table
+                self.table_stack.setCurrentIndex(1)
+                self.filter_group_box.setVisible(False)  # Affiche position_table
+                self.apply_filter_btn_operation.hide()
+                self.reset_filter_button_operation.hide()
                 self.add_transaction_btn.setText("Ajouter une position")
                 self.add_transaction_btn.clicked.disconnect()
                 self.add_transaction_btn.clicked.connect(self.open_add_position_dialog)
                 self.show_performance_btn.show()
                 self.pointage_btn.hide()
-
-                self.position_table.setRowCount(0)
-                for placement in GetPositions(str(self.current_account)):
-                    self.add_position_row(placement)
+                self.load_position()
             elif selected_account.type in ["Epargne","Courant"]:
                 self.table_stack.setCurrentIndex(0)  # Affiche transaction_table
+                self.filter_group_box.setVisible(True)
+                self.apply_filter_btn_operation.show()
+                self.reset_filter_button_operation.show()
                 self.add_transaction_btn.setText("Ajouter une opération")
                 self.add_transaction_btn.clicked.disconnect()
                 self.add_transaction_btn.clicked.connect(self.open_add_operation_dialog)
@@ -847,6 +850,9 @@ class MoneyManager(QMainWindow):
                 self.load_operations()
             else:
                 self.table_stack.setCurrentIndex(2)
+                self.filter_group_box.setVisible(False)
+                self.apply_filter_btn_operation.hide()
+                self.reset_filter_button_operation.hide()
                 self.pointage_btn.hide()
                 self.show_performance_btn.hide()
                 self.add_transaction_btn.setText("Ajouter un prêt")
@@ -2727,8 +2733,10 @@ class MoneyManager(QMainWindow):
         self.sous_cats_label = QLabel()
         self.tiers_label = QLabel()
         self.type_tiers_label = QLabel()
+        self.filter_group_box = QGroupBox("Filtres")
         filter_vbox = QVBoxLayout()
-        filter_vbox.setContentsMargins(0, 0, 0, 0)
+        self.filter_group_box.setLayout(filter_vbox)
+        filter_vbox.setContentsMargins(10, 10, 10, 10)
         filter_vbox.setSpacing(5)
 
         filter_hbox1 = QHBoxLayout()
@@ -2791,8 +2799,8 @@ class MoneyManager(QMainWindow):
             self.compte_filter.addItem(compte.nom)
             self.comptes_nom_to_id[compte.nom] = str(compte._id)
 
-        apply_filter_btn = QPushButton("Appliquer les filtres")
-        apply_filter_btn.clicked.connect(self.apply_filters)
+        self.apply_filter_btn = QPushButton("Appliquer les filtres")
+        self.apply_filter_btn.clicked.connect(self.apply_filters)
         self.reset_filter_button = QPushButton("Réinitialiser les filtres")
         self.reset_filter_button.clicked.connect(self.reset_filters)
 
@@ -2845,19 +2853,18 @@ class MoneyManager(QMainWindow):
 
         # --- Ligne boutons Appliquer / Réinitialiser ---
         apply_reset_layout = QHBoxLayout()
-        apply_filter_btn = QPushButton("Appliquer les filtres")
-        apply_filter_btn.clicked.connect(self.apply_filters)
+        self.apply_filter_btn_operation = QPushButton("Appliquer les filtres")
+        self.apply_filter_btn_operation.clicked.connect(self.apply_filters)
 
-        reset_filter_button = QPushButton("Réinitialiser les filtres")
-        reset_filter_button.clicked.connect(self.reset_filters)
-
-        apply_reset_layout.addWidget(apply_filter_btn)
-        apply_reset_layout.addWidget(reset_filter_button)
+        self.reset_filter_button_operation = QPushButton("Réinitialiser les filtres")
+        self.reset_filter_button_operation.clicked.connect(self.reset_filters)
+        right_panel.addWidget(self.filter_group_box)
+        apply_reset_layout.addWidget(self.apply_filter_btn_operation)
+        apply_reset_layout.addWidget(self.reset_filter_button_operation)
 
         # Ajout à l'interface
         right_panel.addLayout(apply_reset_layout)
 
-        right_panel.addLayout(filter_vbox)
 
         right_panel.addLayout(self.table_stack)
         right_panel.addLayout(button_layout)
