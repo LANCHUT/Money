@@ -2727,7 +2727,12 @@ class MoneyManager(QMainWindow):
         self.sous_cats_label = QLabel()
         self.tiers_label = QLabel()
         self.type_tiers_label = QLabel()
-        filter_layout = QHBoxLayout()
+        filter_vbox = QVBoxLayout()
+        filter_vbox.setContentsMargins(0, 0, 0, 0)
+        filter_vbox.setSpacing(5)
+
+        filter_hbox1 = QHBoxLayout()
+
 
 
         self.bq_filter = QCheckBox()
@@ -2791,15 +2796,17 @@ class MoneyManager(QMainWindow):
         self.reset_filter_button = QPushButton("Réinitialiser les filtres")
         self.reset_filter_button.clicked.connect(self.reset_filters)
 
-        filter_layout.addWidget(QLabel("Date début période:"))
-        filter_layout.addWidget(self.date_debut_filter)
-        filter_layout.addWidget(QLabel("Date fin période:"))
-        filter_layout.addWidget(self.date_fin_filter)
-        filter_layout.addWidget(QLabel("Pointées:"))
-        filter_layout.addWidget(self.bq_filter)
+        filter_hbox1.addWidget(QLabel("Date début période:"))
+        filter_hbox1.addWidget(self.date_debut_filter)
+        filter_hbox1.addWidget(QLabel("Date fin période:"))
+        filter_hbox1.addWidget(self.date_fin_filter)
+        filter_hbox1.addWidget(QLabel("Pointées:"))
+        filter_hbox1.addWidget(self.bq_filter)
+        filter_hbox1.addStretch(1)
+        filter_vbox.addLayout(filter_hbox1)
 
         # --- Filtres principaux (dates, pointées) ---
-        right_panel.addLayout(filter_layout)  # Tu peux garder le layout grille pour les filtres date & pointées
+        right_panel.addLayout(filter_vbox)  # Tu peux garder le layout grille pour les filtres date & pointées
 
         # --- Filtres avancés (tiers, catégorie, sous-catégorie + boutons) ---
 
@@ -2827,12 +2834,14 @@ class MoneyManager(QMainWindow):
         sous_cat_col.addWidget(QLabel("Sous-catégorie:"))
         sous_cat_col.addWidget(self.sous_categorie_filter)
         # Filtres combinés
-        filter_selection_layout = QHBoxLayout()
-        filter_selection_layout.addLayout(tiers_col)
-        filter_selection_layout.addLayout(type_tiers_col)
-        filter_selection_layout.addLayout(comptes_col)
-        filter_selection_layout.addLayout(cat_col)
-        filter_selection_layout.addLayout(sous_cat_col)
+        filter_hbox2 = QHBoxLayout()
+        filter_hbox2.addLayout(tiers_col)
+        filter_hbox2.addLayout(type_tiers_col)
+        filter_hbox2.addLayout(comptes_col)
+        filter_hbox2.addLayout(cat_col)
+        filter_hbox2.addLayout(sous_cat_col)
+        filter_hbox2.addStretch(1)
+        filter_vbox.addLayout(filter_hbox2)
 
         # --- Ligne boutons Appliquer / Réinitialiser ---
         apply_reset_layout = QHBoxLayout()
@@ -2846,10 +2855,9 @@ class MoneyManager(QMainWindow):
         apply_reset_layout.addWidget(reset_filter_button)
 
         # Ajout à l'interface
-        right_panel.addLayout(filter_selection_layout)
         right_panel.addLayout(apply_reset_layout)
 
-        right_panel.addLayout(filter_layout)
+        right_panel.addLayout(filter_vbox)
 
         right_panel.addLayout(self.table_stack)
         right_panel.addLayout(button_layout)
