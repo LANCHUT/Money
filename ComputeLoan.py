@@ -5,7 +5,7 @@ def calculer_echeancier_pret_avec_assurance(
     taux_annuel_initial: float,
     duree_ans: int,
     assurance_par_periode: float = 0.0,
-    frequence_paiement: str = 'mensuel',
+    frequence_paiement: str = 'mensuelle',
     date_debut: date = date.today(),
     taux_variables: list = None
 ) -> list:
@@ -14,10 +14,10 @@ def calculer_echeancier_pret_avec_assurance(
 
     Args:
         montant_pret (float): Montant total du prêt.
-        taux_annuel_initial (float): Taux d'intérêt annuel initial (ex: 0.05 pour 5%).
+        taux_annuel_initial (float): Taux d'intérêt annuelle initial (ex: 0.05 pour 5%).
         duree_ans (int): Durée du prêt en années.
         assurance_par_periode (float): Montant fixe de l'assurance à ajouter à chaque paiement.
-        frequence_paiement (str): Fréquence des paiements ('mensuel', 'trimestriel', 'semestriel', 'annuel').
+        frequence_paiement (str): Fréquence des paiements ('mensuelle', 'trimestrielle', 'semestrielle', 'annuelle').
         date_debut (date): Date de début du prêt.
         taux_variables (list): Optionnel. Liste de tuples (date_application, nouveau_taux_annuel)
                                 pour les prêts à taux variable. La date doit être au format datetime.date.
@@ -26,16 +26,16 @@ def calculer_echeancier_pret_avec_assurance(
         list: Une liste de dictionnaires, chaque dictionnaire représentant une échéance.
     """
 
-    if frequence_paiement == 'mensuel':
+    if frequence_paiement == 'mensuelle':
         paiements_par_an = 12
-    elif frequence_paiement == 'trimestriel':
+    elif frequence_paiement == 'trimestrielle':
         paiements_par_an = 4
-    elif frequence_paiement == 'semestriel':
+    elif frequence_paiement == 'semestrielle':
         paiements_par_an = 2
-    elif frequence_paiement == 'annuel':
+    elif frequence_paiement == 'annuelle':
         paiements_par_an = 1
     else:
-        raise ValueError("La fréquence de paiement doit être 'mensuel', 'trimestriel', 'semestriel' ou 'annuel'.")
+        raise ValueError("La fréquence de paiement doit être 'mensuelle', 'trimestrielle', 'semestrielle' ou 'annuelle'.")
 
     nombre_total_paiements = duree_ans * paiements_par_an
     solde_restant = montant_pret
@@ -50,7 +50,7 @@ def calculer_echeancier_pret_avec_assurance(
     for i in range(1, nombre_total_paiements + 1):
         date_paiement = date_debut
 
-        if frequence_paiement == 'mensuel':
+        if frequence_paiement == 'mensuelle':
             mois_a_ajouter = i
             annee_sup = (date_debut.month + mois_a_ajouter - 1) // 12
             mois_paiement = (date_debut.month + mois_a_ajouter - 1) % 12 + 1
@@ -63,11 +63,11 @@ def calculer_echeancier_pret_avec_assurance(
                 dernier_jour_du_mois = calendar.monthrange(annee_paiement, mois_paiement)[1]
                 date_paiement = date(annee_paiement, mois_paiement, dernier_jour_du_mois)
 
-        elif frequence_paiement == 'trimestriel':
+        elif frequence_paiement == 'trimestrielle':
             date_paiement = date_debut + timedelta(days=i * 365.25 / paiements_par_an)
-        elif frequence_paiement == 'semestriel':
+        elif frequence_paiement == 'semestrielle':
             date_paiement = date_debut + timedelta(days=i * 365.25 / paiements_par_an)
-        elif frequence_paiement == 'annuel':
+        elif frequence_paiement == 'annuelle':
             date_paiement = date(date_debut.year + i, date_debut.month, date_debut.day)
         
         if taux_variables and prochain_changement_taux_index < len(taux_variables):
@@ -118,6 +118,5 @@ def calculer_echeancier_pret_avec_assurance(
 
         solde_restant = solde_final
         if solde_restant < 0.01 and solde_restant > -0.01:
-            solde_restant = 0
-            
+            solde_restant = 0      
     return echeancier

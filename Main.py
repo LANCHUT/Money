@@ -9,8 +9,8 @@ from PyQt6.QtWidgets import (
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from IPython.display import HTML, display
-from PyQt6.QtGui import QAction,QColor,QCursor,QIcon
-from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths,QLocale
+from PyQt6.QtGui import QAction,QColor,QCursor,QIcon,QBrush
+from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths
 from GestionBD import *
 from CheckableComboBox import *
 from DateTableWidgetItem import *
@@ -664,6 +664,12 @@ class MoneyManager(QMainWindow):
         for position in GetPositions(self.current_account):
             self.add_position_row(position)
 
+    def load_pret(self):
+        self.pret_table.setRowCount(0)
+        for echeance in GetPret(self.current_account):
+            self.add_pret_row(echeance)
+        self.pret_table.sortItems(0,Qt.SortOrder.AscendingOrder)
+
     def load_sous_categories(self,sous_categories = None):
         self.sous_categorie_table.setSortingEnabled(False)
         if sous_categories is None:
@@ -858,7 +864,7 @@ class MoneyManager(QMainWindow):
                 self.add_transaction_btn.setText("Ajouter un prêt")
                 self.add_transaction_btn.clicked.disconnect()
                 self.add_transaction_btn.clicked.connect(self.open_add_pret_dialog)
-                # self.load_pret()
+                self.load_pret()
 
 
         except Exception as e:
@@ -1942,7 +1948,7 @@ class MoneyManager(QMainWindow):
 
     def open_add_pret_dialog(self):
         if self.current_account is not None:
-            dialog = AddEditLoanDialog(self)
+            dialog = AddEditLoanDialog(self,current_account=str(self.current_account))
             dialog.exec()
         else:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte de placement d'abord.")
@@ -2173,6 +2179,63 @@ class MoneyManager(QMainWindow):
         else:
             print(f"Fichier son introuvable : {sound_path}")
 
+    def add_pret_row(self, data: tuple):
+        def format_number(value):
+            """Formate un nombre en séparant les milliers par espaces, en conservant les décimales."""
+            try:
+                number = float(value)
+                integer_part, dot, decimal_part = f"{number:.2f}".partition(".")
+                formatted_integer = "{:,}".format(int(integer_part)).replace(",", " ")
+                return f"{formatted_integer}{dot}{decimal_part}" if dot else formatted_integer
+            except (ValueError, TypeError):
+                return str(value)
+
+        def make_item(value, background_color, alignment=Qt.AlignmentFlag.AlignRight,
+                    item_type=QTableWidgetItem, format_numeric=True, suffix=""):
+            if item_type is NumericTableWidgetItem:
+                text_value = format_number(value) if format_numeric else str(value)
+                item = item_type(value, f"{text_value}{suffix}")
+            elif item_type is DateTableWidgetItem:
+                item = item_type(value)
+            else:
+                item = item_type(f"{str(value)}{suffix}")
+
+            item.setTextAlignment(alignment)
+            item.setForeground(background_color)
+            return item
+
+        self.pret_table.setSortingEnabled(False)
+        row = self.pret_table.rowCount()
+        self.pret_table.insertRow(row)
+
+        # Déterminer la couleur en fonction de la date
+        echeance_date = int(data[1])
+        today = int(date.today().strftime("%Y%m%d"))
+        background_color = QColor("#2ecc71") if echeance_date <= today else QColor("#e74c3c")
+
+        # Définition des colonnes : (valeur, type, [alignement], [format_numeric], [suffix])
+        columns = [
+            (data[0], NumericTableWidgetItem, Qt.AlignmentFlag.AlignLeft, False),
+            (data[1], DateTableWidgetItem, Qt.AlignmentFlag.AlignLeft),
+            (data[4], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
+            (data[5], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
+            (data[6], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
+            (data[7], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
+            (data[8], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
+            (int(str(data[1])[:4]), NumericTableWidgetItem, Qt.AlignmentFlag.AlignLeft, False),  # pas de formatage
+            (data[3], NumericTableWidgetItem,Qt.AlignmentFlag.AlignRight, True, " %"),
+            (data[2], NumericTableWidgetItem,Qt.AlignmentFlag.AlignRight, True, " %")
+        ]
+
+        for col_index, col_data in enumerate(columns):
+            value, item_type, *rest = col_data
+            alignment = rest[0] if rest and isinstance(rest[0], Qt.AlignmentFlag) else Qt.AlignmentFlag.AlignRight
+            format_numeric = rest[1] if len(rest) >= 2 and isinstance(rest[1], bool) else True
+            suffix = rest[2] if len(rest) >= 3 and isinstance(rest[2], str) else ""
+            self.pret_table.setItem(row, col_index, make_item(value, background_color, alignment, item_type, format_numeric, suffix))
+
+        self.pret_table.resizeColumnsToContents()
+        self.pret_table.setSortingEnabled(True)
 
 
     def add_position_row(self, position: Position):
@@ -2252,6 +2315,22 @@ class MoneyManager(QMainWindow):
         self.load_comptes()
         self.placement_table.clearContents()
         self.load_placement()
+
+    def add_loan(self,pret:Loan):
+        echeancier = calculer_echeancier_pret_avec_assurance(pret.montant_initial,pret.taux_annuel_initial,pret.duree_ans,pret.assurance_par_periode,pret.frequence_paiement,pret.date_debut,pret.taux_variables)
+        compte_id = str(pret.compte_id)
+        InsertPret(compte_id,echeancier)
+        new_solde = -1 * GetCRD(compte_id)
+        
+        echeance = Echeance(pret.frequence_paiement,int(echeancier[0]["date"].strftime('%Y%m%d')),get_next_echeance(int(echeancier[0]["date"].strftime('%Y%m%d')),pret.frequence_paiement),"","","","","",echeancier[0]["mensualite"],0,f"Remboursement prêt {pret.nom}",compte_id,0,0,0,0,"Virement",0)
+        InsertEcheance(echeance)
+        UpdateSoldeCompte(self.current_account,new_solde)
+        self.load_pret()
+        self.account_list.clear()
+        self.load_accounts()
+        self.echeance_table.clearContents()
+        self.load_echeance()
+
 
     def add_tier(self, tier: Tier):
         if InsertTier(tier,self):

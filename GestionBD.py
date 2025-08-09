@@ -54,6 +54,22 @@ def  create_tables(db_path=None):
     )
     ''')
 
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS pret (
+    compte_id TEXT,
+    numero_echeance INTEGER,
+    date INTEGER,
+    taux_annuel_applique REAL,
+    taux_periode REAL,
+    crd REAL,
+    interets REAL,
+    capital REAL,
+    assurance REAL,
+    mensualite REAL,
+    PRIMARY KEY (compte_id,numero_echeance)               
+    )
+                   ''')
+
     # Table opérations
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS operations (
@@ -398,8 +414,53 @@ def InsertPosition(position:Position, db_path=None):
     conn.commit()
     conn.close()
 
+def InsertPret(compte_id: str, echeancier: list, db_path=None):
+    """
+    Insère un échéancier complet de prêt dans la table 'pret'
+    en utilisant executemany pour des performances optimales.
 
+    Args:
+        compte_id (str): L'ID du compte associé au prêt.
+        echeancier (list): Une liste de dictionnaires, où chaque dictionnaire
+                           représente une échéance avec toutes les données nécessaires.
+        db_path (str, optional): Le chemin de la base de données. Defaults to None.
+    """
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
 
+    # Préparation des données pour l'insertion
+    # On parcourt la liste d'échéances et on crée une liste de tuples
+    # où chaque tuple contient les valeurs dans le bon ordre.
+    # On ajoute également l'ID du compte à chaque échéance.
+    data_to_insert = []
+    for echeance in echeancier:
+        data_to_insert.append((
+            compte_id,
+            echeance.get('numéro_echeance'),
+            int(echeance.get('date').strftime('%Y%m%d')),
+            echeance.get('taux_annuel_applique'),
+            echeance.get('taux_periode'),
+            echeance.get('capital_restant_du'),
+            echeance.get('intérêts'),
+            echeance.get('capital'),
+            echeance.get('assurance'),
+            echeance.get('mensualite')
+        ))
+
+    try:
+        cursor.executemany('''
+            INSERT INTO pret (compte_id, numero_echeance, date, taux_annuel_applique, taux_periode, crd, interets, capital, assurance, mensualite)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', data_to_insert)
+
+        conn.commit()
+
+    except sqlite3.Error as e:
+        conn.rollback()  # Annuler la transaction en cas d'erreur
+        print(f"Erreur lors de l'insertion : {e}")
+
+    finally:
+        conn.close()
 
 # Insérer un compte
 def InsertCompte(compte, parent = None, db_path=None) -> bool:
@@ -1879,6 +1940,32 @@ def GetPositions(compte_id, db_path=None):
         result.append(position)
 
     return result
+
+def GetPret(compte_id, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT numero_echeance,date,taux_annuel_applique,taux_periode,crd,interets,capital,assurance,mensualite FROM pret where compte_id = '{compte_id}' order by numero_echeance asc")
+    positions = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in positions:
+        echeance = (row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8])
+        result.append(echeance)
+
+    return result
+
+def GetCRD(compte_id, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    today = int(date.today().strftime("%Y%m%d"))
+    cursor.execute(f"SELECT crd FROM pret where date > ? and compte_id = ? order by date asc limit 1",(today,compte_id,))
+    row = cursor.fetchone()
+
+    conn.close()
+    return int(row[0])
 
 
 def GetPosition(position_id:str, db_path=None):

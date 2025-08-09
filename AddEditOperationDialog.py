@@ -19,13 +19,13 @@ def get_next_echeance(date_premiere: int, frequence: str) -> int:
     date_obj = datetime.strptime(date_str, "%Y%m%d")
     
     # Ajouter le bon décalage selon la fréquence
-    if frequence == "Mensuelle":
+    if frequence.lower() == "mensuelle":
         next_date = date_obj + relativedelta(months=1)
-    elif frequence == "Trimestrielle":
+    elif frequence.lower() == "trimestrielle":
         next_date = date_obj + relativedelta(months=3)
-    elif frequence == "Semestrielle":
+    elif frequence.lower() == "semestrielle":
         next_date = date_obj + relativedelta(months=6)
-    elif frequence == "Annuelle":
+    elif frequence.lower() == "annuelle":
         next_date = date_obj + relativedelta(years=1)
     else:
         raise ValueError(f"Fréquence non reconnue: {frequence}")

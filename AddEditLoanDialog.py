@@ -1,32 +1,40 @@
-# AddEditLoanDialog.py
-
 from PyQt6.QtWidgets import (
     QPushButton, QLabel, QDialog, QLineEdit, QFormLayout,
     QMessageBox, QComboBox, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QVBoxLayout, QHeaderView, QAbstractItemView
 )
 from DateTableWidgetItem import CustomDateEdit
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import Qt, QDate, QLocale
 from PyQt6.QtGui import QDoubleValidator, QIntValidator
 
-from BaseDialog import BaseDialog # Votre classe de base pour les dialogues
+from BaseDialog import BaseDialog
 from Datas import Loan
-from datetime import date # Pour travailler avec les dates Python
+from datetime import date
 
 
 class AddEditLoanDialog(BaseDialog):
-    def __init__(self, parent=None, loan: Loan = None):
+    def __init__(self, parent=None, loan: Loan = None,current_account = None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter / Modifier un Prêt")
-        self.setMinimumWidth(500) # Augmenter la largeur pour plus de confort
+        self.setMinimumWidth(500)
 
         self.loan = loan
-        self.taux_variables_data = [] # Pour stocker les données du tableau de taux variables
+        self.current_account = current_account
+        self.taux_variables_data = []
 
         # Valideurs pour les champs numériques
-        self.int_validator = QIntValidator(1, 1000, self) # Durée en années (ex: 1 à 1000 ans)
-        self.double_validator = QDoubleValidator(0.0, 999999999.0, 2, self) # Montants (solde, assurance)
-        self.taux_validator = QDoubleValidator(0.0, 1.0, 5, self) # Taux (0.00000 à 1.00000)
+        self.int_validator = QIntValidator(1, 1000, self)
+        
+        # --- Utilisation d'une locale pour le point décimal ---
+        # La locale "en_US" utilise naturellement le point.
+        locale_dot_decimal = QLocale(QLocale.Language.English, QLocale.Country.UnitedStates)
+        
+        # On peut configurer le nombre de décimales directement ici
+        self.double_validator = QDoubleValidator(0.0, 999999999.0, 2, self)
+        self.double_validator.setLocale(locale_dot_decimal)
+        
+        self.taux_validator = QDoubleValidator(0.0, 100.0, 5, self)
+        self.taux_validator.setLocale(locale_dot_decimal)
 
         # Layout principal
         self.main_layout = QVBoxLayout()
@@ -35,12 +43,14 @@ class AddEditLoanDialog(BaseDialog):
         # --- Champs communs du prêt ---
         self.nom_input = QLineEdit(self)
         self.montant_initial_input = QLineEdit(self)
+        # Le validateur QDoubleValidator gère maintenant la saisie.
+        # On va juste connecter la mise à jour pour le formatage visuel.
         self.montant_initial_input.setValidator(self.double_validator)
-        self.montant_initial_input.textEdited.connect(self.format_solde_input) # Réutiliser le formateur pour le montant
+        self.montant_initial_input.textChanged.connect(self.format_montant_input)
 
         self.date_debut_input = CustomDateEdit(self)
         self.date_debut_input.setCalendarPopup(True)
-        self.date_debut_input.setDate(QDate.currentDate()) # Date par défaut à aujourd'hui
+        self.date_debut_input.setDate(QDate.currentDate())
 
         self.duree_ans_input = QLineEdit(self)
         self.duree_ans_input.setValidator(self.int_validator)
@@ -48,21 +58,21 @@ class AddEditLoanDialog(BaseDialog):
 
         self.taux_annuel_initial_input = QLineEdit(self)
         self.taux_annuel_initial_input.setValidator(self.taux_validator)
-        self.taux_annuel_initial_input.setPlaceholderText("Ex: 0.035 ou 3.5%")
+        self.taux_annuel_initial_input.setPlaceholderText("Ex: 3.5 pour 3.5%")
 
         self.assurance_par_periode_input = QLineEdit(self)
         self.assurance_par_periode_input.setValidator(self.double_validator)
         self.assurance_par_periode_input.setPlaceholderText("Montant d'assurance par période")
 
         self.frequence_paiement_input = QComboBox(self)
-        self.frequence_paiement_input.addItems(['mensuel', 'trimestriel', 'semestriel', 'annuel'])
+        self.frequence_paiement_input.addItems(['mensuelle', 'trimestrielle', 'semestrielle', 'annuelle'])
 
         # Ajout des champs au formulaire
         self.form_layout.addRow(QLabel("Nom du Prêt:"), self.nom_input)
         self.form_layout.addRow(QLabel("Montant Initial du Prêt:"), self.montant_initial_input)
         self.form_layout.addRow(QLabel("Date de Début:"), self.date_debut_input)
         self.form_layout.addRow(QLabel("Durée du prêt (années):"), self.duree_ans_input)
-        self.form_layout.addRow(QLabel("Taux Annuel Initial:"), self.taux_annuel_initial_input)
+        self.form_layout.addRow(QLabel("Taux Annuel Initial (%):"), self.taux_annuel_initial_input)
         self.form_layout.addRow(QLabel("Assurance par période:"), self.assurance_par_periode_input)
         self.form_layout.addRow(QLabel("Fréquence de paiement:"), self.frequence_paiement_input)
 
@@ -78,8 +88,8 @@ class AddEditLoanDialog(BaseDialog):
 
         self.new_taux_value_input = QLineEdit(self)
         self.new_taux_value_input.setValidator(self.taux_validator)
-        self.new_taux_value_input.setPlaceholderText("Nouveau Taux Annuel (Ex: 0.04)")
-        self.new_taux_value_input.setToolTip("Nouveau taux annuel (ex: 0.04 pour 4%).")
+        self.new_taux_value_input.setPlaceholderText("Nouveau Taux Annuel (Ex: 4 pour 4%)")
+        self.new_taux_value_input.setToolTip("Nouveau taux annuel en pourcentage (ex: 4 pour 4%).")
 
         self.add_taux_btn = QPushButton("Ajouter Taux", self)
         self.add_taux_btn.clicked.connect(self.add_taux_variable)
@@ -87,7 +97,7 @@ class AddEditLoanDialog(BaseDialog):
         taux_add_layout = QHBoxLayout()
         taux_add_layout.addWidget(QLabel("Date d'application:"))
         taux_add_layout.addWidget(self.new_taux_date_input)
-        taux_add_layout.addWidget(QLabel("Nouveau Taux:"))
+        taux_add_layout.addWidget(QLabel("Nouveau Taux (%):"))
         taux_add_layout.addWidget(self.new_taux_value_input)
         taux_add_layout.addWidget(self.add_taux_btn)
         
@@ -96,18 +106,17 @@ class AddEditLoanDialog(BaseDialog):
         # Tableau pour afficher les taux variables ajoutés
         self.taux_variables_table = QTableWidget(self)
         self.taux_variables_table.setColumnCount(2)
-        self.taux_variables_table.setHorizontalHeaderLabels(["Date d'application", "Taux Annuel"])
+        self.taux_variables_table.setHorizontalHeaderLabels(["Date d'application", "Taux Annuel (%)"])
         self.taux_variables_table.horizontalHeader().setStretchLastSection(True)
         self.taux_variables_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.taux_variables_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.taux_variables_table.setMinimumHeight(100) # Pour qu'il soit visible même vide
+        self.taux_variables_table.setMinimumHeight(100)
 
         self.remove_taux_btn = QPushButton("Supprimer Taux Sélectionné", self)
         self.remove_taux_btn.clicked.connect(self.remove_taux_variable)
         
         self.form_layout.addRow(self.taux_variables_table)
         self.form_layout.addRow(self.remove_taux_btn)
-
 
         self.main_layout.addLayout(self.form_layout)
 
@@ -121,58 +130,94 @@ class AddEditLoanDialog(BaseDialog):
         # Si modification, pré-remplir les champs
         if self.loan:
             self.nom_input.setText(self.loan.nom)
+            # Remplacer le point par la virgule pour l'affichage initial
             self.montant_initial_input.setText(f"{self.loan.montant_initial:,.2f}".replace(",", " ").replace(".", ","))
             self.date_debut_input.setDate(QDate(self.loan.date_debut.year, self.loan.date_debut.month, self.loan.date_debut.day))
             self.duree_ans_input.setText(str(self.loan.duree_ans))
-            self.taux_annuel_initial_input.setText(str(self.loan.taux_annuel_initial))
-            self.assurance_par_periode_input.setText(str(self.loan.assurance_par_periode))
+            self.taux_annuel_initial_input.setText(f"{self.loan.taux_annuel_initial * 100:.3f}".replace(".", ","))
+            self.assurance_par_periode_input.setText(f"{self.loan.assurance_par_periode:.2f}".replace(".", ","))
             index_freq = self.frequence_paiement_input.findText(self.loan.frequence_paiement)
             if index_freq != -1:
                 self.frequence_paiement_input.setCurrentIndex(index_freq)
             
             # Charger les taux variables existants dans le tableau
             if self.loan.taux_variables:
-                for d, t in self.loan.taux_variables:
-                    self.taux_variables_data.append((d, t))
+                self.taux_variables_data = list(self.loan.taux_variables)
                 self.update_taux_variables_table()
 
+    def format_montant_input(self):
+        # Sauvegarder la position du curseur
+        cursor_pos = self.montant_initial_input.cursorPosition()
+        current_text = self.montant_initial_input.text()
+        
+        # Nettoyer le texte pour le traitement : enlever les espaces et remplacer la virgule par un point
+        clean_text = current_text.replace(" ", "").replace(",", ".")
+        
+        # Vérifier si le texte nettoyé est un nombre valide
+        try:
+            val = float(clean_text)
+            
+            # Formater la partie entière avec des espaces pour les milliers
+            if '.' in clean_text:
+                entier, decimal = clean_text.split('.', 1)
+                formatted_entier = "{:,}".format(int(entier)).replace(",", " ")
+                formatted_text = formatted_entier + ',' + decimal
+            else:
+                formatted_text = "{:,}".format(int(clean_text)).replace(",", " ")
+            
+            # Bloquer les signaux pour éviter une boucle de re-formatage
+            self.montant_initial_input.blockSignals(True)
+            
+            # Calculer la nouvelle position du curseur
+            # On se base sur le nombre de caractères non-espaces avant le curseur
+            original_prefix_len = len(current_text[:cursor_pos].replace(" ", ""))
+            new_cursor_pos = 0
+            count = 0
+            for char in formatted_text:
+                if count == original_prefix_len:
+                    break
+                if char != " ":
+                    count += 1
+                new_cursor_pos += 1
+            
+            self.montant_initial_input.setText(formatted_text)
+            self.montant_initial_input.setCursorPosition(new_cursor_pos)
+            
+            self.montant_initial_input.blockSignals(False)
+
+        except ValueError:
+            # Si le texte n'est pas un nombre valide, ne rien faire
+            pass
+            
+    # Les autres méthodes (add_taux_variable, remove_taux_variable, submit, etc.) restent les mêmes
     def add_taux_variable(self):
         taux_date_qdate = self.new_taux_date_input.date()
         taux_date_py = date(taux_date_qdate.year(), taux_date_qdate.month(), taux_date_qdate.day())
 
         taux_value_str = self.new_taux_value_input.text().replace(",", ".")
         try:
-            taux_value = float(taux_value_str)
+            taux_value_percent = float(taux_value_str)
+            taux_value = taux_value_percent / 100.0
             if taux_value < 0 or taux_value > 1.0:
-                QMessageBox.warning(self, "Erreur", "Le taux doit être entre 0 et 1 (ex: 0.035).")
+                QMessageBox.warning(self, "Erreur", "Le taux doit être entre 0% et 100%.")
                 return
         except ValueError:
-            QMessageBox.warning(self, "Erreur", "Le nouveau taux doit être un nombre décimal valide.")
+            QMessageBox.warning(self, "Erreur", "Le nouveau taux doit être un nombre valide (ex: 3.5).")
             return
 
-        # Vérifier si un taux existe déjà pour cette date
         for i, (existing_date, _) in enumerate(self.taux_variables_data):
             if existing_date == taux_date_py:
                 msg_box = QMessageBox(self)
                 msg_box.setWindowTitle("Taux Existant")
                 msg_box.setText(f"Un taux existe déjà pour le {taux_date_py.strftime('%d/%m/%Y')}. Voulez-vous le remplacer ?")
                 
-                # Création et ajout des boutons "Oui" et "Non"
                 bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
                 bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
                 
-                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
-
-                msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
-                # Vérifier quel bouton a été cliqué
+                msg_box.setIcon(QMessageBox.Icon.Question)
+                msg_box.exec()
+                
                 if msg_box.clickedButton() == bouton_oui:
-                    reply_is_yes = True
-                else:
-                    reply_is_yes = False
-
-                if not reply_is_yes:
-                    return  # L'utilisateur a annulé
-                if reply_is_yes:
                     self.taux_variables_data[i] = (taux_date_py, taux_value)
                     self.update_taux_variables_table()
                     self.new_taux_value_input.clear()
@@ -181,9 +226,9 @@ class AddEditLoanDialog(BaseDialog):
                     return
 
         self.taux_variables_data.append((taux_date_py, taux_value))
-        self.taux_variables_data.sort(key=lambda x: x[0]) # Trier par date
+        self.taux_variables_data.sort(key=lambda x: x[0])
         self.update_taux_variables_table()
-        self.new_taux_value_input.clear() # Effacer le champ après ajout
+        self.new_taux_value_input.clear()
 
     def remove_taux_variable(self):
         selected_rows = self.taux_variables_table.selectionModel().selectedRows()
@@ -191,7 +236,6 @@ class AddEditLoanDialog(BaseDialog):
             QMessageBox.warning(self, "Suppression", "Veuillez sélectionner une ligne à supprimer.")
             return
 
-        # Supprimer en partant de la fin pour éviter les problèmes d'index
         for index in sorted(selected_rows, reverse=True):
             del self.taux_variables_data[index.row()]
         self.update_taux_variables_table()
@@ -200,7 +244,7 @@ class AddEditLoanDialog(BaseDialog):
         self.taux_variables_table.setRowCount(len(self.taux_variables_data))
         for row, (d, t) in enumerate(self.taux_variables_data):
             self.taux_variables_table.setItem(row, 0, QTableWidgetItem(d.strftime("%d/%m/%Y")))
-            self.taux_variables_table.setItem(row, 1, QTableWidgetItem(f"{t*100:.3f}%")) # Afficher le taux en pourcentage
+            self.taux_variables_table.setItem(row, 1, QTableWidgetItem(f"{t*100:.3f}%".replace(".", ",")))
 
     def submit(self):
         nom = self.nom_input.text().strip()
@@ -234,11 +278,12 @@ class AddEditLoanDialog(BaseDialog):
             return
 
         try:
-            taux_annuel_initial = float(taux_annuel_initial_str)
+            taux_annuel_initial_percent = float(taux_annuel_initial_str)
+            taux_annuel_initial = taux_annuel_initial_percent / 100.0
             if taux_annuel_initial < 0 or taux_annuel_initial > 1.0:
-                raise ValueError("Le taux annuel initial doit être entre 0 et 1 (ex: 0.035).")
+                raise ValueError("Le taux annuel initial doit être entre 0% et 100%.")
         except ValueError:
-            QMessageBox.warning(self, "Erreur", "Le taux annuel initial doit être un nombre décimal valide.")
+            QMessageBox.warning(self, "Erreur", "Le taux annuel initial doit être un nombre valide (ex: 3.5).")
             return
         
         try:
@@ -246,15 +291,12 @@ class AddEditLoanDialog(BaseDialog):
             if assurance_par_periode < 0:
                 raise ValueError("L'assurance ne peut pas être négative.")
         except ValueError:
-            QMessageBox.warning(self, "Erreur", "L'assurance par période doit être un nombre décimal valide.")
+            QMessageBox.warning(self, "Erreur", "L'assurance par période doit être un nombre valide.")
             return
 
-        # Récupérer les taux variables depuis self.taux_variables_data
         taux_variables_sorted = sorted(self.taux_variables_data, key=lambda x: x[0])
 
-
         if self.loan:
-            # Modification d'un prêt existant
             self.loan.nom = nom
             self.loan.montant_initial = montant_initial
             self.loan.date_debut = date_debut_py
@@ -264,14 +306,12 @@ class AddEditLoanDialog(BaseDialog):
             self.loan.assurance_par_periode = assurance_par_periode
             self.loan.taux_variables = taux_variables_sorted
             
-            # Appelez la méthode de mise à jour du parent (votre fenêtre principale)
             if self.parent() and hasattr(self.parent(), 'update_loan'):
                 self.parent().update_loan(self.loan)
             else:
                 QMessageBox.warning(self, "Erreur", "La méthode 'update_loan' n'est pas disponible dans la fenêtre parente.")
                 return
         else:
-            # Création d'un nouveau prêt
             new_loan = Loan(
                 nom=nom,
                 montant_initial=montant_initial,
@@ -280,9 +320,9 @@ class AddEditLoanDialog(BaseDialog):
                 taux_annuel_initial=taux_annuel_initial,
                 frequence_paiement=frequence_paiement,
                 assurance_par_periode=assurance_par_periode,
-                taux_variables=taux_variables_sorted
+                taux_variables=taux_variables_sorted,
+                compte_id=self.current_account
             )
-            # Appelez la méthode d'ajout du parent (votre fenêtre principale)
             if self.parent() and hasattr(self.parent(), 'add_loan'):
                 self.parent().add_loan(new_loan)
             else:
@@ -290,34 +330,3 @@ class AddEditLoanDialog(BaseDialog):
                 return
 
         self.accept()
-
-    def format_solde_input(self):
-        # Cette fonction est réutilisée pour le montant initial du prêt
-        text = self.montant_initial_input.text()
-        clean_text = ''.join(c for c in text if c.isdigit() or c in [',', '.'])
-        clean_text = clean_text.replace(",", ".")
-
-        if '.' in clean_text:
-            partie_entiere, partie_decimale = clean_text.split('.', 1)
-            if partie_entiere:
-                partie_entiere = "{:,}".format(int(partie_entiere)).replace(",", " ")
-            else:
-                partie_entiere = "0"
-            formatted = partie_entiere + ',' + partie_decimale
-        else:
-            if clean_text:
-                formatted = "{:,}".format(int(clean_text)).replace(",", " ")
-            else:
-                formatted = ""
-
-        self.montant_initial_input.blockSignals(True)
-        self.montant_initial_input.setText(formatted)
-        self.montant_initial_input.blockSignals(False)
-        # Maintenir le curseur à la bonne position (facultatif mais améliore l'UX)
-        cursor_pos = len(formatted)
-        if '.' in clean_text and '.' in text:
-            original_dot_index = text.find('.')
-            formatted_dot_index = formatted.find(',')
-            if original_dot_index != -1 and formatted_dot_index != -1:
-                cursor_pos = formatted_dot_index + (text.find('.') - original_dot_index)
-        self.montant_initial_input.setCursorPosition(cursor_pos)
