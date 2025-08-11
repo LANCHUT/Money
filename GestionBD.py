@@ -66,6 +66,7 @@ def  create_tables(db_path=None):
     capital REAL,
     assurance REAL,
     mensualite REAL,
+    compte_associe TEXT,
     PRIMARY KEY (compte_id,numero_echeance)               
     )
                    ''')
@@ -414,7 +415,7 @@ def InsertPosition(position:Position, db_path=None):
     conn.commit()
     conn.close()
 
-def InsertPret(compte_id: str, echeancier: list, db_path=None):
+def InsertPret(compte_id: str, echeancier: list,compte_associe:str = "", db_path=None):
     """
     Insère un échéancier complet de prêt dans la table 'pret'
     en utilisant executemany pour des performances optimales.
@@ -444,13 +445,14 @@ def InsertPret(compte_id: str, echeancier: list, db_path=None):
             echeance.get('intérêts'),
             echeance.get('capital'),
             echeance.get('assurance'),
-            echeance.get('mensualite')
+            echeance.get('mensualite'),
+            compte_associe
         ))
 
     try:
         cursor.executemany('''
-            INSERT INTO pret (compte_id, numero_echeance, date, taux_annuel_applique, taux_periode, crd, interets, capital, assurance, mensualite)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO pret (compte_id, numero_echeance, date, taux_annuel_applique, taux_periode, crd, interets, capital, assurance, mensualite, compte_associe)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', data_to_insert)
 
         conn.commit()
@@ -925,7 +927,7 @@ def GetAllEcheance(db_path=None):
 
     result = []
     for row in echeances:
-        echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[20],row[21],row[6],row[17],row[18],row[0])
+        echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[20],row[21],row[6],row[18],row[19],row[0])
         result.append(echeance)
 
     return result
@@ -1128,6 +1130,22 @@ def DeleteOperation(operation,old_credit:float,old_debit:float, db_path=None):
 
     conn.close()
 
+def DeleteOperations(compte_id:str, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM operations WHERE compte_id = ?", (str(compte_id),))
+    conn.commit()
+
+    conn.close()
+
+def DeletePret(compte_id:str, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM pret WHERE compte_id = ?", (str(compte_id),))
+    conn.commit()
+
+    conn.close()
+
 def DeletePosition(position:Position, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -1246,6 +1264,23 @@ def GetComptesHorsPlacement(db_path=None):
     cursor = conn.cursor()
 
     cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type == "Courant" OR type == "Epargne"')
+    comptes = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in comptes: # Assuming Compte and ObjectId are defined in Datas.py
+        c = Compte(row[1], row[2], row[3], row[4], ObjectId(row[0]))
+        result.append(c)
+
+    return result
+
+
+def GetComptesHorsPret(db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type <> "Prêt"')
     comptes = cursor.fetchall()
 
     conn.close()
@@ -1924,6 +1959,23 @@ def GetComptePlacement(nom_placement:str,conn = None) -> list:
         result.append(row[0])
     return result
 
+def GetComptePret(conn = None) -> list:
+    was_none = False
+    if conn is None:
+        was_none = True
+        conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id from comptes WHERE type  = 'Prêt'")
+
+    comptes = cursor.fetchall()
+    if was_none:
+        conn.close()
+
+    result = []
+    for row in comptes:
+        result.append(row[0])
+    return result
 
 def GetPositions(compte_id, db_path=None):
     conn = connect_db(db_path)
@@ -1965,7 +2017,7 @@ def GetCRD(compte_id, db_path=None):
     row = cursor.fetchone()
 
     conn.close()
-    return int(row[0])
+    return -1 * int(row[0])
 
 
 def GetPosition(position_id:str, db_path=None):

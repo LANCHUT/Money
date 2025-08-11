@@ -10,6 +10,7 @@ from PyQt6.QtGui import QDoubleValidator, QIntValidator
 from BaseDialog import BaseDialog
 from Datas import Loan
 from datetime import date
+from GestionBD import GetComptesHorsPlacement
 
 
 class AddEditLoanDialog(BaseDialog):
@@ -64,8 +65,14 @@ class AddEditLoanDialog(BaseDialog):
         self.assurance_par_periode_input.setValidator(self.double_validator)
         self.assurance_par_periode_input.setPlaceholderText("Montant d'assurance par période")
 
+        self.compte_associe_input = QComboBox(self)
+        comptes_courant = GetComptesHorsPlacement()
+        for compte in comptes_courant:
+            if compte.type == "Courant":
+                self.compte_associe_input.addItem(str(compte.nom),userData=str(compte._id))
+
         self.frequence_paiement_input = QComboBox(self)
-        self.frequence_paiement_input.addItems(['mensuelle', 'trimestrielle', 'semestrielle', 'annuelle'])
+        self.frequence_paiement_input.addItems(['Mensuelle', 'Trimestrielle', 'Semestrielle', 'Annuelle'])
 
         # Ajout des champs au formulaire
         self.form_layout.addRow(QLabel("Nom du Prêt:"), self.nom_input)
@@ -75,6 +82,7 @@ class AddEditLoanDialog(BaseDialog):
         self.form_layout.addRow(QLabel("Taux Annuel Initial (%):"), self.taux_annuel_initial_input)
         self.form_layout.addRow(QLabel("Assurance par période:"), self.assurance_par_periode_input)
         self.form_layout.addRow(QLabel("Fréquence de paiement:"), self.frequence_paiement_input)
+        self.form_layout.addRow(QLabel("Compte associé"),self.compte_associe_input)
 
         # --- Section Taux Variables ---
         self.taux_variables_group_label = QLabel("Taux Variables (Optionnel):")
@@ -252,6 +260,7 @@ class AddEditLoanDialog(BaseDialog):
         date_debut_qdate = self.date_debut_input.date()
         date_debut_py = date(date_debut_qdate.year(), date_debut_qdate.month(), date_debut_qdate.day())
         duree_ans_str = self.duree_ans_input.text()
+        compte_associe = self.compte_associe_input.currentData(Qt.ItemDataRole.UserRole)
         taux_annuel_initial_str = self.taux_annuel_initial_input.text().replace(",", ".")
         assurance_par_periode_str = self.assurance_par_periode_input.text().replace(",", ".")
         frequence_paiement = self.frequence_paiement_input.currentText()
@@ -305,6 +314,7 @@ class AddEditLoanDialog(BaseDialog):
             self.loan.frequence_paiement = frequence_paiement
             self.loan.assurance_par_periode = assurance_par_periode
             self.loan.taux_variables = taux_variables_sorted
+            self.loan.compte_associe = compte_associe
             
             if self.parent() and hasattr(self.parent(), 'update_loan'):
                 self.parent().update_loan(self.loan)
@@ -321,12 +331,10 @@ class AddEditLoanDialog(BaseDialog):
                 frequence_paiement=frequence_paiement,
                 assurance_par_periode=assurance_par_periode,
                 taux_variables=taux_variables_sorted,
-                compte_id=self.current_account
+                compte_id=self.current_account,
+                compte_associe=compte_associe
             )
-            if self.parent() and hasattr(self.parent(), 'add_loan'):
-                self.parent().add_loan(new_loan)
-            else:
-                QMessageBox.warning(self, "Erreur", "La méthode 'add_loan' n'est pas disponible dans la fenêtre parente.")
-                return
+
+            self.parent().add_loan(new_loan)
 
         self.accept()

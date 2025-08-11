@@ -8,8 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from IPython.display import HTML, display
-from PyQt6.QtGui import QAction,QColor,QCursor,QIcon,QBrush
+from PyQt6.QtGui import QAction,QColor,QCursor,QIcon
 from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths
 from GestionBD import *
 from CheckableComboBox import *
@@ -348,6 +347,10 @@ class MoneyManager(QMainWindow):
             try:
                 current_date, echeances = GetEcheanceToday(db_path=self.current_db_path)
                 RunEcheance(current_date, echeances, db_path=self.current_db_path)
+                liste_compte_pret = GetComptePret()
+                for compte_id in liste_compte_pret:
+                    new_solde = GetCRD(compte_id,self.current_db_path)
+                    UpdateSoldeCompte(compte_id,new_solde)
             except Exception as e:
                 print(f"Erreur lors du traitement des échéances : {e}")
                 # Vous pourriez afficher un QMessageBox ici si l'erreur est critique
@@ -627,7 +630,7 @@ class MoneyManager(QMainWindow):
         self.load_echeance()
 
     def add_echeance(self):
-        dialog = EcheanceDialog(GetComptes(), self)
+        dialog = EcheanceDialog(GetComptesHorsPret(), self)
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
@@ -1056,7 +1059,7 @@ class MoneyManager(QMainWindow):
 
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Suppression d'un compte")
-        msg_box.setText(f"Toutes les opérations liés à ce compte vont être supprimées\nEtes-vous sûr de vouloir supprimer le compte ?")
+        msg_box.setText(f"Toutes les opérations liées à ce compte vont être supprimées\nEtes-vous sûr de vouloir supprimer le compte ?")
         
         # Création et ajout des boutons "Oui" et "Non"
         bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
@@ -1078,10 +1081,17 @@ class MoneyManager(QMainWindow):
             item_nom = self.compte_table.item(row, 0)
             compte_id = str(item_nom.data(Qt.ItemDataRole.UserRole))
             DeleteCompte(compte_id)
+            compte_type = GetCompteType(compte_id)
+            if compte_type in ["Courant","Epargne"]:
+                DeleteOperations(compte_id)
+            if compte_type == "Prêt":
+                DeletePret(compte_id)
             self.compte_table.removeRow(row)
             self.account_list.clear()
-            self.transaction_table.clear()
+            self.transaction_table.clearContents()
+            self.compte_table.clearContents()
             self.load_accounts()
+            self.load_comptes()
 
     def delete_selected_operation(self, row):
         msg_box = QMessageBox(self)
@@ -2319,10 +2329,11 @@ class MoneyManager(QMainWindow):
     def add_loan(self,pret:Loan):
         echeancier = calculer_echeancier_pret_avec_assurance(pret.montant_initial,pret.taux_annuel_initial,pret.duree_ans,pret.assurance_par_periode,pret.frequence_paiement,pret.date_debut,pret.taux_variables)
         compte_id = str(pret.compte_id)
+        compte_associe = str(pret.compte_associe)
         InsertPret(compte_id,echeancier)
-        new_solde = -1 * GetCRD(compte_id)
+        new_solde = GetCRD(compte_id)
         
-        echeance = Echeance(pret.frequence_paiement,int(echeancier[0]["date"].strftime('%Y%m%d')),get_next_echeance(int(echeancier[0]["date"].strftime('%Y%m%d')),pret.frequence_paiement),"","","","","",echeancier[0]["mensualite"],0,f"Remboursement prêt {pret.nom}",compte_id,0,0,0,0,"Virement",0)
+        echeance = Echeance(pret.frequence_paiement,int(echeancier[0]["date"].strftime('%Y%m%d')),get_next_echeance(int(echeancier[0]["date"].strftime('%Y%m%d')),pret.frequence_paiement),"Débit","","","","",-1*echeancier[-1]["mensualite"],0,f"Remboursement prêt {pret.nom}",compte_associe,0,0,0,0,"Prélèvement",0,compte_associe=compte_id)
         InsertEcheance(echeance)
         UpdateSoldeCompte(self.current_account,new_solde)
         self.load_pret()
@@ -2330,6 +2341,8 @@ class MoneyManager(QMainWindow):
         self.load_accounts()
         self.echeance_table.clearContents()
         self.load_echeance()
+        self.compte_table.clearContents()
+        self.load_comptes()
 
 
     def add_tier(self, tier: Tier):
@@ -2875,8 +2888,9 @@ class MoneyManager(QMainWindow):
 
         self.comptes_nom_to_id = {}
         for compte in GetComptes():
-            self.compte_filter.addItem(compte.nom)
-            self.comptes_nom_to_id[compte.nom] = str(compte._id)
+            if compte.type in ["Courant","Epargne"]:
+                self.compte_filter.addItem(compte.nom)
+                self.comptes_nom_to_id[compte.nom] = str(compte._id)
 
         self.apply_filter_btn = QPushButton("Appliquer les filtres")
         self.apply_filter_btn.clicked.connect(self.apply_filters)
@@ -3618,7 +3632,8 @@ class MoneyManager(QMainWindow):
         self.compte_filter.addSpecialItem("Tout sélectionner", "select_all")
         self.compte_filter.addSpecialItem("Tout désélectionner", "deselect_all")
         for compte in GetComptes():
-            self.compte_filter.addItem(compte.nom)
+            if compte.type in ["Courant","Epargne"]:
+                self.compte_filter.addItem(compte.nom)
         if self.current_account is not None:
             self.compte_filter.checkItemByText(GetCompteName(self.current_account))
             self.load_operations()
@@ -3729,9 +3744,10 @@ class MoneyManager(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    app.styleHints().setColorScheme(Qt.ColorScheme.Dark)
     qss = """
     QPushButton {
-        background-color: #3a3a3a; 
+        background-color: #000000; 
         color: #e0e0e0; 
         border: 2px solid #007ACC;
         border-radius: 5px;
@@ -3742,7 +3758,7 @@ def main():
     }
 
     QPushButton:hover {
-        background-color: #4A4A4A;
+        background-color: #5A5A5A;
         color: #ffffff;
         border: 2px solid #0096FF;
     }

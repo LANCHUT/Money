@@ -256,9 +256,11 @@ class Loan:
                  frequence_paiement: str,
                  assurance_par_periode: float = 0.0,
                  taux_variables: list = None,
-                 compte_id: str = None
+                 compte_id: str = None,
+                 compte_associe:str = None
                  ):
         self.compte_id = compte_id
+        self.compte_associe = compte_associe
         self.nom = nom
         self.montant_initial = montant_initial
         self.date_debut = date_debut

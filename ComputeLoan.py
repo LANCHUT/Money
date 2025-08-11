@@ -26,13 +26,13 @@ def calculer_echeancier_pret_avec_assurance(
         list: Une liste de dictionnaires, chaque dictionnaire représentant une échéance.
     """
 
-    if frequence_paiement == 'mensuelle':
+    if frequence_paiement.lower() == 'mensuelle':
         paiements_par_an = 12
-    elif frequence_paiement == 'trimestrielle':
+    elif frequence_paiement.lower() == 'trimestrielle':
         paiements_par_an = 4
-    elif frequence_paiement == 'semestrielle':
+    elif frequence_paiement.lower() == 'semestrielle':
         paiements_par_an = 2
-    elif frequence_paiement == 'annuelle':
+    elif frequence_paiement.lower() == 'annuelle':
         paiements_par_an = 1
     else:
         raise ValueError("La fréquence de paiement doit être 'mensuelle', 'trimestrielle', 'semestrielle' ou 'annuelle'.")
@@ -50,7 +50,7 @@ def calculer_echeancier_pret_avec_assurance(
     for i in range(1, nombre_total_paiements + 1):
         date_paiement = date_debut
 
-        if frequence_paiement == 'mensuelle':
+        if frequence_paiement.lower() == 'mensuelle':
             mois_a_ajouter = i
             annee_sup = (date_debut.month + mois_a_ajouter - 1) // 12
             mois_paiement = (date_debut.month + mois_a_ajouter - 1) % 12 + 1
@@ -63,11 +63,11 @@ def calculer_echeancier_pret_avec_assurance(
                 dernier_jour_du_mois = calendar.monthrange(annee_paiement, mois_paiement)[1]
                 date_paiement = date(annee_paiement, mois_paiement, dernier_jour_du_mois)
 
-        elif frequence_paiement == 'trimestrielle':
+        elif frequence_paiement.lower() == 'trimestrielle':
             date_paiement = date_debut + timedelta(days=i * 365.25 / paiements_par_an)
-        elif frequence_paiement == 'semestrielle':
+        elif frequence_paiement.lower() == 'semestrielle':
             date_paiement = date_debut + timedelta(days=i * 365.25 / paiements_par_an)
-        elif frequence_paiement == 'annuelle':
+        elif frequence_paiement.lower() == 'annuelle':
             date_paiement = date(date_debut.year + i, date_debut.month, date_debut.day)
         
         if taux_variables and prochain_changement_taux_index < len(taux_variables):
