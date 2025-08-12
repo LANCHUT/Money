@@ -351,6 +351,10 @@ class MoneyManager(QMainWindow):
                 for compte_id in liste_compte_pret:
                     new_solde = GetCRD(compte_id,self.current_db_path)
                     UpdateSoldeCompte(compte_id,new_solde)
+                self.echeance_table.clearContents()
+                self.load_echeance()
+                self.account_list.clear()
+                self.load_accounts()
             except Exception as e:
                 print(f"Erreur lors du traitement des échéances : {e}")
                 # Vous pourriez afficher un QMessageBox ici si l'erreur est critique
