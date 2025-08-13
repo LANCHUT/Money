@@ -6,11 +6,12 @@ from BaseDialog import BaseDialog
 
 
 class AddEditSousCategorieDialog(BaseDialog):
-    def __init__(self, parent=None, sous_categorie=None):
+    def __init__(self, parent=None, sous_categorie=None,categorie = None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter / Modifier une Sous-Catégorie")
 
         self.sous_categorie = sous_categorie
+        self.categorie = categorie
 
         # Layout pour la pop-up
         self.layout = QFormLayout()
@@ -21,6 +22,9 @@ class AddEditSousCategorieDialog(BaseDialog):
         categories = GetCategorie()
         for categorie in categories:
             self.categorie_parent.addItem(categorie.nom)
+        
+        if self.categorie is not None:
+            self.categorie_parent.setCurrentText(self.categorie)
 
         self.layout.addRow(QLabel("Nom:"), self.nom)
         self.layout.addRow(QLabel("Catégorie parent:"), self.categorie_parent)

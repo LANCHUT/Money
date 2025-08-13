@@ -413,6 +413,9 @@ class MoneyManager(QMainWindow):
 
         # Initialisation des états de la DB
         self.current_db_path = None
+        self.categorie_clicked = None
+        self.type_benficiaire_clicked = None
+        self.type_tier_clicked = None
         self.current_account = None # Gardez ceci si vous l'utilisez pour l'état de l'application
         self.pointage_state = {'actif': False, 'solde': 0.0, 'date': '','ops' : set(),'rows' : set(),'suspendu': False}
 
@@ -817,14 +820,17 @@ class MoneyManager(QMainWindow):
 
     def on_categorie_clicked(self,item):
         self.load_sous_categories(GetSousCategorie(item.data(Qt.ItemDataRole.UserRole)))
+        self.categorie_clicked = item.data(Qt.ItemDataRole.UserRole)
         self.sous_categorie_table.sortItems(0,Qt.SortOrder.AscendingOrder)
 
     def on_categorie2_clicked(self,item):
         self.load_beneficiaire(GetBeneficiairesByType(item.data(Qt.ItemDataRole.UserRole)))
+        self.type_benficiaire_clicked = item.data(Qt.ItemDataRole.UserRole)
         self.sous_categorie2_table.sortItems(0,Qt.SortOrder.AscendingOrder)
 
     def on_type_tier_clicked(self,item):
         self.load_tiers(GetTiersByType(item.data(Qt.ItemDataRole.UserRole)))
+        self.type_tier_clicked = item.data(Qt.ItemDataRole.UserRole)
         self.tier_table.sortItems(0,Qt.SortOrder.AscendingOrder)
 
     def on_account_clicked(self, item):
@@ -884,15 +890,24 @@ class MoneyManager(QMainWindow):
         dialog.exec()
 
     def open_add_tier_dialog(self):
-        dialog = AddEditTierDialog(self)
+        if self.type_tier_clicked is not None:
+            dialog = AddEditTierDialog(self,type_tier = self.type_tier_clicked)
+        else:
+            dialog = AddEditTierDialog(self)
         dialog.exec()
 
     def open_add_beneficiaire_dialog(self):
-        dialog = AddEditBeneficiaireDialog(self)
+        if self.type_benficiaire_clicked is not None:
+            dialog = AddEditBeneficiaireDialog(self,type_beneficiaire=self.type_benficiaire_clicked)
+        else:
+            dialog = AddEditBeneficiaireDialog(self)
         dialog.exec()
 
     def open_add_sous_categorie_dialog(self):
-        dialog = AddEditSousCategorieDialog(self)
+        if self.categorie_clicked is not None:
+            dialog = AddEditSousCategorieDialog(self,categorie=self.categorie_clicked)
+        else:
+            dialog = AddEditSousCategorieDialog(self)
         dialog.exec()
     def open_add_categorie_dialog(self):
         dialog = AddEditCategorieDialog(self)

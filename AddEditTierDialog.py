@@ -6,11 +6,12 @@ from BaseDialog import BaseDialog
 from GestionBD import *
 
 class AddEditTierDialog(BaseDialog):
-    def __init__(self, parent=None, tier=None):
+    def __init__(self, parent=None, tier=None,type_tier:str=None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter / Modifier un Tier")
 
         self.tier = tier
+        self.type_tier_clicked = type_tier
 
         # Layout pour la pop-up
         self.layout = QFormLayout()
@@ -21,6 +22,9 @@ class AddEditTierDialog(BaseDialog):
         types_tier = GetTypeTier()
         for type in types_tier:
             self.type_tier.addItem(type.nom)
+
+        if self.type_tier_clicked is not None:
+            self.type_tier.setCurrentText(self.type_tier_clicked)
 
         self.cat_def = QComboBox(self)
         self.cat_def.addItem("")

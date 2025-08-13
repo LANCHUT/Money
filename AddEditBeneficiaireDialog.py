@@ -7,11 +7,12 @@ from Datas import Beneficiaire
 
 
 class AddEditBeneficiaireDialog(BaseDialog):
-    def __init__(self, parent=None, beneficiaire:Beneficiaire=None):
+    def __init__(self, parent=None, beneficiaire:Beneficiaire=None,type_beneficiaire:str=None):
         super().__init__(parent)
         self.setWindowTitle("Ajouter / Modifier un bénéficiaire")
 
         self.beneficiaire = beneficiaire
+        self.type_beneficiaire = type_beneficiaire
 
         # Layout pour la pop-up
         self.layout = QFormLayout()
@@ -22,6 +23,9 @@ class AddEditBeneficiaireDialog(BaseDialog):
         type_beneficiaires = GetTypeBeneficiaire()
         for type_beneficiaire in type_beneficiaires:
             self.type_beneficiaire_parent.addItem(type_beneficiaire.nom)
+
+        if self.type_beneficiaire is not None:
+            self.type_beneficiaire_parent.setCurrentText(self.type_beneficiaire)
 
         self.layout.addRow(QLabel("Nom:"), self.nom)
         self.layout.addRow(QLabel("Type bénéficiaire:"), self.type_beneficiaire_parent)
