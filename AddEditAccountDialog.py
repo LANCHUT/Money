@@ -67,6 +67,7 @@ class AddEditAccountDialog(BaseDialog):
         self.layout.addWidget(self.submit_btn)
 
         self.setLayout(self.layout)
+        self.nom_input.setFocus()
 
     def submit(self):
         nom = self.nom_input.text()
