@@ -142,10 +142,11 @@ class FrequenceEcheancier(Enum):
 
 class TypePlacement(Enum):
     Action = "Action"
-    Fond = "Fond en Euros"
+    Fond = "Fond en euros"
     Mixte = "Mixte"
     Obligation = "Obligations"
     SCPI = "SCPI"
+    UC = "Unités de comptes"
 
     @classmethod
     def return_list(self):
