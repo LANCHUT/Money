@@ -146,7 +146,7 @@ class TypePlacement(Enum):
     Mixte = "Mixte"
     Obligation = "Obligations"
     SCPI = "SCPI"
-    UC = "Unités de comptes"
+    UC = "Unités de compte"
 
     @classmethod
     def return_list(self):
