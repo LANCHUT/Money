@@ -1,8 +1,7 @@
 from PyQt6.QtWidgets import (
-    QPushButton, QLabel, QDialog, QLineEdit, QFormLayout, QMessageBox,QComboBox,QCompleter,QCheckBox
+    QPushButton, QLabel, QLineEdit, QFormLayout, QMessageBox,QComboBox,QCompleter,QCheckBox
 )
-from PyQt6.QtCore import Qt,QEvent,QDate,QRect
-from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtCore import Qt,QDate
 from Datas import Operation,TypeOperation,Echeance
 from BaseDialog import BaseDialog
 from DateTableWidgetItem import CustomDateEdit

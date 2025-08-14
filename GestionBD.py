@@ -1275,6 +1275,22 @@ def GetComptesHorsPlacement(db_path=None):
 
     return result
 
+def GetComptesNomBanque(db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT distinct nom_banque from comptes')
+    comptes = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in comptes: # Assuming Compte and ObjectId are defined in Datas.py
+        
+        result.append(row[0])
+
+    return result
+
 
 def GetComptesHorsPret(db_path=None):
     conn = connect_db(db_path)

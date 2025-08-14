@@ -1,9 +1,11 @@
 from PyQt6.QtWidgets import (
-    QPushButton, QLabel, QDialog, QLineEdit, QFormLayout,
+    QPushButton, QLabel, QLineEdit, QFormLayout,QCompleter,
     QMessageBox, QComboBox
 )
 from Datas import Compte, TypeCompte
+from PyQt6.QtCore import Qt
 from BaseDialog import BaseDialog
+from GestionBD import GetComptesNomBanque
 
 
 class AddEditAccountDialog(BaseDialog):
@@ -16,12 +18,21 @@ class AddEditAccountDialog(BaseDialog):
         # Layout principal
         self.layout = QFormLayout()
 
+        
+        self.banque_input = QLineEdit(self)
+
+        nom_banques_connus = GetComptesNomBanque()
+        self.completer = QCompleter(nom_banques_connus, self)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.banque_input.setCompleter(self.completer)
+
         # Champs
         self.nom_input = QLineEdit(self)
         self.solde_input = QLineEdit(self)
+        self.solde_input.setText("0")
         self.solde_input.textEdited.connect(self.format_solde_input)
         self.type_input = QComboBox(self)
-        self.banque_input = QLineEdit(self)
 
         # Remplissage de la liste des types
         for type_compte in TypeCompte.return_list():
