@@ -2282,14 +2282,14 @@ def GetPerformanceGlobaleData(compte_id: str, db_path=None):
     conn.close()
 
     return {
-        "valo": round(valo),
-        "montant_investissement": round(montant_investissement),
-        "don": round(don),
-        "vente": round(montant_vente),
-        "perte": round(montant_perte),
-        "cumul_interet": round(cumul_interet),
-        "plus-value": round(plus_value),
-        "frais" : round(montant_frais),
+        "valo": round(valo,2),
+        "montant_investissement": round(montant_investissement,2),
+        "don": round(don,2),
+        "vente": round(montant_vente,2),
+        "perte": round(montant_perte,2),
+        "cumul_interet": round(cumul_interet,2),
+        "plus-value": round(plus_value,2),
+        "frais" : round(montant_frais,2),
         "perf": round(perf, 2)
     }
 

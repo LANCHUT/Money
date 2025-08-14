@@ -121,7 +121,7 @@ class ShowPerformanceDialog(BaseDialog):
             texttemplate="%{value:,.2f} €",
             textinfo="label+value+percent"
         )])
-        fig.update_layout(title = "Répartition par placement",margin=dict(t=20, b=20, l=20, r=20))
+        fig.update_layout(title = "Répartition par placement",margin=dict(t=20, b=20, l=20, r=20),legend=dict(orientation = 'h',yanchor="top",y=-0.2,xanchor="center",x=0.5))
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
             fig.write_html(f.name)

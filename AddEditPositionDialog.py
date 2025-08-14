@@ -76,9 +76,9 @@ class AddEditPositionDialog(BaseDialog):
 
 
         self.layout.addRow(QLabel("Date:"),self.date)
+        self.layout.addRow(QLabel("Type:"), self.type_placement)
         self.label_compte_associe = QLabel("Compte Associé:")
         self.layout.addRow(self.label_compte_associe, self.compte_associe)
-        self.layout.addRow(QLabel("Type:"), self.type_placement)
         self.layout.addRow(QLabel("Placement:"), self.placement)
         self.layout.addRow(QLabel("Nombre de part:"), self.nb_part)
         self.layout.addRow(QLabel("Valeur de la part:"), self.val_part)

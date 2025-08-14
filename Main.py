@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtGui import QAction,QColor,QCursor,QIcon
+from PyQt6.QtGui import QAction,QColor,QCursor,QIcon,QFont
 from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths
 from GestionBD import *
 from CheckableComboBox import *
@@ -416,6 +416,7 @@ class MoneyManager(QMainWindow):
         self.categorie_clicked = None
         self.type_benficiaire_clicked = None
         self.type_tier_clicked = None
+        self.current_account_label = None
         self.current_account = None # Gardez ceci si vous l'utilisez pour l'état de l'application
         self.pointage_state = {'actif': False, 'solde': 0.0, 'date': '','ops' : set(),'rows' : set(),'suspendu': False}
 
@@ -843,6 +844,17 @@ class MoneyManager(QMainWindow):
             self.reset_filters()
             self.compte_filter.set_all_checked(False)
             self.compte_filter.checkItemByText(selected_account.nom)
+            self.current_account_label.setVisible(True)
+            font = QFont()
+            self.current_account_label.setStyleSheet("""QLabel{border: 2px solid #007ACC;
+                                                               padding: 5px;
+                                                               border-radius: 5px;}""")
+            self.current_account_label.setSizePolicy(QSizePolicy.Policy.Fixed,QSizePolicy.Policy.Fixed)
+            self.current_account_label.adjustSize()
+            font.setPointSize(16)
+            font.setBold(True)
+            self.current_account_label.setText(f"COMPTE : {selected_account.nom}")
+            self.current_account_label.setFont(font)
             if not selected_account:
                 return
 
@@ -2747,7 +2759,7 @@ class MoneyManager(QMainWindow):
 
         panel_widget = QWidget()
         panel_widget.setLayout(panel)
-        panel_widget.setMaximumWidth(500)
+        panel_widget.setMaximumWidth(700)
 
         accueil_tab_layout.addWidget(panel_widget)
         spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -2818,7 +2830,7 @@ class MoneyManager(QMainWindow):
         self.reprendre_pointage_btn.hide()
 
         self.pointage_info_label = QLabel()
-        self.pointage_info_label.setStyleSheet("font-weight: bold; color: #0055AA;")
+        self.pointage_info_label.setStyleSheet("font-weight: bold; color: #000000;")
         self.pointage_info_label.hide()  # caché tant qu'on ne commence pas
 
         self.end_pointage_btn = QPushButton("Terminer le pointage")
@@ -2972,6 +2984,9 @@ class MoneyManager(QMainWindow):
 
         self.reset_filter_button_operation = QPushButton("Réinitialiser les filtres")
         self.reset_filter_button_operation.clicked.connect(self.reset_filters)
+        self.current_account_label = QLabel()
+        self.current_account_label.setVisible(False)
+        right_panel.addWidget(self.current_account_label)
         right_panel.addWidget(self.filter_group_box)
         apply_reset_layout.addWidget(self.apply_filter_btn_operation)
         apply_reset_layout.addWidget(self.reset_filter_button_operation)
