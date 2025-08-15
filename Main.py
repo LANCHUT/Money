@@ -281,14 +281,27 @@ def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_co
 
     return fig
 
+def table_style(table:QTableWidget):
+    table.setStyleSheet("""
+            QHeaderView::section{
+                border: 1px solid white;
+                padding: 4px;
+                font-weight: bold;}
+            QTableWidget::item{
+                padding-left: 6px;
+                padding-right: 6px;}""")
+
 
 def align(item: QTableWidgetItem,alignement:Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft) -> QTableWidgetItem:
     item.setTextAlignment(alignement)
     return item
     
 
-def format_montant(montant):
-    return f"{float(montant):,.2f}".replace(",", " ").replace(".", ",") + " €" if montant != 0 else ""
+def format_montant(montant,is_nb_part = 0):
+    if is_nb_part:
+        return f"{float(montant):,.4f}".replace(",", " ").replace(".", ",") + " €" if montant != 0 else ""
+    else:   
+        return f"{float(montant):,.2f}".replace(",", " ").replace(".", ",") + " €" if montant != 0 else ""
 
 class NumericTableWidgetItem(QTableWidgetItem):
     def __init__(self, value, text):
@@ -623,8 +636,8 @@ class MoneyManager(QMainWindow):
         self.echeance_table.setHorizontalHeaderLabels(["Fréquence", "1 ère\néchéance", "Prochaine\néchéance", "Compte", "Type\nopération", "Compte\nassocié", "Type\nde\ntiers", "Tiers\nPlacement",
                                                        "Catégorie","Sous-\nCatégorie","Moyen\nde\npaiement","Type\nbénéficiaire","Bénéficiaire","Débit","Crédit","Nb parts","Val part","Frais","Intérêts","Notes"])
         self.echeance_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.echeance_table.horizontalHeader().setStretchLastSection(True)
-        self.echeance_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_style(self.echeance_table)
+        self.echeance_table.resizeColumnsToContents()
         self.echeance_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.echeance_table.customContextMenuRequested.connect(self.show_context_menu_echeancier)
         self.echeance_table.setAlternatingRowColors(True)
@@ -2049,16 +2062,16 @@ class MoneyManager(QMainWindow):
     def add_placement_row(self, row, placement: HistoriquePlacement):
         self.placement_table.setItem(row, 0, align(QTableWidgetItem(placement.nom)))
         self.placement_table.setItem(row, 1, align(QTableWidgetItem(placement.type)))
-        self.placement_table.setItem(row, 2, align(DateTableWidgetItem(placement.date)))
-        self.placement_table.setItem(row, 3, align(NumericTableWidgetItem(placement.val_actualise, format_montant(placement.val_actualise))))
+        self.placement_table.setItem(row, 2, align(DateTableWidgetItem(placement.date),Qt.AlignmentFlag.AlignCenter))
+        self.placement_table.setItem(row, 3, align(NumericTableWidgetItem(placement.val_actualise, format_montant(placement.val_actualise)),Qt.AlignmentFlag.AlignRight))
         self.placement_table.setItem(row, 4, align(QTableWidgetItem(placement.origine)))
 
     def add_echeance_row(self, row, echeance: Echeance):
         frequence_item = DateTableWidgetItem(echeance.frequence)
         frequence_item.setData(Qt.ItemDataRole.UserRole, echeance._id)
         self.echeance_table.setItem(row, 0, align(frequence_item))
-        self.echeance_table.setItem(row, 1, align(DateTableWidgetItem(echeance.echeance1)))
-        self.echeance_table.setItem(row, 2, align(DateTableWidgetItem(echeance.prochaine_echeance)))
+        self.echeance_table.setItem(row, 1, align(DateTableWidgetItem(echeance.echeance1),Qt.AlignmentFlag.AlignCenter))
+        self.echeance_table.setItem(row, 2, align(DateTableWidgetItem(echeance.prochaine_echeance),Qt.AlignmentFlag.AlignCenter))
         self.echeance_table.setItem(row, 3, align(QTableWidgetItem(GetCompteName(echeance.compte_id))))
         self.echeance_table.setItem(row, 4, align(QTableWidgetItem(echeance.type)))
         self.echeance_table.setItem(row, 5, align(QTableWidgetItem(GetCompteName(echeance.compte_associe))))
@@ -2072,7 +2085,7 @@ class MoneyManager(QMainWindow):
         self.echeance_table.setItem(row, 13, align(NumericTableWidgetItem(echeance.debit, format_montant(echeance.debit)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 14, align(NumericTableWidgetItem(echeance.credit, format_montant(echeance.credit)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 15, align(NumericTableWidgetItem(echeance.nb_part, str(echeance.nb_part)) if echeance.nb_part > 0 else QTableWidgetItem(""),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 16, align(NumericTableWidgetItem(echeance.val_part, format_montant(echeance.val_part)),Qt.AlignmentFlag.AlignRight))
+        self.echeance_table.setItem(row, 16, align(NumericTableWidgetItem(echeance.val_part, format_montant(echeance.val_part,1)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 17, align(NumericTableWidgetItem(echeance.frais, format_montant(echeance.frais)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 18, align(NumericTableWidgetItem(echeance.interets, format_montant(echeance.interets)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 19, align(QTableWidgetItem(echeance.notes)))
@@ -2258,7 +2271,7 @@ class MoneyManager(QMainWindow):
         # Définition des colonnes : (valeur, type, [alignement], [format_numeric], [suffix])
         columns = [
             (data[0], NumericTableWidgetItem, Qt.AlignmentFlag.AlignLeft, False),
-            (data[1], DateTableWidgetItem, Qt.AlignmentFlag.AlignLeft),
+            (data[1], DateTableWidgetItem,Qt.AlignmentFlag.AlignCenter),
             (data[4], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
             (data[5], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
             (data[6], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
@@ -2290,12 +2303,12 @@ class MoneyManager(QMainWindow):
         date_item = DateTableWidgetItem(position.date)
         date_item.setData(Qt.ItemDataRole.UserRole, position._id)
         self.position_table.insertRow(row)
-        self.position_table.setItem(row, 0, align(date_item))
+        self.position_table.setItem(row, 0, align(date_item,Qt.AlignmentFlag.AlignCenter))
         self.position_table.setItem(row, 1, align(QTableWidgetItem(position.type)))
         self.position_table.setItem(row, 2, align(QTableWidgetItem(compte_associe_name)))
         self.position_table.setItem(row, 3, align(QTableWidgetItem(position.nom_placement)))
         self.position_table.setItem(row, 4, align(NumericTableWidgetItem(position.nb_part, str(position.nb_part)) if position.nb_part > 0 else "",Qt.AlignmentFlag.AlignRight))
-        self.position_table.setItem(row, 5, align(NumericTableWidgetItem(position.val_part, format_montant(position.val_part)),Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 5, align(NumericTableWidgetItem(position.val_part, format_montant(position.val_part,1)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 6, align(NumericTableWidgetItem(position.frais, format_montant(position.frais)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 7, align(NumericTableWidgetItem(position.interets, format_montant(position.interets)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 8, align(QTableWidgetItem(position.notes)))
@@ -2777,7 +2790,8 @@ class MoneyManager(QMainWindow):
             "Moyen\nPaiement", "Numéro\nchèque", "Bq", "Catégorie", "Sous-\nCatégorie",
             "Débit", "Crédit", "Notes", "Solde"
         ])
-        self.transaction_table.horizontalHeader().setStretchLastSection(True)
+        table_style(self.transaction_table)
+        self.transaction_table.resizeColumnsToContents()
         self.transaction_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.transaction_table.setSortingEnabled(True)
         self.transaction_table.setAlternatingRowColors(True)
@@ -2787,10 +2801,10 @@ class MoneyManager(QMainWindow):
 
         self.position_table = QTableWidget(0, 10)
         self.position_table.setHorizontalHeaderLabels([
-            "Date", "Type", "Compte Associé", "Placement", "Nombre parts", "Valeur part", "Frais", "Intérêts", "Notes", "Montant Investissement"
+            "Date", "Type", "Compte\nAssocié", "Placement", "Nombre\nparts", "Valeur\npart", "Frais", "Intérêts", "Notes", "Montant\nInvestissement"
         ])
-        self.position_table.horizontalHeader().setStretchLastSection(True)
-        self.position_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_style(self.position_table)
+        self.position_table.resizeColumnsToContents()
         self.position_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.position_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.position_table.customContextMenuRequested.connect(self.show_context_menu_position)
@@ -2801,6 +2815,7 @@ class MoneyManager(QMainWindow):
         self.pret_table.setHorizontalHeaderLabels([
             "N°\nEch", "Date", "Capital restant\n dû", "Intérêts", "Capital", "Assurance", "Total", "Années", "Taux\nPériode", "Taux"
         ])
+        table_style(self.pret_table)
         self.pret_table.horizontalHeader().setStretchLastSection(True)
         self.pret_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.pret_table.setSortingEnabled(True)
@@ -3014,8 +3029,8 @@ class MoneyManager(QMainWindow):
         self.tier_table = QTableWidget(0, 6)
         self.tier_table.setHorizontalHeaderLabels(["Nom", "Type", "Catégorie", "Sous-\ncatégorie.", "Moyen\nde\npaiement", "Actif"])
         self.tier_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.tier_table.horizontalHeader().setStretchLastSection(True)
-        self.tier_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_style(self.tier_table)
+        self.tier_table.resizeColumnsToContents()
         self.tier_table.setAlternatingRowColors(True)
         self.tier_table.setSortingEnabled(True)
         self.tier_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -3030,7 +3045,8 @@ class MoneyManager(QMainWindow):
         self.type_tier_table = QTableWidget(0, 1)
         self.type_tier_table.setHorizontalHeaderLabels(["Type\nde\nTiers"])
         self.type_tier_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.type_tier_table.horizontalHeader().setStretchLastSection(True)
+        table_style(self.type_tier_table)
+        self.type_tier_table.resizeColumnsToContents()
         self.type_tier_table.setAlternatingRowColors(True)
         self.type_tier_table.setSortingEnabled(True)
         self.type_tier_table.sortItems(1,Qt.SortOrder.AscendingOrder)
@@ -3054,7 +3070,8 @@ class MoneyManager(QMainWindow):
         self.categorie_table = QTableWidget(0, 1)
         self.categorie_table.setHorizontalHeaderLabels(["Catégorie"])
         self.categorie_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.categorie_table.horizontalHeader().setStretchLastSection(True)
+        table_style(self.categorie_table)
+        self.categorie_table.resizeColumnsToContents()
         self.categorie_table.setAlternatingRowColors(True)
         self.categorie_table.sortItems(1,Qt.SortOrder.AscendingOrder)
         self.categorie_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -3069,8 +3086,8 @@ class MoneyManager(QMainWindow):
         self.sous_categorie_table = QTableWidget(0, 2)
         self.sous_categorie_table.setHorizontalHeaderLabels(["Sous-Catégorie", "Catégorie"])
         self.sous_categorie_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.sous_categorie_table.horizontalHeader().setStretchLastSection(True)
-        self.sous_categorie_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_style(self.sous_categorie_table)
+        self.sous_categorie_table.resizeColumnsToContents()
         self.sous_categorie_table.setAlternatingRowColors(True)
         self.sous_categorie_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.sous_categorie_table.customContextMenuRequested.connect(self.show_context_menu_sous_categorie)
@@ -3090,8 +3107,8 @@ class MoneyManager(QMainWindow):
         layout = QVBoxLayout(self.comptes_tab)
         self.compte_table = QTableWidget(0, 4)
         self.compte_table.setHorizontalHeaderLabels(["Nom", "Solde", "Type", "Etablissement Bancaire"])
-        self.compte_table.horizontalHeader().setStretchLastSection(True)
-        self.compte_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_style(self.compte_table)
+        self.compte_table.resizeColumnsToContents()
         self.compte_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.compte_table.setAlternatingRowColors(True)
         self.compte_table.setSortingEnabled(True)
@@ -3108,8 +3125,8 @@ class MoneyManager(QMainWindow):
         layout = QVBoxLayout(self.moyen_paiement_tab)
         self.moyen_paiement_table = QTableWidget(0, 1)
         self.moyen_paiement_table.setHorizontalHeaderLabels(["Nom"])
-        self.moyen_paiement_table.horizontalHeader().setStretchLastSection(True)
-        self.moyen_paiement_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_style(self.moyen_paiement_table)
+        self.moyen_paiement_table.resizeColumnsToContents()
         self.moyen_paiement_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.moyen_paiement_table.setAlternatingRowColors(True)
         self.moyen_paiement_table.setSortingEnabled(True)
@@ -3128,7 +3145,8 @@ class MoneyManager(QMainWindow):
         cat2_section = QVBoxLayout()
         self.categorie2_table = QTableWidget(0, 1)
         self.categorie2_table.setHorizontalHeaderLabels(["Type Bénéficiaire"])
-        self.categorie2_table.horizontalHeader().setStretchLastSection(True)
+        table_style(self.categorie2_table)
+        self.categorie2_table.resizeColumnsToContents()
         self.categorie2_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.categorie2_table.setAlternatingRowColors(True)
         self.categorie2_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -3142,8 +3160,8 @@ class MoneyManager(QMainWindow):
         sous_cat2_section = QVBoxLayout()
         self.sous_categorie2_table = QTableWidget(0, 2)
         self.sous_categorie2_table.setHorizontalHeaderLabels(["Bénéficiaire", "Type bénéficiaire"])
-        self.sous_categorie2_table.horizontalHeader().setStretchLastSection(True)
-        self.sous_categorie2_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_style(self.sous_categorie2_table)
+        self.sous_categorie2_table.resizeColumnsToContents()
         self.sous_categorie2_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.sous_categorie2_table.setAlternatingRowColors(True)
         self.sous_categorie2_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -3160,6 +3178,8 @@ class MoneyManager(QMainWindow):
         self.load_beneficiaire()
 
     def show_placement_history_graph(self, item):
+        import locale
+        locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
         row = item.row()
         nom = self.placement_table.item(row, 0).text()
         self.current_placement = nom
@@ -3170,8 +3190,17 @@ class MoneyManager(QMainWindow):
             self.graph_view.setHtml("<p>Aucune donnée historique disponible.</p>")
             return
 
-        dates = [f"{str(h.date)[6:8]}/{str(h.date)[4:6]}/{str(h.date)[0:4]}" for h in historique]
+        from datetime import datetime
+        dates = [datetime.strptime(str(h.date).zfill(8), "%Y%m%d") for h in historique]
         valeurs = [h.val_actualise for h in historique]
+        tickvals = dates
+        mois_fr = {
+            1: "Janvier", 2: "Fevrier", 3: "Mars", 4: "Avril", 5: "Mai", 6: "Juin",
+            7: "Juillet", 8: "Aout", 9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Decembre"
+        }
+        ticktext = [f"{mois_fr[d.month]} {d.year}" for d in dates]
+        fig = go.Figure(data=[go.Scatter(x=dates, y=valeurs, mode='lines+markers', name=nom)])
+        dates = [f"{str(h.date)[6:8]}/{str(h.date)[4:6]}/{str(h.date)[0:4]}" for h in historique]
 
         self.history_table.setRowCount(0)  # Réinitialiser
         for date, valeur in zip(dates,valeurs):
@@ -3187,12 +3216,10 @@ class MoneyManager(QMainWindow):
 
         self.history_table.setVisible(True)
         self.history_label.setVisible(True)
+        
 
-        fig = go.Figure(data=[go.Scatter(x=dates, y=valeurs, mode='lines+markers', name=nom)])
-
-        is_dark = self.palette().color(self.backgroundRole()).value() < 128
-        bg_color = "#1e1e1e" if is_dark else "#ffffff"
-        font_color = "#ffffff" if is_dark else "#000000"
+        bg_color = "#1e1e1e"
+        font_color = "#ffffff"
 
         fig.update_layout(
             title=f"Évolution de {nom}",
@@ -3200,7 +3227,19 @@ class MoneyManager(QMainWindow):
             yaxis_title='Valeur',
             paper_bgcolor=bg_color,
             plot_bgcolor=bg_color,
-            font=dict(color=font_color)
+            font=dict(color=font_color),
+            xaxis=dict(
+                type="date",
+                tickvals=tickvals,
+                ticktext=ticktext,
+                showgrid=True,
+                gridcolor='rgba(255,255,255,0.1)'
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor='rgba(255,255,255,0.1)',  # pareil pour l'axe des Y
+                zeroline=False
+            )
         )
 
         graph_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
@@ -3209,11 +3248,12 @@ class MoneyManager(QMainWindow):
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="UTF-8">
             <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
             <style>body {{ margin: 0; background-color: {bg_color}; }}</style>
         </head>
         <body>
-            <div id="graph" style="width:100%; height:100%; max-height:300px;"></div>
+            <div id="graph" style="width:100%; height:100%; max-height:450px;"></div>
             <script>
                 var graphData = {graph_json};
                 Plotly.newPlot('graph', graphData.data, graphData.layout);
@@ -3235,8 +3275,8 @@ class MoneyManager(QMainWindow):
         placement_table_panel = QVBoxLayout()
         self.placement_table = QTableWidget(0, 5)
         self.placement_table.setHorizontalHeaderLabels(["Nom", "Type", "Date", "Valeur actualisée", "Origine"])
-        self.placement_table.horizontalHeader().setStretchLastSection(True)
-        self.placement_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_style(self.placement_table)
+        self.placement_table.resizeColumnsToContents()
         self.placement_table.setAlternatingRowColors(True)
         self.placement_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.placement_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -3257,7 +3297,8 @@ class MoneyManager(QMainWindow):
 
         self.history_table = QTableWidget(0, 2)
         self.history_table.setHorizontalHeaderLabels(["Date", "Valeur"])
-        self.history_table.horizontalHeader().setStretchLastSection(True)
+        table_style(self.history_table)
+        self.history_table.resizeColumnsToContents()
         self.history_table.setAlternatingRowColors(True)
         self.history_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.history_table.setMinimumWidth(250)
