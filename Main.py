@@ -3198,7 +3198,7 @@ class MoneyManager(QMainWindow):
             1: "Janvier", 2: "Fevrier", 3: "Mars", 4: "Avril", 5: "Mai", 6: "Juin",
             7: "Juillet", 8: "Aout", 9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Decembre"
         }
-        ticktext = [f"{mois_fr[d.month]} {d.year}" for d in dates]
+        ticktext = [f"{d.day} {mois_fr[d.month]} {d.year}" for d in dates]
         fig = go.Figure(data=[go.Scatter(x=dates, y=valeurs, mode='lines+markers', name=nom)])
         dates = [f"{str(h.date)[6:8]}/{str(h.date)[4:6]}/{str(h.date)[0:4]}" for h in historique]
 
