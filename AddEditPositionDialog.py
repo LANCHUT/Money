@@ -91,7 +91,7 @@ class AddEditPositionDialog(BaseDialog):
         
 
         # Bouton pour ajouter le compte
-        self.add_button = QPushButton("Ajouter Position", self)
+        self.add_button = QPushButton("Valider", self)
         self.add_button.clicked.connect(self.add_position)
         self.layout.addWidget(self.add_button)
 
@@ -181,6 +181,9 @@ class AddEditPositionDialog(BaseDialog):
                 # ajoute d’autres champs nécessaires selon la structure de Echeancier
             )
             InsertEcheance(echeance)
+            if self.isEcheance and not self.isEdit:
+                position = Position(date_premiere,type_placement,nom_placement,nb_part,val_part,frais,interets, notes,compte_id,round((nb_part*nb_part + frais),2),compte_associe_id)
+                self.parent().add_position(position)           
             self.parent().load_echeance()
         
         if not self.isEcheance:

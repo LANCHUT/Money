@@ -1771,16 +1771,18 @@ class MoneyManager(QMainWindow):
                 isEcheance=True,
                 echeance = echeance
             )
-                dialog.exec()
-            # else:
-            #     position = Position(echeance.prochaine_echeance,echeance.type,echeance.tier,echeance.moyen_paiement,echeance.categorie,echeance.sous_categorie,echeance.debit,echeance.credit,echeance.notes,echeance.compte_id,"",echeance.compte_associe,"",type_beneficiaire=echeance.type_beneficiaire,beneficiaire = echeance.beneficiaire,_id = echeance_id)
-            #     dialog = AddPositionDialog(
-            #     parent=self,
-            #     account_id=self.current_account,
-            #     operation=operation,
-            #     isEdit=True,
-            #     isEcheance=True,
-            # )               
+            else:
+                position = Position(echeance.prochaine_echeance,echeance.type,echeance.tier,echeance.nb_part,echeance.val_part,echeance.frais,echeance.interets,echeance.notes,echeance.compte_id,round(echeance.nb_part*echeance.val_part,2),echeance.compte_associe,echeance._id)
+                dialog = AddEditPositionDialog(
+                parent=self,
+                account_id=self.current_account,
+                position=position,
+                isEdit=True,
+                isEcheance=True,
+                echeance=echeance
+            )
+                
+            dialog.exec()              
 
         except Exception as e:
             print("Erreur lors de la modification de l'echeance:", e)
@@ -1964,7 +1966,7 @@ class MoneyManager(QMainWindow):
                 self.load_position()
 
         except Exception as e:
-            print("Erreur lors de la modification de l'opération:", e)
+            print("Erreur lors de la modification de la position:", e)
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
 
     def edit_selected_moyen_paiement(self, row):
@@ -2084,7 +2086,7 @@ class MoneyManager(QMainWindow):
         self.echeance_table.setItem(row, 12, align(QTableWidgetItem(echeance.beneficiaire)))
         self.echeance_table.setItem(row, 13, align(NumericTableWidgetItem(echeance.debit, format_montant(echeance.debit)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 14, align(NumericTableWidgetItem(echeance.credit, format_montant(echeance.credit)),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 15, align(NumericTableWidgetItem(echeance.nb_part, str(echeance.nb_part)) if echeance.nb_part > 0 else QTableWidgetItem(""),Qt.AlignmentFlag.AlignRight))
+        self.echeance_table.setItem(row, 15, align(NumericTableWidgetItem(echeance.nb_part, str(f"{float(echeance.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if echeance.nb_part > 0 else QTableWidgetItem(""),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 16, align(NumericTableWidgetItem(echeance.val_part, format_montant(echeance.val_part,1)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 17, align(NumericTableWidgetItem(echeance.frais, format_montant(echeance.frais)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 18, align(NumericTableWidgetItem(echeance.interets, format_montant(echeance.interets)),Qt.AlignmentFlag.AlignRight))
@@ -2307,7 +2309,7 @@ class MoneyManager(QMainWindow):
         self.position_table.setItem(row, 1, align(QTableWidgetItem(position.type)))
         self.position_table.setItem(row, 2, align(QTableWidgetItem(compte_associe_name)))
         self.position_table.setItem(row, 3, align(QTableWidgetItem(position.nom_placement)))
-        self.position_table.setItem(row, 4, align(NumericTableWidgetItem(position.nb_part, str(position.nb_part)) if position.nb_part > 0 else "",Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 4, align(NumericTableWidgetItem(position.nb_part, str(f"{float(position.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if position.nb_part > 0 else "",Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 5, align(NumericTableWidgetItem(position.val_part, format_montant(position.val_part,1)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 6, align(NumericTableWidgetItem(position.frais, format_montant(position.frais)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 7, align(NumericTableWidgetItem(position.interets, format_montant(position.interets)),Qt.AlignmentFlag.AlignRight))

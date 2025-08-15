@@ -115,7 +115,7 @@ class ShowPerformanceDialog(BaseDialog):
 
         for i, p in enumerate(placements):
             self.table.setItem(i, 0, align(QTableWidgetItem(p.get("nom", ""))))
-            self.table.setItem(i, 1, align(QTableWidgetItem(str(p.get("nb_parts", 0))),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 1, align(QTableWidgetItem(str(f"{float(p.get("nb_parts", 0)):,.4f}".replace(",", " ").replace(".", ","))),Qt.AlignmentFlag.AlignRight))
             self.table.setItem(i, 2, align(QTableWidgetItem(format_eur(p.get("val_part", 0))),Qt.AlignmentFlag.AlignRight))
             self.table.setItem(i, 3, align(QTableWidgetItem(format_eur(p.get("investi", 0))),Qt.AlignmentFlag.AlignRight))
             self.table.setItem(i, 4, align(QTableWidgetItem(format_eur(p.get("valorisation", 0))),Qt.AlignmentFlag.AlignRight))
@@ -132,15 +132,48 @@ class ShowPerformanceDialog(BaseDialog):
         labels = [p["nom"] for p in placements]
         values = [p["valorisation"] for p in placements]
 
+        # Format des valeurs avec des espaces insécables pour les milliers
+        formatted_values = [f"{v:,.2f}".replace(",", " ").replace(".", ",") + " €" for v in values]  # note: espace insécable = U+202F
+        bg_color = "#1e1e1e"
+        font_color = "#ffffff"
+
         fig = go.Figure(data=[go.Pie(
             labels=labels,
             values=values,
             hole=0.4,
-            texttemplate="%{value:,.2f} €",
-            textinfo="label+value+percent"
+            textinfo="label+percent",  # on affiche la valeur formatée via texttemplate
+            texttemplate="%{customdata}<br>%{percent}",
+            customdata=formatted_values
         )])
-        fig.update_layout(title = "Répartition par placement",margin=dict(t=20, b=20, l=20, r=20),legend=dict(orientation = 'h',yanchor="top",y=-0.2,xanchor="center",x=0.5))
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
-            fig.write_html(f.name)
+        # Personnalisation : titre, marges, légende et fond
+        fig.update_layout(
+            title=dict(
+                text="Répartition par placement",
+                y=0.94,  # Plus bas que la position par défaut (~0.95)
+                x=0.5,   # Centré horizontalement
+                xanchor='center',
+                yanchor='top'
+            ),
+            margin=dict(t=20, b=20, l=20, r=20),
+            legend=dict(
+                orientation='h',
+                yanchor="top",
+                y=-0.2,
+                xanchor="center",
+                x=0.5
+            ),
+            paper_bgcolor=bg_color,
+            plot_bgcolor=bg_color,
+            font=dict(color=font_color),   # Fond général du graphique
+        )
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as f:
+            html = fig.to_html(full_html=True)
+            # Injecte style CSS pour changer la couleur de fond du body
+            html = html.replace(
+                "<head>",
+                "<head><style>body { background-color: #1e1e1e; margin: 0; }</style>"
+            )
+            f.write(html)
             self.web_view.load(QUrl.fromLocalFile(f.name))
