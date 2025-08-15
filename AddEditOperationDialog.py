@@ -185,6 +185,8 @@ class AddEditOperationDialog(BaseDialog):
         self.type_operation.currentTextChanged.connect(self.on_type_operation_changed)
         self.moyen_paiement.currentTextChanged.connect(self.on_moyen_paiement_changed)
 
+        self.date.setFocus()
+
         self.on_type_operation_changed(self.type_operation.currentText())
         self.on_moyen_paiement_changed(self.moyen_paiement.currentText())
 

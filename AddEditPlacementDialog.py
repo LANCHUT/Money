@@ -47,7 +47,7 @@ class AddEditPlacementDialog(BaseDialog):
         self.submit_btn = QPushButton("Valider", self)
         self.submit_btn.clicked.connect(self.submit)
         self.layout.addWidget(self.submit_btn)
-
+        self.date.setFocus()
         self.setLayout(self.layout)
 
         if self.placement:

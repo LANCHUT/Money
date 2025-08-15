@@ -99,6 +99,8 @@ class AddEditPositionDialog(BaseDialog):
         self.type_placement.currentTextChanged.connect(self.on_type_operation_changed)
         self.on_type_operation_changed(self.type_placement.currentText())
 
+        self.date.setFocus()
+
         if self.isEcheance:
             self.ajouter_echeancier_checkbox.setCheckState(Qt.CheckState.Checked)
             self.ajouter_echeancier_checkbox.setEnabled(False)

@@ -3029,7 +3029,7 @@ class MoneyManager(QMainWindow):
 
         tiers_section = QVBoxLayout()
         self.tier_table = QTableWidget(0, 6)
-        self.tier_table.setHorizontalHeaderLabels(["Nom", "Type", "Catégorie", "Sous-\ncatégorie.", "Moyen\nde\npaiement", "Actif"])
+        self.tier_table.setHorizontalHeaderLabels(["Nom", "Type", "Catégorie\ndéfaut", "Sous-\ncatégorie\ndéfaut", "Moyen\nde\npaiement\ndéfaut", "Actif"])
         self.tier_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table_style(self.tier_table)
         self.tier_table.resizeColumnsToContents()
