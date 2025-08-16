@@ -2309,7 +2309,7 @@ class MoneyManager(QMainWindow):
         self.position_table.setItem(row, 1, align(QTableWidgetItem(position.type)))
         self.position_table.setItem(row, 2, align(QTableWidgetItem(compte_associe_name)))
         self.position_table.setItem(row, 3, align(QTableWidgetItem(position.nom_placement)))
-        self.position_table.setItem(row, 4, align(NumericTableWidgetItem(position.nb_part, str(f"{float(position.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if position.nb_part > 0 else "",Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 4, align(NumericTableWidgetItem(position.nb_part, str(f"{float(position.nb_part):,.4f}".replace(",", " ").replace(".", ","))),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 5, align(NumericTableWidgetItem(position.val_part, format_montant(position.val_part,1)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 6, align(NumericTableWidgetItem(position.frais, format_montant(position.frais)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 7, align(NumericTableWidgetItem(position.interets, format_montant(position.interets)),Qt.AlignmentFlag.AlignRight))
