@@ -1162,6 +1162,7 @@ def DeleteCompte(compte_id : str, db_path=None):
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("DELETE FROM comptes WHERE id = ?", (compte_id,))
+    cursor.execute("DELETE FROM pret WHERE compte_id = ?", (compte_id,))
     conn.commit()
 
     conn.close()
@@ -1982,7 +1983,7 @@ def GetComptePret(conn = None) -> list:
         conn = connect_db()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id from comptes WHERE type  = 'Prêt'")
+    cursor.execute("SELECT distinct compte_id from pret")
 
     comptes = cursor.fetchall()
     if was_none:
@@ -2029,11 +2030,11 @@ def GetCRD(compte_id, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     today = int(date.today().strftime("%Y%m%d"))
-    cursor.execute(f"SELECT crd FROM pret where date > ? and compte_id = ? order by date asc limit 1",(today,compte_id,))
+    cursor.execute(f"SELECT crd,date FROM pret where date > ? and compte_id = ? order by date asc limit 1",(today,compte_id,))
     row = cursor.fetchone()
 
     conn.close()
-    return -1 * int(row[0])
+    return -1 * row[0],int(row[1])
 
 
 def GetPosition(position_id:str, db_path=None):
@@ -2424,7 +2425,7 @@ def RunEcheance(current_date,echeances, db_path=None):
     from Main import get_next_echeance
     for row in echeances:
         if row[21]:
-            montant_investit = round(row[13]*row[14] + row[15])
+            montant_investit = round(row[13]*row[14] + row[15],2)
             position = Position(current_date,row[5],row[8],row[13],row[14],row[15],row[16],row[17],row[4],montant_investit,row[6])
             InsertPosition(position, db_path)
             if position.type == "Achat":

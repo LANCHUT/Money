@@ -392,10 +392,14 @@ class AddEditOperationDialog(BaseDialog):
                     echeance.compte_id = self.echeance.compte_id
                     UpdateEcheance(echeance)
                 else:
+                    if echeance.echeance1 > int(datetime.date.today().strftime("%Y%m%d")):
+                        echeance.prochaine_echeance = echeance.echeance1
+                    
+                    else:
+                        operation = Operation(date_premiere, type_operation, type_tier, id_tier, moyen_paiement, categorie, sous_categorie,
+                                                debit, credit, notes, compte_id, num_cheque, compte_associe,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
+                        self.parent().add_operation(operation)
                     InsertEcheance(echeance)
-                    operation = Operation(date_premiere, type_operation, type_tier, id_tier, moyen_paiement, categorie, sous_categorie,
-                                            debit, credit, notes, compte_id, num_cheque, compte_associe,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
-                    self.parent().add_operation(operation)
             else:
                 InsertEcheance(echeance)
             self.parent().load_echeance()

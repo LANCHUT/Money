@@ -47,7 +47,7 @@ def calculer_echeancier_pret_avec_assurance(
 
     prochain_changement_taux_index = 0
 
-    for i in range(1, nombre_total_paiements + 1):
+    for i in range(0, nombre_total_paiements):
         date_paiement = date_debut
 
         if frequence_paiement.lower() == 'mensuelle':
@@ -105,7 +105,7 @@ def calculer_echeancier_pret_avec_assurance(
         loyer_total = annuite_hors_assurance + assurance_par_periode
 
         echeancier.append({
-            'numéro_echeance': i,
+            'numéro_echeance': i+1,
             'date': date_paiement,
             'taux_annuel_applique': round(taux_annuel_actuel*100, 3),
             'taux_periode': round(taux_periodique*100,3),

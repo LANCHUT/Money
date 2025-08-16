@@ -25,13 +25,19 @@ def generate_html_with_js(plotly_div):
     html_content = f"""
     <html>
     <head>
-    <meta charset=\"utf-8\">
+        <meta charset="utf-8">
+        <style>
+            body {{
+                background-color: #1e1e1e;
+                margin: 0;
+            }}
+        </style>
     </head>
     <body>
-    <div style=\"display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;\">
-    {plotly_div}
-    </div>
-    {js_code}
+        <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+            {plotly_div}
+        </div>
+        {js_code}
     </body>
     </html>
     """

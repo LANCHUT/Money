@@ -56,7 +56,7 @@ class ClickHandler(QObject):
         data = json.loads(data_json_str)
         self.clicked.emit(data, data["last_ring"])
 
-def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_column=None, root_name="Balance", negative_value_treatment=None):
+def sunburst_chart(data_raw, hierarchy_columns,title, value_column="montant", color_column=None, root_name="Balance", negative_value_treatment=None):
     """
     Generates a Sunburst chart from raw data with a customizable hierarchy.
     Handles negative values by categorizing them (e.g., as "Dépenses") and converting to absolute
@@ -132,11 +132,11 @@ def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_co
     added_ids_to_sunburst_lists = set()
 
     # Define colors
-    COLOR_DEFAULT_NEGATIVE = 'rgb(255, 99, 71)'   # Tomato (red)
-    COLOR_DEFAULT_POSITIVE = 'rgb(60, 179, 113)'  # Medium Green
-    COLOR_ROOT_POSITIVE = 'rgb(34, 139, 34)'      # Forest Green
-    COLOR_ROOT_NEGATIVE = 'rgb(205, 92, 92)'      # Indian Red
-    COLOR_ROOT_ZERO = 'rgb(128, 128, 128)'        # Gray for zero balance - inchangé
+    COLOR_DEFAULT_NEGATIVE = 'rgb(200, 50, 50)'   # Tomato (red)
+    COLOR_DEFAULT_POSITIVE = 'rgb(0, 204, 136)'  # Medium Green
+    COLOR_ROOT_POSITIVE = 'rgb(0, 140, 0)'      # Forest Green
+    COLOR_ROOT_NEGATIVE = 'rgb(160, 40, 40)'      # Indian Red
+    COLOR_ROOT_ZERO = 'rgb(100, 100, 100)'        # Gray for zero balance - inchangé
 
     # IDS Splitter
     var_split = "##"
@@ -268,15 +268,20 @@ def sunburst_chart(data_raw, hierarchy_columns, value_column="montant", color_co
         parents=sunburst_parents,
         values=sunburst_values,
         branchvalues='total',
+        insidetextfont=dict(color="white", size=16),  # texte au centre des secteurs
+        outsidetextfont=dict(color="white", size=14),  # texte à l'extérieur
         customdata=custom_data,
         marker=dict(colors=sunburst_colors)
     ))
 
     fig.update_layout(
-        title="Sunburst Chart", # Generic title
+        title=title, # Generic title
         height=1200,
         width=1200,
-        margin=dict(t=30, l=0, r=0, b=0)
+        margin=dict(t=30, l=0, r=0, b=0),
+        paper_bgcolor="#1e1e1e",
+        plot_bgcolor="#1e1e1e",
+        font=dict(color="#ffffff")
     )
 
     return fig
@@ -362,7 +367,7 @@ class MoneyManager(QMainWindow):
                 RunEcheance(current_date, echeances, db_path=self.current_db_path)
                 liste_compte_pret = GetComptePret()
                 for compte_id in liste_compte_pret:
-                    new_solde = GetCRD(compte_id,self.current_db_path)
+                    new_solde,date = GetCRD(compte_id,self.current_db_path)
                     UpdateSoldeCompte(compte_id,new_solde)
                 self.echeance_table.clearContents()
                 self.load_echeance()
@@ -555,11 +560,11 @@ class MoneyManager(QMainWindow):
         choix = self.etat_combobox.currentText()
         if choix == "Bilan Période par catégorie":
             data_raw,hierarchy_level,negative_value_treatment = GetBilanByCategorie(date_debut,date_fin)
-            fig = sunburst_chart(data_raw,hierarchy_level,negative_value_treatment=negative_value_treatment)
+            fig = sunburst_chart(data_raw,hierarchy_level,choix,negative_value_treatment=negative_value_treatment)
 
         elif choix == "Bilan Période par tiers":
             data_raw,hierarchy_level,negative_value_treatment = GetBilanByTiers(date_debut,date_fin)
-            fig = sunburst_chart(data_raw,hierarchy_level,negative_value_treatment=negative_value_treatment)
+            fig = sunburst_chart(data_raw,hierarchy_level,choix,negative_value_treatment=negative_value_treatment)
         # 1. Générez le div Plotly
         plotly_div = plotly.offline.plot(fig, include_plotlyjs='cdn', output_type='div')
         html_with_js = generate_html_with_js(plotly_div)
@@ -1167,8 +1172,10 @@ class MoneyManager(QMainWindow):
             self.transaction_table.removeRow(row)
             self.account_list.clear()
             self.transaction_table.clearContents()
+            self.compte_table.clearContents()
             self.load_accounts()
             self.load_operations()
+            self.load_comptes()
 
     def delete_selected_position(self, row):
         msg_box = QMessageBox(self)
@@ -2086,7 +2093,7 @@ class MoneyManager(QMainWindow):
         self.echeance_table.setItem(row, 12, align(QTableWidgetItem(echeance.beneficiaire)))
         self.echeance_table.setItem(row, 13, align(NumericTableWidgetItem(echeance.debit, format_montant(echeance.debit)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 14, align(NumericTableWidgetItem(echeance.credit, format_montant(echeance.credit)),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 15, align(NumericTableWidgetItem(echeance.nb_part, str(f"{float(echeance.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if echeance.nb_part > 0 else QTableWidgetItem(""),Qt.AlignmentFlag.AlignRight))
+        self.echeance_table.setItem(row, 15, align(NumericTableWidgetItem(echeance.nb_part, str(f"{float(echeance.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if echeance.nb_part != 0 else QTableWidgetItem(""),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 16, align(NumericTableWidgetItem(echeance.val_part, format_montant(echeance.val_part,1)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 17, align(NumericTableWidgetItem(echeance.frais, format_montant(echeance.frais)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 18, align(NumericTableWidgetItem(echeance.interets, format_montant(echeance.interets)),Qt.AlignmentFlag.AlignRight))
@@ -2309,7 +2316,7 @@ class MoneyManager(QMainWindow):
         self.position_table.setItem(row, 1, align(QTableWidgetItem(position.type)))
         self.position_table.setItem(row, 2, align(QTableWidgetItem(compte_associe_name)))
         self.position_table.setItem(row, 3, align(QTableWidgetItem(position.nom_placement)))
-        self.position_table.setItem(row, 4, align(NumericTableWidgetItem(position.nb_part, str(f"{float(position.nb_part):,.4f}".replace(",", " ").replace(".", ","))),Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 4, align(NumericTableWidgetItem(position.nb_part, str(f"{float(position.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if position.nb_part != 0 else QTableWidgetItem("") ,Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 5, align(NumericTableWidgetItem(position.val_part, format_montant(position.val_part,1)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 6, align(NumericTableWidgetItem(position.frais, format_montant(position.frais)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 7, align(NumericTableWidgetItem(position.interets, format_montant(position.interets)),Qt.AlignmentFlag.AlignRight))
@@ -2378,9 +2385,12 @@ class MoneyManager(QMainWindow):
         compte_id = str(pret.compte_id)
         compte_associe = str(pret.compte_associe)
         InsertPret(compte_id,echeancier)
-        new_solde = GetCRD(compte_id)
+        new_solde,date = GetCRD(compte_id)
         
-        echeance = Echeance(pret.frequence_paiement,int(echeancier[0]["date"].strftime('%Y%m%d')),get_next_echeance(int(echeancier[0]["date"].strftime('%Y%m%d')),pret.frequence_paiement),"Débit","","","","",-1*echeancier[-1]["mensualite"],0,f"Remboursement prêt {pret.nom}",compte_associe,0,0,0,0,"Prélèvement",0,compte_associe=compte_id)
+        echeance = Echeance(pret.frequence_paiement,int(echeancier[0]["date"].strftime('%Y%m%d')),date,"Débit","","","","",-1*echeancier[-1]["mensualite"],0,f"Remboursement prêt {pret.nom}",compte_associe,0,0,0,0,"Prélèvement",0,compte_associe=compte_id)
+        if echeance.echeance1 <= int(datetime.date.today().strftime("%Y%m%d")):
+            operation = Operation(echeance.echeance1,"Débit","","","Prélèvement","","",echeance.debit,echeance.credit,echeance.notes,echeance.compte_id,"",echeance.compte_associe)
+            InsertOperation(operation)
         InsertEcheance(echeance)
         UpdateSoldeCompte(self.current_account,new_solde)
         self.load_pret()
@@ -3841,6 +3851,12 @@ def main():
         min-width: 120px;
         margin: 5px;
     }
+
+    QTabBar::tab:selected{
+    background: #0078d7;
+    color:white;
+    font-weight:bold;
+}
 
     QPushButton:hover {
         background-color: #5A5A5A;
