@@ -1465,16 +1465,19 @@ def GetOperation(operation_id, db_path=None):
 
 
 def GetLinkOperation(link, db_path=None):
-    conn = connect_db(db_path)
-    cursor = conn.cursor()
+    operation = None
+    try:
+        conn = connect_db(db_path)
+        cursor = conn.cursor()
 
-    cursor.execute(f"SELECT * FROM operations where link = '{link}'")
-    operation_bd = cursor.fetchone()
+        cursor.execute(f"SELECT * FROM operations where link = '{link}'")
+        operation_bd = cursor.fetchone()
 
-    conn.close()
+        conn.close()
 
-    operation = Operation(operation_bd[1], operation_bd[2], operation_bd[4], operation_bd[5], operation_bd[6], operation_bd[8], operation_bd[9], operation_bd[10], operation_bd[11], operation_bd[12],operation_bd[14], operation_bd[7],operation_bd[3],operation_bd[13],operation_bd[0],operation_bd[15],operation_bd[16],operation_bd[17],operation_bd[18])
-
+        operation = Operation(operation_bd[1], operation_bd[2], operation_bd[4], operation_bd[5], operation_bd[6], operation_bd[8], operation_bd[9], operation_bd[10], operation_bd[11], operation_bd[12],operation_bd[14], operation_bd[7],operation_bd[3],operation_bd[13],operation_bd[0],operation_bd[15],operation_bd[16],operation_bd[17],operation_bd[18])
+    except:
+        pass
     # return operation
     return operation
 
