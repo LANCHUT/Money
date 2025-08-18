@@ -3295,13 +3295,14 @@ class MoneyManager(QMainWindow):
 
         # -- Tableau principal des placements --
         placement_table_panel = QVBoxLayout()
-        self.placement_table = QTableWidget(0, 5)
+        self.placement_table = QTableWidget(0, 5)        
         self.placement_table.setHorizontalHeaderLabels(["Nom", "Type", "Date", "Valeur actualisée", "Origine"])
         table_style(self.placement_table)
         self.placement_table.resizeColumnsToContents()
         self.placement_table.setAlternatingRowColors(True)
         self.placement_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.placement_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.placement_table.sortItems(0,Qt.SortOrder.AscendingOrder)
         self.placement_table.customContextMenuRequested.connect(self.show_context_menu_placement)
         self.placement_table.itemClicked.connect(self.show_placement_history_graph)
 
