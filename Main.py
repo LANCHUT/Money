@@ -1033,7 +1033,7 @@ class MoneyManager(QMainWindow):
             self.placement_table.item(row, 0).setText(dialog.nom.text())
             self.placement_table.item(row, 1).setText(dialog.type.currentText())
             self.placement_table.item(row, 2).setText(dialog.date.date().toString("dd/MM/yyyy"))
-            self.placement_table.item(row, 3).setText(format_montant(float(dialog.val_actualisee.text().replace(' ',''))))
+            self.placement_table.item(row, 3).setText(format_montant(float(dialog.val_actualisee.text().replace(' ','')),1))
             self.placement_table.item(row, 4).setText("Actualisation")
             self.show_placement_history_graph(self.placement_table.item(row, 0))
 
@@ -2083,7 +2083,7 @@ class MoneyManager(QMainWindow):
         self.placement_table.setItem(row, 0, align(QTableWidgetItem(placement.nom)))
         self.placement_table.setItem(row, 1, align(QTableWidgetItem(placement.type)))
         self.placement_table.setItem(row, 2, align(DateTableWidgetItem(placement.date),Qt.AlignmentFlag.AlignCenter))
-        self.placement_table.setItem(row, 3, align(NumericTableWidgetItem(placement.val_actualise, format_montant(placement.val_actualise)),Qt.AlignmentFlag.AlignRight))
+        self.placement_table.setItem(row, 3, align(NumericTableWidgetItem(placement.val_actualise, format_montant(placement.val_actualise,1)),Qt.AlignmentFlag.AlignRight))
         self.placement_table.setItem(row, 4, align(QTableWidgetItem(placement.origine)))
 
     def add_echeance_row(self, row, echeance: Echeance):
@@ -3230,7 +3230,7 @@ class MoneyManager(QMainWindow):
             row_position = self.history_table.rowCount()
             self.history_table.insertRow(row_position)
             self.history_table.setItem(row_position, 0, QTableWidgetItem(date))
-            valeur_formate = f"{valeur:,.2f}".replace(",", " ").replace(".", ",").replace("-", "- ") + " €"
+            valeur_formate = f"{valeur:,.4f}".replace(",", " ").replace(".", ",").replace("-", "- ") + " €"
             valeur_item = NumericTableWidgetItem(valeur, valeur_formate)
             valeur_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             self.history_table.setItem(row_position, 1, valeur_item)

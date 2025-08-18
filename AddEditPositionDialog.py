@@ -111,7 +111,7 @@ class AddEditPositionDialog(BaseDialog):
     def set_last_val_part(self, placement_name):
         last_val = GetLastValueForPlacement(placement_name)
         if last_val is not None:
-            formatted = "{:,.2f}".format(last_val).replace(",", " ").replace(".", ",")
+            formatted = "{:,.4f}".format(last_val).replace(",", " ").replace(".", ",")
             self.val_part.setText(formatted)
             
     def add_position(self):

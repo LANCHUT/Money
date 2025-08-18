@@ -2399,7 +2399,7 @@ def GetPerformanceByPlacement(compte_id: str, db_path=None):
         performance_data.append({
             "nom": nom_placement,
             "nb_parts": round(nb_parts, 4),
-            "val_part": round(val_part, 2),
+            "val_part": round(val_part, 4),
             "investi": round(montant_investi, 2),
             "valorisation": round(valo, 2),
             "interet": round(interets, 2),
