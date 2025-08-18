@@ -88,6 +88,7 @@ def sunburst_chart(data_raw, hierarchy_columns,title, value_column="montant", co
     processed_data = []
     compte_ids = []
     tiers_ids = []
+    beneficiaires_ids = []
     true_total_balance = round(sum(entry[value_column] for entry in data_raw), 2) # Keep true balance for root label
 
     for entry in data_raw:
@@ -118,7 +119,11 @@ def sunburst_chart(data_raw, hierarchy_columns,title, value_column="montant", co
             tiers_ids.append(new_entry["tiers_id"])
         else:
             tiers_ids.append(None)
-
+        
+        if "beneficiaire" in new_entry:
+            beneficiaires_ids.append(new_entry["beneficiaire"])
+        else:
+            beneficiaires_ids.append(None)
 
     # --- Construction des listes pour le Sunburst ---
     sunburst_labels = []
@@ -565,6 +570,10 @@ class MoneyManager(QMainWindow):
         elif choix == "Bilan Période par tiers":
             data_raw,hierarchy_level,negative_value_treatment = GetBilanByTiers(date_debut,date_fin)
             fig = sunburst_chart(data_raw,hierarchy_level,choix,negative_value_treatment=negative_value_treatment)
+
+        elif choix == "Bilan Période par bénéficiaire":
+            data_raw,hierarchy_level,negative_value_treatment = GetBilanByBeneficiaire(date_debut,date_fin)
+            fig = sunburst_chart(data_raw,hierarchy_level,choix,negative_value_treatment=negative_value_treatment)
         # 1. Générez le div Plotly
         plotly_div = plotly.offline.plot(fig, include_plotlyjs='cdn', output_type='div')
         html_with_js = generate_html_with_js(plotly_div)
@@ -585,7 +594,7 @@ class MoneyManager(QMainWindow):
 
         # Combobox pour sélectionner l'analyse
         self.etat_combobox = QComboBox()
-        self.etat_combobox.addItems(["Bilan Période par catégorie","Bilan Période par tiers"])
+        self.etat_combobox.addItems(["Bilan Période par catégorie","Bilan Période par tiers","Bilan Période par bénéficiaire"])
         self.etat_combobox.currentIndexChanged.connect(self.update_etat_graph)
         filter_layout.addWidget(QLabel("Date début période: "))
         filter_layout.addWidget(self.date_debut_filter_etat)
@@ -629,6 +638,8 @@ class MoneyManager(QMainWindow):
                 self.load_operations(GetFilteredOperations(date_debut=date_debut,date_fin=date_fin,categories=[data["id"].split("##")[2]],sous_categories=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)          
             elif self.etat_combobox.currentText() == "Bilan Période par tiers":
                 self.load_operations(GetFilteredOperations(date_debut=date_debut,date_fin=date_fin,tiers=[data["tiers_id"]],comptes=[data["compte_id"]]),0)
+            elif self.etat_combobox.currentText() == "Bilan Période par bénéficiaire":
+                self.load_operations(GetFilteredOperations(date_debut=date_debut,date_fin=date_fin,beneficiaires=[data["id"].split("##")[3]],comptes=[data["compte_id"]]),0)
             self.tabs.setCurrentWidget(self.operation_tab)
             self.transaction_table.setColumnHidden(16,True)
             self.pointage_btn.setEnabled(False)

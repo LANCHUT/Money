@@ -1357,7 +1357,7 @@ def GetOperations(compte_id, db_path=None):
     return result
 
 
-def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories=None, tiers=None, comptes=None, bq=None, type_tiers = None, db_path=None):
+def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories=None, tiers=None, comptes=None, bq=None, type_tiers = None,beneficiaires = None,type_beneficiaires = None, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
@@ -1366,6 +1366,8 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
     tiers = tiers or []
     type_tiers = type_tiers or []
     comptes = comptes or []
+    beneficiaires = beneficiaires or []
+    type_beneficiaires = type_beneficiaires or []
 
     def placeholders(values, prefix):
         return ','.join(f':{prefix}{i}' for i in range(len(values)))
@@ -1377,6 +1379,7 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
       AND (:sous_categories_empty OR sous_categorie IN ({placeholders(sous_categories, 'sous')}))
       AND (:tiers_empty OR tier IN ({placeholders(tiers, 'tier')}))
       AND (:type_tiers_empty OR type_tier IN ({placeholders(type_tiers,'type_tiers')}))
+      AND (:beneficiaire_empty OR beneficiaire IN ({placeholders(beneficiaires,'beneficiaire')}))
     """
 
     if comptes:
@@ -1394,7 +1397,8 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
         'categories_empty': not categories,
         'sous_categories_empty': not sous_categories,
         'tiers_empty': not tiers,
-        'type_tiers_empty': not type_tiers
+        'type_tiers_empty': not type_tiers,
+        'beneficiaire_empty': not beneficiaires
     }
 
     for i, val in enumerate(categories):
@@ -1407,6 +1411,8 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
         params[f'type_tiers{i}'] = val
     for i, val in enumerate(comptes):
         params[f'compte{i}'] = val
+    for i,val in enumerate(beneficiaires):
+        params[f'beneficiaire{i}'] = val
 
     if bq is not None:
         params['bq'] = int(bq)
@@ -2316,6 +2322,30 @@ def GetBilanByCategorie(date_debut:int,date_fin:int, db_path=None):
 
     for row in rows:
         result.append({"compte": row[0], "compte_id": row[1], "categorie": row[2], "sous_cat": row[3], "montant": row[4]})
+    
+    return result,hierarchy_level,negative_treatment
+
+def GetBilanByBeneficiaire(date_debut:int,date_fin:int, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        select c.nom, c.id, o.beneficiaire,o.type_beneficiaire,(sum(o.debit)+sum(o.credit)) as somme
+        from operations o
+        inner join comptes c on o.compte_id = c.id
+        where o.date >= ? and o.date <= ?
+        group by o.compte_id,o.type_beneficiaire,o.beneficiaire
+    """,(date_debut,date_fin,))
+    rows = cursor.fetchall()
+    result = []
+    hierarchy_level = ["type_flux","compte","type_beneficiaire","beneficiaire"]
+    negative_treatment = {
+    "column_to_update": "type_flux",
+    "negative_label": "Dépenses",
+    "positive_label": "Revenus"
+}
+
+    for row in rows:
+        result.append({"compte": row[0], "compte_id": row[1], "type_beneficiaire": row[3], "beneficiaire": row[2], "montant": row[4]})
     
     return result,hierarchy_level,negative_treatment
 
