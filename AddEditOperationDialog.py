@@ -259,15 +259,21 @@ class AddEditOperationDialog(BaseDialog):
             set_combobox_index_by_data(self.compte_associe, self.operation.compte_associe)
 
     def submit(self):
+        operation = None
         id_tier = str(self.tier.currentData())
+        if id_tier == 'None':
+            id_tier = ""
         tier = self.tier.currentText()
-        type_tier = self.type_tier.currentText()
+        type_operation = self.type_operation.currentText()
+        if type_operation in ["Débit","Crédit"]:
+            type_tier = self.type_tier.currentText()
+        else :
+            type_tier = ""
         moyen_paiement = self.moyen_paiement.currentText()
         num_cheque = self.num_cheque.text()
-        compte_associe = self.compte_associe.currentText()
+        compte_associe = self.compte_associe.currentData()
         date = int(self.date.date().toString("yyyyMMdd"))
         notes = self.notes.text()
-        type_operation = self.type_operation.currentText()
         categorie = self.categorie.currentText()
         sous_categorie = self.sous_categorie.currentText()
         montant = self.montant.text().replace(" ", "")
@@ -282,7 +288,7 @@ class AddEditOperationDialog(BaseDialog):
             beneficiaire = ""
 
 
-        if not date or not type_operation or not montant or not tier:
+        if (not date or not type_operation or not montant or not tier) and type_operation not in ["Transfert vers", "Transfert de"]:
             QMessageBox.warning(self, "Erreur", "Les champs Date, Type, Tier et Montant doivent être remplis.")
             return
         if tier not in self.tier_list and type_operation not in ["Transfert vers", "Transfert de"]:
@@ -305,24 +311,7 @@ class AddEditOperationDialog(BaseDialog):
         except ValueError:
             QMessageBox.warning(self, "Erreur", "Le montant doit être un nombre.")
             return
-
-        if type_operation in ["Transfert vers", "Transfert de"]:
-            compte_associe = self.compte_associe.currentData()
-            if type_operation == "Transfert vers":
-                type_op_associe = "Transfert de"
-                debit_associe = 0
-                credit_associe = debit * -1
-            else:
-                type_op_associe = "Transfert vers"
-                debit_associe = credit * -1
-                credit_associe = 0
-            if GetCompteType(compte_associe) in ["Courant", "Epargne"]:
-                InsertOperation(Operation(date, type_op_associe, "", "", "", "", "", debit_associe, credit_associe, "", compte_associe, "", self.account_id))
-            type_tier = id_tier = moyen_paiement = categorie = sous_categorie = ""
-        else:
-            compte_associe = ""
-
-
+        
         if not self.isEcheance:
             if self.operation:
                 # Mise à jour
@@ -346,6 +335,29 @@ class AddEditOperationDialog(BaseDialog):
                 operation = Operation(date, type_operation, type_tier, id_tier, moyen_paiement, categorie, sous_categorie,
                                         debit, credit, notes, self.account_id, num_cheque, compte_associe,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
                 self.parent().add_operation(operation)
+
+        if type_operation in ["Transfert vers", "Transfert de"]:
+            compte_associe = self.compte_associe.currentData()
+            if type_operation == "Transfert vers":
+                type_op_associe = "Transfert de"
+                debit_associe = 0
+                credit_associe = debit * -1
+            else:
+                type_op_associe = "Transfert vers"
+                debit_associe = credit * -1
+                credit_associe = 0
+            if GetCompteType(compte_associe) in ["Courant", "Epargne"]:
+                o = Operation(date, type_op_associe, "", "", "", "", "", debit_associe, credit_associe, "", compte_associe, "", self.account_id)
+                if operation:
+                    o.link = str(operation._id)
+                    operation.link = str(o._id)
+                InsertOperation(o)
+                UpdateOperationLink(operation)
+                self.parent().account_list.clear()
+                self.parent().load_accounts()
+            type_tier = id_tier = moyen_paiement = categorie = sous_categorie = ""
+        else:
+            compte_associe = ""
 
         
         if self.ajouter_echeancier_checkbox.isChecked():

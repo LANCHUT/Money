@@ -1179,6 +1179,34 @@ class MoneyManager(QMainWindow):
             item_nom = self.transaction_table.item(row, 0)
             operation_id = str(item_nom.data(Qt.ItemDataRole.UserRole))
             operation = GetOperation(operation_id)
+            if operation.link:
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Suppression d'une opération liée")
+                msg_box.setText(f"L'opération est liée avec une autre, voulez-vous supprimer les deux opérations ?")
+                
+                # Création et ajout des boutons "Oui" et "Non"
+                bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+                bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+                
+                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+                msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+                # Vérifier quel bouton a été cliqué
+                if msg_box.clickedButton() == bouton_oui:
+                    reply_is_yes = True
+                else:
+                    reply_is_yes = False
+
+                if not reply_is_yes:
+                    return  # L'utilisateur a annulé
+                
+                if reply_is_yes:
+                    try:
+                        o = GetOperation(operation.link)
+                        DeleteOperation(o,o.credit,o.debit)
+                    except:
+                        p = GetPosition(operation.link)
+                        DeletePosition(p)
             DeleteOperation(operation,operation.credit,operation.debit)
             self.transaction_table.removeRow(row)
             self.account_list.clear()
@@ -1213,6 +1241,31 @@ class MoneyManager(QMainWindow):
             item_nom = self.position_table.item(row, 0)
             position_id = str(item_nom.data(Qt.ItemDataRole.UserRole))
             position = GetPosition(position_id)
+            operation = GetLinkOperation(position_id)
+            if operation:
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("Suppression d'une opération liée")
+                msg_box.setText(f"La position est liée avec une autre opération, voulez-vous supprimer la position et l'opération ?")
+                
+                # Création et ajout des boutons "Oui" et "Non"
+                bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+                bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
+                
+                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+
+                msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
+                # Vérifier quel bouton a été cliqué
+                if msg_box.clickedButton() == bouton_oui:
+                    reply_is_yes = True
+                else:
+                    reply_is_yes = False
+
+                if not reply_is_yes:
+                    return  # L'utilisateur a annulé
+                
+                if reply_is_yes:
+                    DeleteOperation(operation,operation.credit,operation.debit)
+                
             DeletePosition(position)
             self.position_table.removeRow(row)
             self.account_list.clear()
@@ -2341,9 +2394,9 @@ class MoneyManager(QMainWindow):
     def add_position(self, position:Position):
         InsertPosition(position)
         if position.type == "Achat":
-            InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
+            InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
         elif position.type == "Vente":
-            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id))
+            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
         type_placement = GetTypePlacement(position.nom_placement)
         last_value_placement = GetLastValueForPlacement(position.nom_placement)
         if not InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type)) and last_value_placement != position.val_part:

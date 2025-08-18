@@ -92,6 +92,7 @@ def  create_tables(db_path=None):
             bq INT,
             type_beneficiaire TEXT,
             beneficiaire TEXT,
+            link TEXT,
             FOREIGN KEY (compte_id) REFERENCES comptes(id) ON UPDATE CASCADE ON DELETE CASCADE,
             FOREIGN KEY (moyen_paiement) REFERENCES moyen_paiement(nom) ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY (tier) REFERENCES tiers(id) ON UPDATE CASCADE ON DELETE SET NULL,
@@ -293,8 +294,8 @@ def InsertOperation(operation, db_path=None):
     UpdateSoldeCompte(str(compte._id),compte.solde, conn)
 
     cursor.execute('''
-    INSERT INTO operations (id, date, type, compte_associe, type_tier, tier, moyen_paiement, num_cheque, categorie,sous_categorie, debit, credit, note, solde_compte, compte_id, bq, type_beneficiaire,beneficiaire)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO operations (id, date, type, compte_associe, type_tier, tier, moyen_paiement, num_cheque, categorie,sous_categorie, debit, credit, note, solde_compte, compte_id, bq, type_beneficiaire,beneficiaire,link)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         str(operation._id),
         operation.date,
@@ -313,7 +314,8 @@ def InsertOperation(operation, db_path=None):
         str(operation.compte_id),
         operation.bq,
         operation.type_beneficiaire,
-        operation.beneficiaire
+        operation.beneficiaire,
+        operation.link
 
     ))
 
@@ -1351,7 +1353,7 @@ def GetOperations(compte_id, db_path=None):
 
     result = []
     for row in comptes:
-        operation = Operation(row[1], row[2], row[4], row[5], row[6], row[8], row[9], row[10], row[11], row[12],compte_id, row[7],row[3],row[13],row[0],row[15],row[16],row[17])
+        operation = Operation(row[1], row[2], row[4], row[5], row[6], row[8], row[9], row[10], row[11], row[12],compte_id, row[7],row[3],row[13],row[0],row[15],row[16],row[17],row[18])
         result.append(operation)
 
     return result
@@ -1442,7 +1444,7 @@ def GetOperationsNotBq(compte_id, db_path=None):
 
     result = []
     for row in comptes:
-        operation = Operation(row[1], row[2], row[4], row[5], row[6], row[8], row[9], row[10], row[11], row[12],compte_id, row[7],row[3],row[13],row[0],row[15],row[16],row[17])
+        operation = Operation(row[1], row[2], row[4], row[5], row[6], row[8], row[9], row[10], row[11], row[12],compte_id, row[7],row[3],row[13],row[0],row[15],row[16],row[17],row[18])
         result.append(operation)
 
     return result
@@ -1456,7 +1458,22 @@ def GetOperation(operation_id, db_path=None):
 
     conn.close()
 
-    operation = Operation(operation_bd[1], operation_bd[2], operation_bd[4], operation_bd[5], operation_bd[6], operation_bd[8], operation_bd[9], operation_bd[10], operation_bd[11], operation_bd[12],operation_bd[14], operation_bd[7],operation_bd[3],operation_bd[13],operation_bd[0],operation_bd[15],operation_bd[16],operation_bd[17])
+    operation = Operation(operation_bd[1], operation_bd[2], operation_bd[4], operation_bd[5], operation_bd[6], operation_bd[8], operation_bd[9], operation_bd[10], operation_bd[11], operation_bd[12],operation_bd[14], operation_bd[7],operation_bd[3],operation_bd[13],operation_bd[0],operation_bd[15],operation_bd[16],operation_bd[17],operation_bd[18])
+
+    # return operation
+    return operation
+
+
+def GetLinkOperation(link, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT * FROM operations where link = '{link}'")
+    operation_bd = cursor.fetchone()
+
+    conn.close()
+
+    operation = Operation(operation_bd[1], operation_bd[2], operation_bd[4], operation_bd[5], operation_bd[6], operation_bd[8], operation_bd[9], operation_bd[10], operation_bd[11], operation_bd[12],operation_bd[14], operation_bd[7],operation_bd[3],operation_bd[13],operation_bd[0],operation_bd[15],operation_bd[16],operation_bd[17],operation_bd[18])
 
     # return operation
     return operation
@@ -1489,6 +1506,19 @@ def UpdateDoneOperation(operation, db_path=None):
     SET done = 1
     WHERE id = ?
     ''', (str(operation._id),))
+
+    conn.commit()
+    conn.close()
+
+def UpdateOperationLink(operation, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    UPDATE operations
+    SET link = ?
+    WHERE id = ?
+    ''', (str(operation.link),str(operation._id),))
 
     conn.commit()
     conn.close()
@@ -2459,9 +2489,9 @@ def RunEcheance(current_date,echeances, db_path=None):
             position = Position(current_date,row[5],row[8],row[13],row[14],row[15],row[16],row[17],row[4],montant_investit,row[6])
             InsertPosition(position, db_path)
             if position.type == "Achat":
-                InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id), db_path)
+                InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais,2),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)), db_path)
             elif position.type == "Vente":
-                InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id), db_path)
+                InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais,2),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)), db_path)
             pass
         else:
             operation = Operation(current_date,row[5],row[7],row[8],row[20],row[9],row[10],row[11],row[12],row[17],row[4],"",row[6],type_beneficiaire=row[18],beneficiaire=row[19])

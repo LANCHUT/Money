@@ -62,7 +62,7 @@ class Compte():
 
 class Operation():
 
-    def __init__(self,date,type,type_tier,tier,moyen_paiement,categorie,sous_categorie,debit,credit,notes,compte_id, num_cheque = None,compte_associe = None, solde=None, _id = None, bq = False, type_beneficiaire = "",beneficiaire = "") -> None:
+    def __init__(self,date,type,type_tier,tier,moyen_paiement,categorie,sous_categorie,debit,credit,notes,compte_id, num_cheque = None,compte_associe = None, solde=None, _id = None, bq = False, type_beneficiaire = "",beneficiaire = "", link=None) -> None:
         if _id is None:
             self._id = ObjectId()
         else:
@@ -84,6 +84,7 @@ class Operation():
         self.bq = bq
         self.type_beneficiaire = type_beneficiaire
         self.beneficiaire = beneficiaire
+        self.link = link
 
 class Position():
 
