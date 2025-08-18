@@ -1854,7 +1854,7 @@ class MoneyManager(QMainWindow):
             self.load_placement()
             self.account_list.clear()
             self.load_accounts()
-            self.position_table.clear()
+            self.position_table.clearContents()
             self.load_position()
 
 
@@ -3238,7 +3238,6 @@ class MoneyManager(QMainWindow):
         self.history_table.resizeColumnsToContents()
 
         self.history_table.setVisible(True)
-        self.history_label.setVisible(True)
         
 
         bg_color = "#1e1e1e"
@@ -3309,14 +3308,11 @@ class MoneyManager(QMainWindow):
         add_placement_btn = QPushButton("Ajouter Placement")
         add_placement_btn.clicked.connect(self.open_add_placement_dialog)
 
-        placement_table_panel.addWidget(QLabel("Placement:"))
         placement_table_panel.addWidget(self.placement_table)
         placement_table_panel.addWidget(add_placement_btn)
 
         # -- Panneau historique avec un layout vertical contenant le label + tableau --
         history_panel = QVBoxLayout()
-        self.history_label = QLabel("Historique du placement:")
-        self.history_label.setVisible(False)  # Caché initialement
 
         self.history_table = QTableWidget(0, 2)
         self.history_table.setHorizontalHeaderLabels(["Date", "Valeur"])
@@ -3329,7 +3325,6 @@ class MoneyManager(QMainWindow):
         self.history_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.history_table.customContextMenuRequested.connect(self.show_context_menu_historique_placement)
 
-        history_panel.addWidget(self.history_label)
         history_panel.addWidget(self.history_table)
 
         # Ajout au layout horizontal principal

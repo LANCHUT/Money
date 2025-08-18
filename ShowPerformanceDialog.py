@@ -145,7 +145,7 @@ class ShowPerformanceDialog(BaseDialog):
             values=values,
             hole=0.4,
             textinfo="label+percent",  # on affiche la valeur formatée via texttemplate
-            texttemplate="%{customdata}<br>%{percent}",
+            texttemplate="%{customdata}<br>%{percent:.2%}",
             customdata=formatted_values
         )])
 
