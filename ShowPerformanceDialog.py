@@ -136,7 +136,11 @@ class ShowPerformanceDialog(BaseDialog):
         values = [p["valorisation"] for p in placements]
 
         # Format des valeurs avec des espaces insécables pour les milliers
-        formatted_values = [f"{v:,.2f}".replace(",", " ").replace(".", ",") + " €" for v in values]  # note: espace insécable = U+202F
+        formatted_values = [
+            f"{v/1000:,.1f}".replace(",", " ").replace(".", ",") + " k€" if v >= 1000
+            else f"{v:,.2f}".replace(",", " ").replace(".", ",") + " €"
+            for v in values
+        ]  # note: espace insécable = U+202F
         bg_color = "#1e1e1e"
         font_color = "#ffffff"
 
