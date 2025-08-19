@@ -413,6 +413,8 @@ class AddEditOperationDialog(BaseDialog):
                         self.parent().add_operation(operation)
                     InsertEcheance(echeance)
             else:
+                if echeance.echeance1 > int(datetime.date.today().strftime("%Y%m%d")):
+                    echeance.prochaine_echeance = echeance.echeance1
                 InsertEcheance(echeance)
             self.parent().load_echeance()
         self.accept()

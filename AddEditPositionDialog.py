@@ -188,7 +188,9 @@ class AddEditPositionDialog(BaseDialog):
                     echeance.prochaine_echeance = echeance.echeance1
                 else:
                     position = Position(date_premiere,type_placement,nom_placement,nb_part,val_part,frais,interets, notes,compte_id,round((nb_part*nb_part + frais),2),compte_associe_id)
-                    self.parent().add_position(position)  
+                    self.parent().add_position(position)
+            if echeance.echeance1 > int(datetime.date.today().strftime("%Y%m%d")):
+                    echeance.prochaine_echeance = echeance.echeance1
             InsertEcheance(echeance)         
             self.parent().load_echeance()
         
