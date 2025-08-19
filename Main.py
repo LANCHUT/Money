@@ -1853,7 +1853,9 @@ class MoneyManager(QMainWindow):
                 echeance=echeance
             )
                 
-            dialog.exec()              
+            dialog.exec()
+            self.echeance_table.clearContents()
+            self.load_echeance()           
 
         except Exception as e:
             print("Erreur lors de la modification de l'echeance:", e)
@@ -2700,6 +2702,7 @@ class MoneyManager(QMainWindow):
             InsertPosition(position)
         self.account_list.clear()
         self.load_accounts()
+        self.position_table.clearContents()
         self.load_position()
 
     def show_about(self):
@@ -2925,6 +2928,7 @@ class MoneyManager(QMainWindow):
         self.position_table.resizeColumnsToContents()
         self.position_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.position_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.position_table.sortItems(0,Qt.SortOrder.AscendingOrder)
         self.position_table.customContextMenuRequested.connect(self.show_context_menu_position)
         self.position_table.setSortingEnabled(True)
         self.position_table.setAlternatingRowColors(True)

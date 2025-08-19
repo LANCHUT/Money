@@ -104,6 +104,8 @@ class AddEditPositionDialog(BaseDialog):
         if self.isEcheance:
             self.ajouter_echeancier_checkbox.setCheckState(Qt.CheckState.Checked)
             self.ajouter_echeancier_checkbox.setEnabled(False)
+            self.frequence.setCurrentText(echeance.frequence)
+            self.date_premiere.setDate(QDate(QDate.fromString(str(self.echeance.echeance1),"yyyyMMdd")))
        
 
 
@@ -183,12 +185,17 @@ class AddEditPositionDialog(BaseDialog):
                 # ajoute d’autres champs nécessaires selon la structure de Echeancier
             )
             
-            if self.isEcheance and not self.isEdit:
-                if echeance.echeance1 > int(datetime.date.today().strftime("%Y%m%d")):
-                    echeance.prochaine_echeance = echeance.echeance1
+            if self.isEcheance: 
+                if not self.isEdit:
+                    if echeance.echeance1 > int(datetime.date.today().strftime("%Y%m%d")):
+                        echeance.prochaine_echeance = echeance.echeance1
+                    else:
+                        position = Position(date_premiere,type_placement,nom_placement,nb_part,val_part,frais,interets, notes,compte_id,round((nb_part*nb_part + frais),2),compte_associe_id)
+                        self.parent().add_position(position)
                 else:
-                    position = Position(date_premiere,type_placement,nom_placement,nb_part,val_part,frais,interets, notes,compte_id,round((nb_part*nb_part + frais),2),compte_associe_id)
-                    self.parent().add_position(position)
+                    echeance._id = self.position._id
+                    echeance.compte_id = self.echeance.compte_id
+                    DeleteEcheance(echeance._id)
             if echeance.echeance1 > int(datetime.date.today().strftime("%Y%m%d")):
                     echeance.prochaine_echeance = echeance.echeance1
             InsertEcheance(echeance)         
@@ -199,6 +206,7 @@ class AddEditPositionDialog(BaseDialog):
                 # Mise à jour
                 self.position.date = date
                 self.position.type = type_placement
+                self.position.nom_placement = nom_placement
                 self.position.nb_part = nb_part
                 self.position.val_part = val_part
                 self.position.frais = frais
