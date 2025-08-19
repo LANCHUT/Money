@@ -243,6 +243,7 @@ def  create_tables(db_path=None):
             notes TEXT,
             compte_associe TEXT,
             montant_investit REAL,
+            bq INTEGER,
             FOREIGN KEY (nom_placement) REFERENCES placement(nom) ON UPDATE CASCADE ON DELETE CASCADE            
             
         )
@@ -2037,14 +2038,14 @@ def GetPositions(compte_id, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe,id FROM position where compte_id = '{compte_id}' order by date asc")
+    cursor.execute(f"SELECT date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe,id,bq FROM position where compte_id = '{compte_id}' order by date asc")
     positions = cursor.fetchall()
 
     conn.close()
 
     result = []
     for row in positions:
-        position = Position(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11])
+        position = Position(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11],row[12])
         result.append(position)
 
     return result
@@ -2080,11 +2081,11 @@ def GetPosition(position_id:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe,id FROM position where id = '{position_id}' order by date asc ")
+    cursor.execute(f"SELECT date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe,id,bq FROM position where id = '{position_id}' order by date asc ")
     row = cursor.fetchone()
 
     conn.close()
-    position = Position(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11])
+    position = Position(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11],row[12])
     return position
 
 def GetPlacements(db_path=None):
@@ -2149,6 +2150,17 @@ def UpdateTierInOperations(old_tier_id, new_tier_id, db_path=None):
         SET tier = ?
         WHERE tier = ?
     """, (new_tier_id, old_tier_id))
+    conn.commit()
+    conn.close()
+
+def MarkRPosition(position_id:str, bq:int, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE position
+        SET bq = ?
+        WHERE id = ?
+    """, (bq,position_id))
     conn.commit()
     conn.close()
 

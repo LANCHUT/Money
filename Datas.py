@@ -88,7 +88,7 @@ class Operation():
 
 class Position():
 
-    def __init__(self,date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe = None, _id = None):
+    def __init__(self,date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe = None, _id = None,bq=0):
         if _id is None:
             self._id = ObjectId()
         else:
@@ -104,6 +104,7 @@ class Position():
         self.notes = notes
         self.compte_id = compte_id
         self.montant_investit = montant_investit
+        self.bq = bq
 
 class HistoriquePlacement():
 

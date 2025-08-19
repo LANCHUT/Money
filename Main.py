@@ -2009,6 +2009,47 @@ class MoneyManager(QMainWindow):
             print("Erreur lors de la modification de l'opération:", e)
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
 
+    def mark_r_selected_position(self,row):
+        try:
+            # Récupère l'ID de l'opération à partir d'une colonne cachée ou d'une donnée stockée
+            position_id_item = self.position_table.item(row, 0)  # Assure-toi que l'ID est dans la colonne 0
+            if not position_id_item:
+                return
+
+            position_id = position_id_item.data(Qt.ItemDataRole.UserRole)
+            if not position_id:
+                return
+            
+            MarkRPosition(position_id,1)
+            self.position_table.clearContents()
+            self.load_position()
+            
+
+        except Exception as e:
+            print("Erreur lors de la modification de la position:", e)
+            QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
+
+
+    def unmark_r_selected_position(self,row):
+        try:
+            # Récupère l'ID de l'opération à partir d'une colonne cachée ou d'une donnée stockée
+            position_id_item = self.position_table.item(row, 0)  # Assure-toi que l'ID est dans la colonne 0
+            if not position_id_item:
+                return
+
+            position_id = position_id_item.data(Qt.ItemDataRole.UserRole)
+            if not position_id:
+                return
+            
+            MarkRPosition(position_id,0)
+            self.position_table.clearContents()
+            self.load_position()
+            
+
+        except Exception as e:
+            print("Erreur lors de la modification de la position:", e)
+            QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
+
     def edit_selected_position(self, row, isEdit):
         try:
             # Récupère l'ID de l'opération à partir d'une colonne cachée ou d'une donnée stockée
@@ -2380,13 +2421,14 @@ class MoneyManager(QMainWindow):
         self.position_table.setItem(row, 1, align(QTableWidgetItem(position.type)))
         self.position_table.setItem(row, 2, align(QTableWidgetItem(compte_associe_name)))
         self.position_table.setItem(row, 3, align(QTableWidgetItem(position.nom_placement)))
-        self.position_table.setItem(row, 4, align(NumericTableWidgetItem(position.nb_part, str(f"{float(position.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if position.nb_part != 0 else QTableWidgetItem("") ,Qt.AlignmentFlag.AlignRight))
-        self.position_table.setItem(row, 5, align(NumericTableWidgetItem(position.val_part, format_montant(position.val_part,1)),Qt.AlignmentFlag.AlignRight))
-        self.position_table.setItem(row, 6, align(NumericTableWidgetItem(position.frais, format_montant(position.frais)),Qt.AlignmentFlag.AlignRight))
-        self.position_table.setItem(row, 7, align(NumericTableWidgetItem(position.interets, format_montant(position.interets)),Qt.AlignmentFlag.AlignRight))
-        self.position_table.setItem(row, 8, align(QTableWidgetItem(position.notes)))
-        self.position_table.setItem(row, 9, align(NumericTableWidgetItem(position.montant_investit, format_montant(position.montant_investit)),Qt.AlignmentFlag.AlignRight))
-        self.position_table.setItem(row, 10, align(NumericTableWidgetItem(round(position.nb_part*position.val_part + position.frais,2), format_montant(round(position.nb_part*position.val_part + position.frais,2))),Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 4, align(QTableWidgetItem('R' if position.bq else "")))
+        self.position_table.setItem(row, 5, align(NumericTableWidgetItem(position.nb_part, str(f"{float(position.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if position.nb_part != 0 else QTableWidgetItem("") ,Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 6, align(NumericTableWidgetItem(position.val_part, format_montant(position.val_part,1)),Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 7, align(NumericTableWidgetItem(position.frais, format_montant(position.frais)),Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 8, align(NumericTableWidgetItem(position.interets, format_montant(position.interets)),Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 9, align(QTableWidgetItem(position.notes)))
+        self.position_table.setItem(row, 10, align(NumericTableWidgetItem(position.montant_investit, format_montant(position.montant_investit)),Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 11, align(NumericTableWidgetItem(round(position.nb_part*position.val_part + position.frais,2), format_montant(round(position.nb_part*position.val_part + position.frais,2))),Qt.AlignmentFlag.AlignRight))
         self.position_table.resizeColumnsToContents()
         self.position_table.setSortingEnabled(True)
 
@@ -2875,9 +2917,9 @@ class MoneyManager(QMainWindow):
         self.transaction_table.customContextMenuRequested.connect(self.show_context_menu_operation)
         self.transaction_table.cellClicked.connect(self.handle_table_click)
 
-        self.position_table = QTableWidget(0, 11)
+        self.position_table = QTableWidget(0, 12)
         self.position_table.setHorizontalHeaderLabels([
-            "Date", "Type", "Compte\nAssocié", "Placement", "Nombre\nparts", "Valeur\npart Achat", "Frais", "Intérêts", "Notes", "Montant\nInvestissement", "Montant\nPosition"
+            "Date", "Type", "Compte\nAssocié", "Placement","Bq", "Nombre\nparts", "Valeur\npart Achat", "Frais", "Intérêts", "Notes", "Montant\nInvestissement", "Montant\nPosition"
         ])
         table_style(self.position_table)
         self.position_table.resizeColumnsToContents()
@@ -3660,16 +3702,27 @@ class MoneyManager(QMainWindow):
 
         row = item.row()
 
+        bq = self.position_table.item(row, 4).data(2)
+
         menu = QMenu(self)
 
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
+        markr_action = QAction("Marquer comme rapproché", self)
+        unmarkr_action = QAction("Marquer comme non rapproché", self)
 
         edit_action.triggered.connect(lambda: self.edit_selected_position(row,True))
         delete_action.triggered.connect(lambda: self.delete_selected_position(row))
+        markr_action.triggered.connect(lambda: self.mark_r_selected_position(row))
+        unmarkr_action.triggered.connect(lambda: self.unmark_r_selected_position(row))
+
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
+        if bq != '':
+            menu.addAction(unmarkr_action)
+        else:
+            menu.addAction(markr_action)
 
         menu.exec(self.position_table.viewport().mapToGlobal(pos))
 
