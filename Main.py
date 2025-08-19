@@ -2020,7 +2020,7 @@ class MoneyManager(QMainWindow):
             if not position_id:
                 return
             
-            MarkRPosition(position_id,1)
+            MarkRPosition(str(position_id),1)
             self.position_table.clearContents()
             self.load_position()
             

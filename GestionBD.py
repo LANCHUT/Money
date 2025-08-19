@@ -396,8 +396,8 @@ def InsertPosition(position:Position, db_path=None):
     position.montant_investit = montant_investit
 
     cursor.execute('''
-    INSERT INTO position (id, compte_id, type, nom_placement, nb_part, val_part, frais, interets, date,notes, compte_associe, montant_investit)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO position (id, compte_id, type, nom_placement, nb_part, val_part, frais, interets, date,notes, compte_associe, montant_investit,bq)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         str(position._id),
         position.compte_id,
@@ -410,7 +410,8 @@ def InsertPosition(position:Position, db_path=None):
         position.date,
         position.notes,
         position.compte_associe,
-        position.montant_investit
+        position.montant_investit,
+        position.bq
 
     ))
 
