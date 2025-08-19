@@ -2386,7 +2386,7 @@ class MoneyManager(QMainWindow):
         self.position_table.setItem(row, 7, align(NumericTableWidgetItem(position.interets, format_montant(position.interets)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 8, align(QTableWidgetItem(position.notes)))
         self.position_table.setItem(row, 9, align(NumericTableWidgetItem(position.montant_investit, format_montant(position.montant_investit)),Qt.AlignmentFlag.AlignRight))
-
+        self.position_table.setItem(row, 10, align(NumericTableWidgetItem(round(position.nb_part*position.val_part + position.frais,2), format_montant(round(position.nb_part*position.val_part + position.frais,2))),Qt.AlignmentFlag.AlignRight))
         self.position_table.resizeColumnsToContents()
         self.position_table.setSortingEnabled(True)
 
@@ -2875,9 +2875,9 @@ class MoneyManager(QMainWindow):
         self.transaction_table.customContextMenuRequested.connect(self.show_context_menu_operation)
         self.transaction_table.cellClicked.connect(self.handle_table_click)
 
-        self.position_table = QTableWidget(0, 10)
+        self.position_table = QTableWidget(0, 11)
         self.position_table.setHorizontalHeaderLabels([
-            "Date", "Type", "Compte\nAssocié", "Placement", "Nombre\nparts", "Valeur\npart", "Frais", "Intérêts", "Notes", "Montant\nInvestissement"
+            "Date", "Type", "Compte\nAssocié", "Placement", "Nombre\nparts", "Valeur\npart Achat", "Frais", "Intérêts", "Notes", "Montant\nInvestissement", "Montant\nPosition"
         ])
         table_style(self.position_table)
         self.position_table.resizeColumnsToContents()
