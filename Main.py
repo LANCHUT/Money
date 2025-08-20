@@ -372,8 +372,11 @@ class MoneyManager(QMainWindow):
                 RunEcheance(current_date, echeances, db_path=self.current_db_path)
                 liste_compte_pret = GetComptePret()
                 for compte_id in liste_compte_pret:
-                    new_solde,date = GetCRD(compte_id,self.current_db_path)
-                    UpdateSoldeCompte(compte_id,new_solde)
+                    new_solde,date, = GetCRD(compte_id,self.current_db_path)
+                    if new_solde is not None:
+                        UpdateSoldeCompte(compte_id,new_solde)
+                        if new_solde == 0:
+                            DeleteEcheancePret(compte_id)
                 self.echeance_table.clearContents()
                 self.load_echeance()
                 self.account_list.clear()
@@ -834,6 +837,11 @@ class MoneyManager(QMainWindow):
         # Solde formaté
         solde_str = f"{compte.solde:,.2f}".replace(",", " ").replace(".", ",") + " €"
         solde_label = QLabel(solde_str)
+        if compte.solde >= 0:
+            solde_label.setStyleSheet("color: #2ecc71;")
+        else:
+            solde_label.setStyleSheet("color: #e74c3c;")
+
         solde_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         # Ajout des widgets au layout
@@ -865,7 +873,10 @@ class MoneyManager(QMainWindow):
         self.tier_table.sortItems(0,Qt.SortOrder.AscendingOrder)
 
     def on_account_clicked(self, item):
+
         try:
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+
             self.current_account = str(item.data(Qt.ItemDataRole.UserRole)["id"])
             selected_account = GetCompte(self.current_account)
             self.tabs.setCurrentWidget(self.operation_tab)
@@ -876,9 +887,9 @@ class MoneyManager(QMainWindow):
             self.current_account_label.setVisible(True)
             font = QFont()
             self.current_account_label.setStyleSheet("""QLabel{border: 2px solid #007ACC;
-                                                               padding: 5px;
-                                                               border-radius: 5px;}""")
-            self.current_account_label.setSizePolicy(QSizePolicy.Policy.Fixed,QSizePolicy.Policy.Fixed)
+                                                            padding: 5px;
+                                                            border-radius: 5px;}""")
+            self.current_account_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             self.current_account_label.adjustSize()
             font.setPointSize(16)
             font.setBold(True)
@@ -889,7 +900,7 @@ class MoneyManager(QMainWindow):
 
             if selected_account.type == "Placement":
                 self.table_stack.setCurrentIndex(1)
-                self.filter_group_box.setVisible(False)  # Affiche position_table
+                self.filter_group_box.setVisible(False)
                 self.apply_filter_btn_operation.hide()
                 self.reset_filter_button_operation.hide()
                 self.add_transaction_btn.setText("Ajouter une position")
@@ -898,8 +909,8 @@ class MoneyManager(QMainWindow):
                 self.show_performance_btn.show()
                 self.pointage_btn.hide()
                 self.load_position()
-            elif selected_account.type in ["Epargne","Courant"]:
-                self.table_stack.setCurrentIndex(0)  # Affiche transaction_table
+            elif selected_account.type in ["Epargne", "Courant"]:
+                self.table_stack.setCurrentIndex(0)
                 self.filter_group_box.setVisible(True)
                 self.apply_filter_btn_operation.show()
                 self.reset_filter_button_operation.show()
@@ -907,6 +918,9 @@ class MoneyManager(QMainWindow):
                 self.add_transaction_btn.clicked.disconnect()
                 self.add_transaction_btn.clicked.connect(self.open_add_operation_dialog)
                 self.show_performance_btn.hide()
+                self.pointage_btn.setText("Commencer le pointage")
+                self.pointage_btn.clicked.disconnect()
+                self.pointage_btn.clicked.connect(self.commencer_pointage)
                 self.pointage_btn.show()
                 self.load_operations()
             else:
@@ -918,13 +932,19 @@ class MoneyManager(QMainWindow):
                 self.show_performance_btn.hide()
                 self.add_transaction_btn.setText("Ajouter un prêt")
                 self.add_transaction_btn.clicked.disconnect()
-                self.add_transaction_btn.clicked.connect(self.open_add_pret_dialog)
+                self.add_transaction_btn.clicked.connect(self.open_add_pret_dialog)                
+                self.pointage_btn.setText("Modifier le prêt")
+                self.pointage_btn.clicked.disconnect()
+                self.pointage_btn.clicked.connect(self.open_edit_pret_dialog)
+                self.pointage_btn.show()
                 self.load_pret()
-
 
         except Exception as e:
             print("Erreur:", e)
             QMessageBox.warning(self, "Attention", "Le compte 'Total' n'est pas un compte valide, Veuillez choisir un autre compte.")
+
+        finally:
+            QApplication.restoreOverrideCursor()  # ⌛ restaure le curseur normal
 
 
     def open_add_account_dialog(self):
@@ -2124,6 +2144,14 @@ class MoneyManager(QMainWindow):
         else:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte de placement d'abord.")
 
+    def open_edit_pret_dialog(self):
+        if self.current_account is not None:
+            l = GetLoan(self.current_account)
+            dialog = AddEditLoanDialog(self,current_account=str(self.current_account),loan=l)
+            dialog.exec()
+        else:
+            QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte de placement d'abord.")
+
     def add_tier_row(self, row, tier: Tier):
             item_nom = QTableWidgetItem(tier.nom)
             item_nom.setData(Qt.ItemDataRole.UserRole, tier._id)
@@ -2394,8 +2422,8 @@ class MoneyManager(QMainWindow):
             (data[7], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
             (data[8], NumericTableWidgetItem, Qt.AlignmentFlag.AlignRight, True, " €"),  # €
             (int(str(data[1])[:4]), NumericTableWidgetItem, Qt.AlignmentFlag.AlignLeft, False),  # pas de formatage
-            (data[3], NumericTableWidgetItem,Qt.AlignmentFlag.AlignRight, True, " %"),
-            (data[2], NumericTableWidgetItem,Qt.AlignmentFlag.AlignRight, True, " %")
+            (data[3], NumericTableWidgetItem,Qt.AlignmentFlag.AlignRight, False, " %"),
+            (data[2], NumericTableWidgetItem,Qt.AlignmentFlag.AlignRight, False, " %")
         ]
 
         for col_index, col_data in enumerate(columns):
@@ -2430,7 +2458,7 @@ class MoneyManager(QMainWindow):
         self.position_table.setItem(row, 8, align(NumericTableWidgetItem(position.interets, format_montant(position.interets)),Qt.AlignmentFlag.AlignRight))
         self.position_table.setItem(row, 9, align(QTableWidgetItem(position.notes)))
         self.position_table.setItem(row, 10, align(NumericTableWidgetItem(position.montant_investit, format_montant(position.montant_investit)),Qt.AlignmentFlag.AlignRight))
-        self.position_table.setItem(row, 11, align(NumericTableWidgetItem(round(position.nb_part*position.val_part + position.frais,2), format_montant(round(position.nb_part*position.val_part + position.frais,2))),Qt.AlignmentFlag.AlignRight))
+        self.position_table.setItem(row, 11, align(NumericTableWidgetItem(round(position.nb_part*position.val_part,2), format_montant(round(position.nb_part*position.val_part,2))),Qt.AlignmentFlag.AlignRight))
         self.position_table.resizeColumnsToContents()
         self.position_table.setSortingEnabled(True)
 
@@ -2492,13 +2520,17 @@ class MoneyManager(QMainWindow):
         echeancier = calculer_echeancier_pret_avec_assurance(pret.montant_initial,pret.taux_annuel_initial,pret.duree_ans,pret.assurance_par_periode,pret.frequence_paiement,pret.date_debut,pret.taux_variables)
         compte_id = str(pret.compte_id)
         compte_associe = str(pret.compte_associe)
-        InsertPret(compte_id,echeancier)
+        InsertPret(compte_id,echeancier,compte_associe,pret.nom)
         new_solde,date = GetCRD(compte_id)
+        if new_solde is None:
+            new_solde = -1 * pret.montant_initial
+        if date is None:
+            date = int(echeancier[0]["date"].strftime('%Y%m%d'))
         
         echeance = Echeance(pret.frequence_paiement,int(echeancier[0]["date"].strftime('%Y%m%d')),date,"Débit","","","","",-1*echeancier[-1]["mensualite"],0,f"Remboursement prêt {pret.nom}",compte_associe,0,0,0,0,"Prélèvement",0,compte_associe=compte_id)
-        if echeance.echeance1 <= int(datetime.date.today().strftime("%Y%m%d")):
-            operation = Operation(echeance.echeance1,"Débit","","","Prélèvement","","",echeance.debit,echeance.credit,echeance.notes,echeance.compte_id,"",echeance.compte_associe)
-            InsertOperation(operation)
+        # if echeance.echeance1 <= int(datetime.date.today().strftime("%Y%m%d")):
+        #     operation = Operation(echeance.echeance1,"Débit","","","Prélèvement","","",echeance.debit,echeance.credit,echeance.notes,echeance.compte_id,"",echeance.compte_associe)
+        #     InsertOperation(operation)
         InsertEcheance(echeance)
         UpdateSoldeCompte(self.current_account,new_solde)
         self.load_pret()
@@ -2679,6 +2711,11 @@ class MoneyManager(QMainWindow):
         UpdateCompte(compte)
         self.account_list.clear()
         self.load_accounts()
+
+    def update_loan(self,loan:Loan):
+        DeletePret(self.current_account)
+        DeleteEcheancePret(loan.compte_id)
+        self.add_loan(loan)
 
     def update_operation(self, operation:Operation,old_credit,old_debit,isEdit):
         if isEdit:
@@ -2938,7 +2975,7 @@ class MoneyManager(QMainWindow):
             "N°\nEch", "Date", "Capital restant\n dû", "Intérêts", "Capital", "Assurance", "Total", "Années", "Taux\nPériode", "Taux"
         ])
         table_style(self.pret_table)
-        self.pret_table.horizontalHeader().setStretchLastSection(True)
+        self.pret_table.resizeColumnsToContents()
         self.pret_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.pret_table.setSortingEnabled(True)
         self.pret_table.setAlternatingRowColors(True)

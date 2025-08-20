@@ -10,7 +10,7 @@ from PyQt6.QtGui import QDoubleValidator, QIntValidator
 from BaseDialog import BaseDialog
 from Datas import Loan
 from datetime import date
-from GestionBD import GetComptesHorsPlacement
+from GestionBD import GetComptesHorsPlacement,GetCompteName
 
 
 class AddEditLoanDialog(BaseDialog):
@@ -141,9 +141,10 @@ class AddEditLoanDialog(BaseDialog):
             # Remplacer le point par la virgule pour l'affichage initial
             self.montant_initial_input.setText(f"{self.loan.montant_initial:,.2f}".replace(",", " ").replace(".", ","))
             self.date_debut_input.setDate(QDate(self.loan.date_debut.year, self.loan.date_debut.month, self.loan.date_debut.day))
-            self.duree_ans_input.setText(str(self.loan.duree_ans))
+            self.duree_ans_input.setText(str(int(self.loan.duree_ans)))
             self.taux_annuel_initial_input.setText(f"{self.loan.taux_annuel_initial * 100:.3f}".replace(".", ","))
             self.assurance_par_periode_input.setText(f"{self.loan.assurance_par_periode:.2f}".replace(".", ","))
+            self.compte_associe_input.setCurrentText(GetCompteName(self.loan.compte_associe))
             index_freq = self.frequence_paiement_input.findText(self.loan.frequence_paiement)
             if index_freq != -1:
                 self.frequence_paiement_input.setCurrentIndex(index_freq)
@@ -316,11 +317,8 @@ class AddEditLoanDialog(BaseDialog):
             self.loan.taux_variables = taux_variables_sorted
             self.loan.compte_associe = compte_associe
             
-            if self.parent() and hasattr(self.parent(), 'update_loan'):
+            if self.parent():
                 self.parent().update_loan(self.loan)
-            else:
-                QMessageBox.warning(self, "Erreur", "La méthode 'update_loan' n'est pas disponible dans la fenêtre parente.")
-                return
         else:
             new_loan = Loan(
                 nom=nom,

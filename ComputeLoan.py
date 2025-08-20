@@ -91,7 +91,7 @@ def calculer_echeancier_pret_avec_assurance(
             if taux_periodique == 0:
                 annuite_hors_assurance = solde_restant / (nombre_total_paiements - (i - 1))
             else:
-                annuite_hors_assurance = (solde_restant * taux_periodique) / (1 - (1 + taux_periodique)**(-(nombre_total_paiements - (i - 1))))
+                annuite_hors_assurance = (solde_restant * taux_periodique) / (1 - (1 + taux_periodique)**(-(nombre_total_paiements - i)))
 
             interet = solde_restant * taux_periodique
             principal = annuite_hors_assurance - interet
@@ -109,7 +109,7 @@ def calculer_echeancier_pret_avec_assurance(
             'date': date_paiement,
             'taux_annuel_applique': round(taux_annuel_actuel*100, 3),
             'taux_periode': round(taux_periodique*100,3),
-            'capital_restant_du': round(solde_restant, 2),
+            'capital_restant_du': round(solde_final, 2),
             'intérêts': round(interet, 2),
             'capital': round(principal, 2),
             'assurance': round(assurance_par_periode, 2),

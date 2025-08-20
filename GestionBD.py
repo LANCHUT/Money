@@ -67,6 +67,7 @@ def  create_tables(db_path=None):
     assurance REAL,
     mensualite REAL,
     compte_associe TEXT,
+    nom TEXT,
     PRIMARY KEY (compte_id,numero_echeance)               
     )
                    ''')
@@ -419,7 +420,7 @@ def InsertPosition(position:Position, db_path=None):
     conn.commit()
     conn.close()
 
-def InsertPret(compte_id: str, echeancier: list,compte_associe:str = "", db_path=None):
+def InsertPret(compte_id: str, echeancier: list,compte_associe:str = "",nom="", db_path=None):
     """
     Insère un échéancier complet de prêt dans la table 'pret'
     en utilisant executemany pour des performances optimales.
@@ -450,13 +451,14 @@ def InsertPret(compte_id: str, echeancier: list,compte_associe:str = "", db_path
             echeance.get('capital'),
             echeance.get('assurance'),
             echeance.get('mensualite'),
-            compte_associe
+            compte_associe,
+            nom
         ))
 
     try:
         cursor.executemany('''
-            INSERT INTO pret (compte_id, numero_echeance, date, taux_annuel_applique, taux_periode, crd, interets, capital, assurance, mensualite, compte_associe)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO pret (compte_id, numero_echeance, date, taux_annuel_applique, taux_periode, crd, interets, capital, assurance, mensualite, compte_associe,nom)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
         ''', data_to_insert)
 
         conn.commit()
@@ -899,6 +901,14 @@ def DeleteEcheance(echeance_id:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM echeancier WHERE id = ?", (str(echeance_id),))
+    conn.commit()
+
+    conn.close()
+
+def DeleteEcheancePret(compte_associe:str, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM echeancier WHERE compte_associe = ?", (str(compte_associe),))
     conn.commit()
 
     conn.close()
@@ -2067,15 +2077,64 @@ def GetPret(compte_id, db_path=None):
 
     return result
 
+def GetLoan(compte_id, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    taux_variables = []
+    cursor.execute(f"SELECT crd + mensualite - interets - assurance,date,assurance,compte_associe,nom,taux_annuel_applique  FROM pret where compte_id = '{compte_id}' and numero_echeance = 1")
+    row = cursor.fetchone()
+    montant_initial = round(row[0],2)
+    date_debut = row[1]
+    date_debut = datetime.datetime.strptime(str(date_debut), "%Y%m%d")
+    assurance = row[2]
+    compte_associe = row[3]
+    nom = row[4]
+    taux_initial = row[5]/100
+
+    cursor.execute(f"select taux_annuel_applique,min(date) as date from pret where compte_id = '{compte_id}' group by pret.taux_annuel_applique order by date asc")
+    rows = cursor.fetchall()[1::]
+    for row in rows:
+        taux_variables.append((row[1], "%Y%m%d"),row[0]/100)
+
+    cursor.execute(f"SELECT date FROM pret where compte_id = '{compte_id}' limit 2")
+    rows = cursor.fetchall()
+    date1 = datetime.datetime.strptime(str(rows[0][0]), "%Y%m%d")
+    date2 = datetime.datetime.strptime(str(rows[1][0]), "%Y%m%d")
+
+    # Calcul de l'écart en mois
+    months_diff = (date2.year - date1.year) * 12 + (date2.month - date1.month)
+
+    if months_diff == 1:
+        frequence = "Mensuelle"
+    elif months_diff == 3:
+        frequence = "Trimestrielle"
+    elif months_diff == 6:
+        frequence = "Semestrielle"
+    elif months_diff == 12:
+        frequence = "Annuelle"
+        
+    cursor.execute(f"SELECT count(*) FROM pret where compte_id = '{compte_id}'")
+    row = cursor.fetchone()
+    nb_echeance = int(row[0])
+    annee = nb_echeance/(12/months_diff)
+
+    conn.close()
+
+    l = Loan(nom,montant_initial,date_debut,annee,taux_initial,frequence,assurance,taux_variables,compte_id,compte_associe)
+    return l
+
 def GetCRD(compte_id, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
     today = int(date.today().strftime("%Y%m%d"))
-    cursor.execute(f"SELECT crd,date FROM pret where date > ? and compte_id = ? order by date asc limit 1",(today,compte_id,))
+    cursor.execute(f"SELECT crd,date FROM pret where date <= ? and compte_id = ? order by date desc limit 1",(today,compte_id,))
     row = cursor.fetchone()
 
     conn.close()
-    return -1 * row[0],int(row[1])
+    if row:
+        return -1 * row[0],int(row[1])
+    else:
+        return None,None
 
 
 def GetPosition(position_id:str, db_path=None):
