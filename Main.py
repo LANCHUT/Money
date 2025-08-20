@@ -1216,9 +1216,6 @@ class MoneyManager(QMainWindow):
                     reply_is_yes = True
                 else:
                     reply_is_yes = False
-
-                if not reply_is_yes:
-                    return  # L'utilisateur a annulé
                 
                 if reply_is_yes:
                     try:

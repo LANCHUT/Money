@@ -140,6 +140,9 @@ class AddEditPositionDialog(BaseDialog):
         if type_placement in [TypePosition.Vente.value,TypePosition.Perte.value]:
             nb_part *= -1
 
+        if nb_part < 0 and type_placement in [TypePosition.Gain.value,TypePosition.Achat.value,TypePosition.Don.value]:
+            nb_part *= -1
+
         # Appliquer la logique "compte associé" seulement si c'est un transfert
         if type_placement in ["Achat", "Intérêts","Vente"]:
             compte_associe_id = self.compte_associe.currentData()
