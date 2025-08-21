@@ -62,7 +62,6 @@ class AddEditPositionDialog(BaseDialog):
         if self.position:
 
             self.fill_fields()
-            self.val_part.setReadOnly(True)
 
         self.set_echeancier_fields_visible(False)
 
@@ -80,11 +79,16 @@ class AddEditPositionDialog(BaseDialog):
         self.label_compte_associe = QLabel("Compte Associé:")
         self.layout.addRow(self.label_compte_associe, self.compte_associe)
         self.layout.addRow(QLabel("Placement:"), self.placement)
-        self.layout.addRow(QLabel("Nombre de part:"), self.nb_part)
-        self.layout.addRow(QLabel("Valeur de la part:"), self.val_part)
-        self.layout.addRow(QLabel("Frais:"), self.frais) 
-        self.layout.addRow(QLabel("Interêts:"), self.interet)
-        self.layout.addRow(QLabel("Notes:"), self.notes)
+        self.label_nb_part = QLabel("Nombre de part:")
+        self.layout.addRow(self.label_nb_part, self.nb_part)
+        self.label_val_part = QLabel("Valeur de la part:")
+        self.layout.addRow(self.label_val_part, self.val_part)
+        self.label_frais = QLabel("Frais:")
+        self.layout.addRow(self.label_frais, self.frais)
+        self.label_interets = QLabel("Interêts:")
+        self.layout.addRow(self.label_interets, self.interet)
+        self.label_notes = QLabel("Notes:")
+        self.layout.addRow(self.label_notes, self.notes)
         self.layout.addRow(self.ajouter_echeancier_checkbox)
         self.layout.addRow(self.label_frequence, self.frequence)
         self.layout.addRow(self.label_date_premiere, self.date_premiere)
@@ -134,7 +138,7 @@ class AddEditPositionDialog(BaseDialog):
         date = int(self.date.date().toString("yyyyMMdd"))
         notes = self.notes.text()
         type_placement = self.type_placement.currentText()
-        if nb_part == 0:
+        if nb_part == 0 and type_placement not in [TypePosition.Interet.value]:
             QMessageBox.warning(self, "Erreur", "Le champs nb_part doit être remplis.")
             return
         if type_placement in [TypePosition.Vente.value,TypePosition.Perte.value]:
@@ -227,11 +231,33 @@ class AddEditPositionDialog(BaseDialog):
 
     def on_type_operation_changed(self, new_type_operation):
         if new_type_operation in ["Achat", "Intérêts","Vente"]:
+            if new_type_operation == "Intérêts":
+                self.label_nb_part.hide()
+                self.nb_part.hide()
+                self.label_val_part.hide()
+                self.val_part.hide()
+                self.label_frais.hide()
+                self.frais.hide()
+
+            else:
+                self.label_nb_part.show()
+                self.nb_part.show()
+                self.label_val_part.show()
+                self.val_part.show()
+                self.label_frais.show()
+                self.frais.show()
+
             self.label_compte_associe.show()
             self.compte_associe.show()
         else:
             self.label_compte_associe.hide()
             self.compte_associe.hide()
+            self.label_nb_part.show()
+            self.nb_part.show()
+            self.label_val_part.show()
+            self.val_part.show()
+            self.label_frais.show()
+            self.frais.show()
 
     def format_montant(self, field: QLineEdit):
         text = field.text().strip()

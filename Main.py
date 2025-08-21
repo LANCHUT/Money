@@ -36,7 +36,7 @@ from AddEditMoyenPaiementDialog import *
 from ShowPerformanceDialog import *
 from typing import Optional
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from Datas import TypeOperation
+from Datas import TypeOperation,TypePosition
 import plotly.graph_objects as go
 import plotly.graph_objs as go
 import json
@@ -1202,20 +1202,29 @@ class MoneyManager(QMainWindow):
             if operation.link:
                 msg_box = QMessageBox(self)
                 msg_box.setWindowTitle("Suppression d'une opération liée")
-                msg_box.setText(f"L'opération est liée avec une autre, voulez-vous supprimer les deux opérations ?")
-                
-                # Création et ajout des boutons "Oui" et "Non"
-                bouton_oui = msg_box.addButton("Oui", QMessageBox.ButtonRole.YesRole)
-                bouton_non = msg_box.addButton("Non", QMessageBox.ButtonRole.NoRole)
-                
-                msg_box.setIcon(QMessageBox.Icon.Question) # Ajoute une icône de question
+                msg_box.setText("L'opération est liée avec une autre.\nQuelles opérations voulez-vous supprimer ?")
+                msg_box.setIcon(QMessageBox.Icon.Question)
+
+                # Crée les boutons personnalisés
+                bouton_oui = QPushButton("opération\nde ce\ncompte\n+\nopération liée")
+                bouton_non = QPushButton("opération\nde ce\ncompte seule")
+                bouton_annuler = QPushButton("Annuler")
+
+                # Ajouter les boutons à la boîte
+                msg_box.addButton(bouton_oui, QMessageBox.ButtonRole.YesRole)
+                msg_box.addButton(bouton_non, QMessageBox.ButtonRole.NoRole)
+                msg_box.addButton(bouton_annuler, QMessageBox.ButtonRole.RejectRole)
+                msg_box.adjustSize()
 
                 msg_box.exec() # Affiche la boîte de dialogue et attend la réponse
                 # Vérifier quel bouton a été cliqué
-                if msg_box.clickedButton() == bouton_oui:
+                clicked = msg_box.clickedButton()
+                if clicked == bouton_oui:
                     reply_is_yes = True
-                else:
+                elif clicked == bouton_non:
                     reply_is_yes = False
+                else:
+                    reply_is_yes = None
                 
                 if reply_is_yes:
                     try:
@@ -1224,14 +1233,15 @@ class MoneyManager(QMainWindow):
                     except:
                         p = GetPosition(operation.link)
                         DeletePosition(p)
-            DeleteOperation(operation,operation.credit,operation.debit)
-            self.transaction_table.removeRow(row)
-            self.account_list.clear()
-            self.transaction_table.clearContents()
-            self.compte_table.clearContents()
-            self.load_accounts()
-            self.load_operations()
-            self.load_comptes()
+            if reply_is_yes is not None:
+                DeleteOperation(operation,operation.credit,operation.debit)
+                self.transaction_table.removeRow(row)
+                self.account_list.clear()
+                self.transaction_table.clearContents()
+                self.compte_table.clearContents()
+                self.load_accounts()
+                self.load_operations()
+                self.load_comptes()
 
     def delete_selected_position(self, row):
         msg_box = QMessageBox(self)
@@ -2462,10 +2472,12 @@ class MoneyManager(QMainWindow):
 
     def add_position(self, position:Position):
         InsertPosition(position)
-        if position.type == "Achat":
-            InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
-        elif position.type == "Vente":
-            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
+        if position.type == TypePosition.Achat.value:
+            InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais,2),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
+        elif position.type == TypePosition.Vente.value:
+            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais,2),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
+        elif position.type == TypePosition.Interet.value:
+            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,position.interets,f"Intérêts placement {position.nom_placement}",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
         type_placement = GetTypePlacement(position.nom_placement)
         last_value_placement = GetLastValueForPlacement(position.nom_placement)
         if not InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type)) and last_value_placement != position.val_part:
@@ -2730,7 +2742,7 @@ class MoneyManager(QMainWindow):
     def update_position(self, position:Position,isEdit):
         if isEdit:
             DeletePosition(position)
-            InsertPosition(position)
+            self.add_position(position)
         else:
             position._id = str(ObjectId())
             InsertPosition(position)

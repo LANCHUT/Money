@@ -1262,7 +1262,7 @@ def GetComptes(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes order by nom asc')
+    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes order by type,nom asc')
     comptes = cursor.fetchall()
 
     conn.close()
