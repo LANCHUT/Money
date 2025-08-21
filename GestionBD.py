@@ -2389,7 +2389,7 @@ def GetPerformanceGlobaleData(compte_id: str, db_path=None):
             valo += nb_part * valeur_part
 
     plus_value = valo - montant_investissement
-    perf = (plus_value / montant_investissement * 100) if montant_investissement != 0 else 0
+    perf = ((plus_value + cumul_interet) / montant_investissement * 100) if montant_investissement != 0 else 0
 
     conn.close()
 
@@ -2499,7 +2499,7 @@ def GetPerformanceByPlacement(compte_id: str, db_path=None):
         val_part = GetLastValueForPlacement(nom_placement, conn) # Pass conn
         valo = nb_parts * val_part
         plus_value = valo - montant_investi
-        perf = (plus_value / montant_investi * 100) if montant_investi != 0 else 0
+        perf = ((plus_value+interets) / montant_investi * 100) if montant_investi != 0 else 0
 
         performance_data.append({
             "nom": nom_placement,
