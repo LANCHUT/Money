@@ -3205,7 +3205,7 @@ class MoneyManager(QMainWindow):
         self.tier_table.sortItems(0,Qt.SortOrder.AscendingOrder)
         self.tier_table.customContextMenuRequested.connect(self.show_context_menu_tier)
         tiers_section.addWidget(self.tier_table)
-        add_btn = QPushButton("Ajouter un tier")
+        add_btn = QPushButton("Ajouter un tiers")
         add_btn.clicked.connect(self.open_add_tier_dialog)
         tiers_section.addWidget(add_btn)
 
@@ -3221,7 +3221,7 @@ class MoneyManager(QMainWindow):
         self.type_tier_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.type_tier_table.customContextMenuRequested.connect(self.show_context_menu_type_tier)
         types_section.addWidget(self.type_tier_table)
-        add_type_btn = QPushButton("Ajouter type de tier")
+        add_type_btn = QPushButton("Ajouter type de tiers")
         add_type_btn.clicked.connect(self.open_add_type_tier_dialog)
         types_section.addWidget(add_type_btn)
         self.type_tier_table.itemClicked.connect(self.on_type_tier_clicked)

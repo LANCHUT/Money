@@ -1311,7 +1311,7 @@ def GetComptesHorsPret(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type <> "Prêt"')
+    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type <> "Prêt" order by type,nom asc')
     comptes = cursor.fetchall()
 
     conn.close()

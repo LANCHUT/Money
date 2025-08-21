@@ -108,8 +108,9 @@ class AddEditPositionDialog(BaseDialog):
         if self.isEcheance:
             self.ajouter_echeancier_checkbox.setCheckState(Qt.CheckState.Checked)
             self.ajouter_echeancier_checkbox.setEnabled(False)
-            self.frequence.setCurrentText(echeance.frequence)
-            self.date_premiere.setDate(QDate(QDate.fromString(str(self.echeance.echeance1),"yyyyMMdd")))
+            if self.isEdit:
+                self.frequence.setCurrentText(echeance.frequence)
+                self.date_premiere.setDate(QDate(QDate.fromString(str(self.echeance.echeance1),"yyyyMMdd")))
        
 
 

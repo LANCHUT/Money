@@ -243,11 +243,16 @@ class AddEditOperationDialog(BaseDialog):
         self.on_type_tier_changed(self.operation.type_tier)
 
         # ComboBox tier (editable avec userData)
-        tier = GetTierById(self.operation.tier) or ""
-
-        self.moyen_paiement.setCurrentText(tier.moyen_paiement)
-        self.categorie.setCurrentText(tier.categorie)
-        self.sous_categorie.setCurrentText(tier.categorie)
+        if self.operation.tier == '':
+            self.moyen_paiement.setCurrentText("")
+            self.categorie.setCurrentText("")
+            self.sous_categorie.setCurrentText("")            
+        else:
+            tier = GetTierById(self.operation.tier) or ""
+            self.moyen_paiement.setCurrentText(tier.moyen_paiement)
+            self.categorie.setCurrentText(tier.categorie)
+            self.sous_categorie.setCurrentText(tier.categorie)
+            
         self.num_cheque.setText(str(self.operation.num_cheque))
         self.update_sous_categories(self.operation.categorie)
 
