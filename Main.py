@@ -3475,9 +3475,15 @@ class MoneyManager(QMainWindow):
         placement_layout.addLayout(placement_main_panel)
 
         # === 2. Web view pour le graphique en bas ===
+        bg_color = "#1e1e1e"
+        font_color = "#ffffff"
         self.graph_view = QWebEngineView()
         self.graph_view.setMinimumHeight(250)
-        self.graph_view.setHtml("<h3>Sélectionnez un placement pour voir l'historique.</h3>")
+        self.graph_view.setHtml(f"""<head>
+            <meta charset="UTF-8">
+            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            <style>body {{ margin: 0; background-color: {bg_color}; color: {font_color} }}</style>
+        </head><h3>Sélectionnez un placement pour voir l'historique.</h3>""")
         placement_layout.addWidget(self.graph_view)
 
         self.load_placement()
