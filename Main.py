@@ -3361,12 +3361,6 @@ class MoneyManager(QMainWindow):
         from datetime import datetime
         dates = [datetime.strptime(str(h.date).zfill(8), "%Y%m%d") for h in historique]
         valeurs = [h.val_actualise for h in historique]
-        tickvals = dates
-        mois_fr = {
-            1: "Janvier", 2: "Fevrier", 3: "Mars", 4: "Avril", 5: "Mai", 6: "Juin",
-            7: "Juillet", 8: "Aout", 9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Decembre"
-        }
-        ticktext = [f"{d.day} {mois_fr[d.month]} {d.year}" for d in dates]
         fig = go.Figure(data=[go.Scatter(x=dates, y=valeurs, mode='lines+markers', name=nom)])
         dates = [f"{str(h.date)[6:8]}/{str(h.date)[4:6]}/{str(h.date)[0:4]}" for h in historique]
 
@@ -3397,14 +3391,14 @@ class MoneyManager(QMainWindow):
             font=dict(color=font_color),
             xaxis=dict(
                 type="date",
-                tickvals=tickvals,
-                ticktext=ticktext,
+                tickformat="%d %b %Y",
+                tickangle=-45,         
                 showgrid=True,
                 gridcolor='rgba(255,255,255,0.1)'
             ),
             yaxis=dict(
                 showgrid=True,
-                gridcolor='rgba(255,255,255,0.1)',  # pareil pour l'axe des Y
+                gridcolor='rgba(255,255,255,0.1)',
                 zeroline=False
             )
         )
