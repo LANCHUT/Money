@@ -2083,7 +2083,7 @@ def GetLoan(compte_id, db_path=None):
     taux_variables = []
     cursor.execute(f"SELECT crd + mensualite - interets - assurance,date,assurance,compte_associe,nom,taux_annuel_applique  FROM pret where compte_id = '{compte_id}' and numero_echeance = 1")
     row = cursor.fetchone()
-    montant_initial = round(row[0],2)
+    montant_initial = round(row[0])
     date_debut = row[1]
     date_debut = datetime.datetime.strptime(str(date_debut), "%Y%m%d")
     assurance = row[2]
