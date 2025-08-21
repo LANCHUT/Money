@@ -2094,7 +2094,7 @@ def GetLoan(compte_id, db_path=None):
     cursor.execute(f"select taux_annuel_applique,min(date) as date from pret where compte_id = '{compte_id}' group by pret.taux_annuel_applique order by date asc")
     rows = cursor.fetchall()[1::]
     for row in rows:
-        taux_variables.append((row[1], "%Y%m%d"),row[0]/100)
+        taux_variables.append((datetime.datetime.strptime(str(row[1]), "%Y%m%d"),row[0]/100))
 
     cursor.execute(f"SELECT date FROM pret where compte_id = '{compte_id}' limit 2")
     rows = cursor.fetchall()
