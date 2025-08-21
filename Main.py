@@ -2236,7 +2236,7 @@ class MoneyManager(QMainWindow):
         self.echeance_table.setItem(row, 13, align(NumericTableWidgetItem(echeance.debit, format_montant(echeance.debit)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 14, align(NumericTableWidgetItem(echeance.credit, format_montant(echeance.credit)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 15, align(NumericTableWidgetItem(echeance.nb_part, str(f"{float(echeance.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if echeance.nb_part != 0 else QTableWidgetItem(""),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 16, align(NumericTableWidgetItem(echeance.val_part, format_montant(echeance.val_part,1)),Qt.AlignmentFlag.AlignRight))
+        self.echeance_table.setItem(row, 16, align(NumericTableWidgetItem(echeance.val_part, format_montant(echeance.val_part,1) if echeance.type != "Intérêts" else "") ,Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 17, align(NumericTableWidgetItem(echeance.frais, format_montant(echeance.frais)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 18, align(NumericTableWidgetItem(echeance.interets, format_montant(echeance.interets)),Qt.AlignmentFlag.AlignRight))
         self.echeance_table.setItem(row, 19, align(QTableWidgetItem(echeance.notes)))

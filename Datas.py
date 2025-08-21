@@ -132,11 +132,12 @@ class TypeOperation(Enum):
     def return_list(self):
         return[operation.value for operation in self]
     
-class FrequenceEcheancier(Enum):
-    A = "Annuelle"
-    S = "Semestrielle"
-    T = "Trimestrielle"
+class FrequenceEcheancier(Enum):    
     M = "Mensuelle"
+    T = "Trimestrielle"    
+    S = "Semestrielle"    
+    A = "Annuelle"
+    
 
     @classmethod
     def return_list(self):
