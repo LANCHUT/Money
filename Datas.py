@@ -108,18 +108,20 @@ class Position():
 
 class HistoriquePlacement():
 
-    def __init__(self,nom,type,date,val_actualise,origine) -> None:
+    def __init__(self,nom,type,date,val_actualise,origine,ticker) -> None:
         self.type = type
         self.nom = nom
         self.val_actualise = val_actualise
         self.origine = origine
         self.date = date
+        self.ticker = ticker
 
 class Placement():
 
-    def __init__(self,nom,type) -> None:
+    def __init__(self,nom,type,ticker = "") -> None:
         self.type = type
         self.nom = nom
+        self.ticker = ticker
 
 
 class TypeOperation(Enum):
@@ -150,6 +152,7 @@ class TypePlacement(Enum):
     Obligation = "Obligations"
     SCPI = "SCPI"
     UC = "Unités de compte"
+    Immo = "Immobilier"
 
     @classmethod
     def return_list(self):

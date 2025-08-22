@@ -37,6 +37,7 @@ from ShowPerformanceDialog import *
 from typing import Optional
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from Datas import TypeOperation,TypePosition
+from GetPlacementValue import GetLastValuePlacement
 import plotly.graph_objects as go
 import plotly.graph_objs as go
 import json
@@ -427,6 +428,40 @@ class MoneyManager(QMainWindow):
         """Sauvegarde le chemin de la DB actuelle dans les paramètres."""
         self.settings.setValue("last_db_path", path)
 
+    def update_value_placement(self):
+        try:
+            tickers = GetTickerPlacement()  # Liste des tickers sous forme [(id_placement, ticker), ...]
+            ticker_symbols = [ticker[1] for ticker in tickers]
+
+            # Récupération groupée des dernières valeurs
+            last_values = GetLastValuePlacement(ticker_symbols)  # Doit retourner un dict : {ticker: (date, value)}
+
+            for id_placement, ticker_symbol in tickers:
+                # Si la valeur du ticker est bien récupérée
+                if ticker_symbol in last_values:
+                    date, value = last_values[ticker_symbol]
+                    type_placement = GetTypePlacement(id_placement)
+
+                    historique = HistoriquePlacement(
+                        id_placement, type_placement, date, value,
+                        "Actualisation automatique", ticker_symbol
+                    )
+
+                    # Tentative d'insertion unique
+                    if not InsertHistoriquePlacement(historique):
+                        DeleteHistoriquePlacement(id_placement, date)
+                        InsertHistoriquePlacement(historique)
+
+            # Rafraîchissement des vues
+            self.placement_table.clearContents()
+            self.load_placement()
+            self.account_list.clear()
+            self.load_accounts()
+
+        except Exception as e:
+            print(f"Erreur dans update_value_placement: {e}")
+
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Money")
@@ -457,6 +492,7 @@ class MoneyManager(QMainWindow):
 
             # Gérer la logique de démarrage de la DB
             self.initialize_db_on_startup()
+            self.update_value_placement()
             
         else:
             menu_bar = self.menuBar()
@@ -1023,13 +1059,7 @@ class MoneyManager(QMainWindow):
     def edit_selected_placement(self, row):
         # Récupérer uniquement les informations nécessaires
         nom = self.placement_table.item(row, 0).text()
-        type = self.placement_table.item(row, 1).text()
-        date = self.placement_table.item(row, 2).text()
-        valeur_actualise = self.placement_table.item(row, 3).text()
-        origine = self.placement_table.item(row, 4).text()
-
-        # Créer un objet Placement existant
-        placement = HistoriquePlacement(nom, type,date,valeur_actualise,origine)
+        placement = GetLastPlacementByName(nom)   
 
         # Ouvrir la boîte de dialogue en mode modification (seul le nom sera modifiable)
         dialog = AddEditPlacementDialog(self, placement=placement)
@@ -1040,12 +1070,7 @@ class MoneyManager(QMainWindow):
     def actualiser_selected_placement(self, row):
         # Récupérer les infos du placement existant
         nom = self.placement_table.item(row, 0).text()
-        type = self.placement_table.item(row, 1).text()
-        date = self.placement_table.item(row, 2).text()
-        valeur_actualise = self.placement_table.item(row, 3).text()
-        origine = self.placement_table.item(row, 4).text()
-
-        placement = HistoriquePlacement(nom, type, date, valeur_actualise, origine)
+        placement = GetLastPlacementByName(nom)
 
         dialog = AddEditPlacementDialog(self, placement=placement, mode="actualiser")
         if dialog.exec():
@@ -2212,10 +2237,12 @@ class MoneyManager(QMainWindow):
 
     def add_placement_row(self, row, placement: HistoriquePlacement):
         self.placement_table.setItem(row, 0, align(QTableWidgetItem(placement.nom)))
-        self.placement_table.setItem(row, 1, align(QTableWidgetItem(placement.type)))
-        self.placement_table.setItem(row, 2, align(DateTableWidgetItem(placement.date),Qt.AlignmentFlag.AlignCenter))
-        self.placement_table.setItem(row, 3, align(NumericTableWidgetItem(placement.val_actualise, format_montant(placement.val_actualise,1)),Qt.AlignmentFlag.AlignRight))
-        self.placement_table.setItem(row, 4, align(QTableWidgetItem(placement.origine)))
+        self.placement_table.setItem(row, 1, align(QTableWidgetItem(placement.ticker)))
+        self.placement_table.setItem(row, 2, align(QTableWidgetItem(placement.type)))
+        self.placement_table.setItem(row, 3, align(DateTableWidgetItem(placement.date),Qt.AlignmentFlag.AlignCenter))
+        self.placement_table.setItem(row, 4, align(NumericTableWidgetItem(placement.val_actualise, format_montant(placement.val_actualise,1)),Qt.AlignmentFlag.AlignRight))
+        self.placement_table.setItem(row, 5, align(QTableWidgetItem(placement.origine)))
+        
 
     def add_echeance_row(self, row, echeance: Echeance):
         frequence_item = DateTableWidgetItem(echeance.frequence)
@@ -2641,9 +2668,17 @@ class MoneyManager(QMainWindow):
 
 
     def add_placement(self,historique_placement:HistoriquePlacement):
-        placement = Placement(historique_placement.nom,historique_placement.type)
+        placement = Placement(historique_placement.nom,historique_placement.type, historique_placement.ticker)
         if InsertPlacement(placement,parent=self):
-            InsertHistoriquePlacement(historique_placement)
+            if historique_placement.ticker == "":
+                InsertHistoriquePlacement(historique_placement)
+            else:
+                try:
+                    last_values = GetLastValuePlacement(placement.ticker)              
+                    InsertHistoriquePlacement(HistoriquePlacement(placement.nom,placement.type,last_values[placement.ticker][0],last_values[placement.ticker][1],"Actualisation automatique",placement.ticker))
+                except Exception as e:
+                    print(e)
+
             self.account_list.clear()
             self.load_accounts()
             self.compte_table.clearContents()
@@ -2658,6 +2693,8 @@ class MoneyManager(QMainWindow):
             # 3. Ajuste la largeur des colonnes puis réactive le tri
             self.placement_table.resizeColumnsToContents()
             self.placement_table.setSortingEnabled(True)
+            self.placement_table.clearContents()
+            self.load_placement()
 
     def add_moyen_paiement(self,moyen_paiement):
         if InsertMoyenPaiement(moyen_paiement,parent=self):
@@ -2710,8 +2747,23 @@ class MoneyManager(QMainWindow):
     def update_type_tier(self, type_tier,old_nom):
         UpdateTypeTypeTier(type_tier,old_nom)
 
-    def update_placement(self, placement,old_nom):
+    def update_placement(self, placement:HistoriquePlacement,old_nom):
         UpdatePlacement(placement,old_nom)
+        UpdateHistoriquePlacement(placement,old_nom)        
+        if placement.ticker != '':
+            try:
+                date,value = GetLastValuePlacement(placement.ticker)                
+                InsertHistoriquePlacement(HistoriquePlacement(placement.nom,placement.type,date,value,"Actualisation automatique",placement.ticker))
+                self.account_list.clear()
+                self.load_accounts()
+                self.placement_table.clearContents()
+                self.load_placement()
+            except:
+                self.placement_table.clearContents()
+                self.load_placement()
+            
+
+
 
     def update_moyen_paiement(self, moyen_paiement,old_nom):
         UpdateMoyenPaiement(moyen_paiement,old_nom)
@@ -3434,8 +3486,8 @@ class MoneyManager(QMainWindow):
 
         # -- Tableau principal des placements --
         placement_table_panel = QVBoxLayout()
-        self.placement_table = QTableWidget(0, 5)        
-        self.placement_table.setHorizontalHeaderLabels(["Nom", "Type", "Date", "Valeur actualisée", "Origine"])
+        self.placement_table = QTableWidget(0, 6)        
+        self.placement_table.setHorizontalHeaderLabels(["Nom", "N° ISIN", "Type", "Date", "Valeur actualisée", "Origine"])
         table_style(self.placement_table)
         self.placement_table.resizeColumnsToContents()
         self.placement_table.setAlternatingRowColors(True)

@@ -204,7 +204,8 @@ def  create_tables(db_path=None):
             type TEXT,
             date INTEGER,
             valeur_actualise REAL,
-            origine TEXT,    
+            origine TEXT,
+            ticker TEXT,    
             PRIMARY KEY (nom,date)
             FOREIGN KEY (nom) REFERENCES placement(nom) ON UPDATE CASCADE ON DELETE CASCADE
         )
@@ -225,7 +226,8 @@ def  create_tables(db_path=None):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS placement (
             nom TEXT,
-            type TEXT,    
+            type TEXT,
+            ticker TEXT,    
             PRIMARY KEY (nom)
         )
     ''')
@@ -657,7 +659,7 @@ def UpdateTypeTypeTier(type_tier,old_nom:str, db_path=None):
     conn.commit()
     conn.close()
 
-def UpdatePlacement(placement,old_nom:str, db_path=None):
+def UpdatePlacement(placement:HistoriquePlacement,old_nom:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
@@ -665,9 +667,26 @@ def UpdatePlacement(placement,old_nom:str, db_path=None):
 
     cursor.execute('''
     UPDATE placement
-    SET nom = ?
+    SET nom = ?, ticker = ?
     WHERE nom = ?
     ''', (placement.nom,
+          placement.ticker,
+          old_nom))
+
+    conn.commit()
+    conn.close()
+
+def UpdateHistoriquePlacement(placement:HistoriquePlacement,old_nom:str, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("PRAGMA foreign_keys = ON;")
+
+    cursor.execute('''
+    UPDATE historique_placement
+    SET ticker = ?
+    WHERE nom = ?
+    ''', (placement.ticker,
           old_nom))
 
     conn.commit()
@@ -858,14 +877,14 @@ def GetHistoriquePlacement(nom:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select nom,type,date,valeur_actualise,origine from historique_placement where nom = '{nom}'")
+    cursor.execute(f"select nom,type,date,valeur_actualise,origine,ticker from historique_placement where nom = '{nom}'")
     historique_placement = cursor.fetchall()
 
     conn.close()
 
     result = []
     for row in historique_placement:
-        placement = HistoriquePlacement(row[0],row[1],row[2],row[3],row[4])
+        placement = HistoriquePlacement(row[0],row[1],row[2],row[3],row[4],row[5])
         result.append(placement)
 
     return result
@@ -874,11 +893,11 @@ def GetHistoriquePlacementByDate(nom:str,date:int, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select nom,type,date,valeur_actualise,origine from historique_placement where nom = '{nom}' and date = {date}")
+    cursor.execute(f"select nom,type,date,valeur_actualise,origine,ticker from historique_placement where nom = '{nom}' and date = {date}")
     row = cursor.fetchone()
 
     conn.close()
-    return HistoriquePlacement(row[0],row[1],row[2],row[3],row[4])
+    return HistoriquePlacement(row[0],row[1],row[2],row[3],row[4],row[5])
 
 
 def GetAllSousCategorie(db_path=None):
@@ -1032,17 +1051,30 @@ def GetLastPlacement(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select nom,type,max(date),valeur_actualise,origine from historique_placement group by nom")
+    cursor.execute(f"select nom,type,max(date),valeur_actualise,origine,ticker from historique_placement group by nom")
     categories = cursor.fetchall()
 
     conn.close()
 
     result = []
     for row in categories:
-        placement = HistoriquePlacement(row[0],row[1],row[2],row[3],row[4])
+        placement = HistoriquePlacement(row[0],row[1],row[2],row[3],row[4],row[5])
         result.append(placement)
 
     return result
+
+
+def GetLastPlacementByName(nom_placement:str,db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute(f"select nom,type,max(date),valeur_actualise,origine,ticker from historique_placement where nom = '{nom_placement}'")
+    row = cursor.fetchone()
+
+    conn.close()
+    placement = HistoriquePlacement(row[0],row[1],row[2],row[3],row[4],row[5])
+
+    return placement
 
 def GetTierRelatedOperations(tier_id : str, db_path=None):
     conn = connect_db(db_path)
@@ -1800,9 +1832,9 @@ def InsertPlacement(placement,parent=None, db_path=None) -> bool:
     cursor = conn.cursor()
     try:
         cursor.execute('''
-        INSERT INTO placement (nom, type)
-        VALUES (?, ?)
-        ''', (placement.nom, placement.type))
+        INSERT INTO placement (nom, type, ticker)
+        VALUES (?, ?, ?)
+        ''', (placement.nom, placement.type, placement.ticker))
 
         conn.commit()
         return True
@@ -1817,14 +1849,14 @@ def InsertPlacement(placement,parent=None, db_path=None) -> bool:
         conn.close()
 
 # Insérer une catégorie de tiers
-def InsertHistoriquePlacement(historique_placement,parent=None, db_path=None) -> bool:
+def InsertHistoriquePlacement(historique_placement:HistoriquePlacement,parent=None, db_path=None) -> bool:
     conn = connect_db(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute('''
-        INSERT INTO historique_placement (nom, type,date,valeur_actualise,origine)
-        VALUES (?, ?, ?, ?, ?)
-        ''', (historique_placement.nom, historique_placement.type,historique_placement.date,historique_placement.val_actualise,historique_placement.origine))
+        INSERT INTO historique_placement (nom, type,date,valeur_actualise,origine,ticker)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ''', (historique_placement.nom, historique_placement.type,historique_placement.date,historique_placement.val_actualise,historique_placement.origine, historique_placement.ticker))
 
         conn.commit()
         for compte_id in GetComptePlacement(historique_placement.nom, conn):
@@ -2077,6 +2109,21 @@ def GetPret(compte_id, db_path=None):
 
     return result
 
+def GetTickerPlacement(db_path = None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT nom,ticker FROM placement where ticker <> ''")
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in rows:
+        result.append((row[0],row[1]))
+
+    return result
+
 def GetLoan(compte_id, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -2152,14 +2199,14 @@ def GetPlacements(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT nom,type FROM placement")
+    cursor.execute(f"SELECT nom,type,ticker FROM placement")
     placements = cursor.fetchall()
 
     conn.close()
 
     result = []
     for row in placements:
-        placement = Placement(row[0],row[1])
+        placement = Placement(row[0],row[1],row[2])
         result.append(placement)
 
     return result
