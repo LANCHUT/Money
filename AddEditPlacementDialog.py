@@ -6,6 +6,9 @@ from Datas import TypePlacement,HistoriquePlacement
 from DateTableWidgetItem import CustomDateEdit
 from GestionBD import DeleteHistoriquePlacement, InsertHistoriquePlacement
 from BaseDialog import BaseDialog
+import re
+from datetime import datetime
+from GetPlacementValue import GetLastValuePlacement
 
 def get_float_value(field: QLineEdit) -> float:
     text = field.text().replace(' ', '').replace(',', '.')
@@ -91,9 +94,17 @@ class AddEditPlacementDialog(BaseDialog):
     def submit(self):
         nom = self.nom.text()
         ticker = self.ticker.text()
+        date = int(self.date.date().toString("yyyyMMdd"))
 
         if not nom:
             QMessageBox.warning(self, "Erreur", "Le champ nom doit être rempli.")
+            return
+        if ticker != "" and not re.match(r"^[A-Z]{2}[A-Z0-9]{9}[0-9]$",ticker):
+            QMessageBox.warning(self, "Erreur", "Le numéro ISIN n'est pas valide.")
+            return
+        
+        if ticker != "" and date > int(datetime.today().strftime("%Y%m%d")):
+            QMessageBox.warning(self, "Erreur", "La date demandée pour le n° ISIN est dans le futur.")
             return
 
         if self.placement and self.mode == "edit":
@@ -104,8 +115,14 @@ class AddEditPlacementDialog(BaseDialog):
             self.accept()
         elif self.placement and self.mode in ["actualiser","modifier"]:
             type = self.type.currentText()
-            date = int(self.date.date().toString("yyyyMMdd"))
-            valeur_actualisee = get_float_value(self.val_actualisee)
+            
+            if ticker != "":
+                values = GetLastValuePlacement(self.placement.ticker,datetime.strptime(str(date), "%Y%m%d").strftime("%Y-%m-%d"))
+                valeur_actualisee = values[self.placement.ticker][1]
+                self.val_actualisee.setText(str(valeur_actualisee))
+                date = values[self.placement.ticker][0]
+            else:    
+                valeur_actualisee = get_float_value(self.val_actualisee)
             new_placement = HistoriquePlacement(nom, type, date, valeur_actualisee, "Actualisation",ticker)
             DeleteHistoriquePlacement(nom,date)
 

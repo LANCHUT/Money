@@ -1071,16 +1071,20 @@ class MoneyManager(QMainWindow):
         # Récupérer les infos du placement existant
         nom = self.placement_table.item(row, 0).text()
         placement = GetLastPlacementByName(nom)
+        last_known_date = placement.date
 
         dialog = AddEditPlacementDialog(self, placement=placement, mode="actualiser")
         if dialog.exec():
-            # Mise à jour complète de la ligne existante
-            self.placement_table.item(row, 0).setText(dialog.nom.text())
-            self.placement_table.item(row, 1).setText(dialog.type.currentText())
-            self.placement_table.item(row, 2).setText(dialog.date.date().toString("dd/MM/yyyy"))
-            self.placement_table.item(row, 3).setText(format_montant(float(dialog.val_actualisee.text().replace(' ','')),1))
-            self.placement_table.item(row, 4).setText("Actualisation")
-            self.show_placement_history_graph(self.placement_table.item(row, 0))
+
+            if int(dialog.date.date().toString("yyyyMMdd")) >= last_known_date:
+                # Mise à jour complète de la ligne existante
+                self.placement_table.item(row, 0).setText(dialog.nom.text())
+                self.placement_table.item(row, 1).setText(dialog.ticker.text())
+                self.placement_table.item(row, 2).setText(dialog.type.currentText())
+                self.placement_table.item(row, 3).setText(dialog.date.date().toString("dd/MM/yyyy"))
+                self.placement_table.item(row, 4).setText(format_montant(float(dialog.val_actualisee.text().replace(' ','')),1))
+                self.placement_table.item(row, 5).setText("Actualisation")
+        self.show_placement_history_graph(self.placement_table.item(row, 0))
 
     def edit_selected_compte(self, row):
         # Récupérer les informations de la ligne sélectionnée
@@ -2674,7 +2678,7 @@ class MoneyManager(QMainWindow):
                 InsertHistoriquePlacement(historique_placement)
             else:
                 try:
-                    last_values = GetLastValuePlacement(placement.ticker)              
+                    last_values = GetLastValuePlacement(placement.ticker,datetime.strptime(str(historique_placement.date), "%Y%m%d").strftime("%Y-%m-%d"))              
                     InsertHistoriquePlacement(HistoriquePlacement(placement.nom,placement.type,last_values[placement.ticker][0],last_values[placement.ticker][1],"Actualisation automatique",placement.ticker))
                 except Exception as e:
                     print(e)

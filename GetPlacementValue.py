@@ -1,11 +1,16 @@
 import yfinance as yf
 import pandas as pd
 
-def GetLastValuePlacement(tickers: list) -> dict:
+def GetLastValuePlacement(tickers: list,date = None) -> dict:
     result = {}
 
     # Télécharger les données groupées
-    data = yf.download(tickers, period="5d", interval="1d", progress=False, auto_adjust=True)
+    if date is None:
+        data = yf.download(tickers, period="3d", interval="1d", progress=False, auto_adjust=True)
+        index = -1
+    else:
+        data = yf.download(tickers, period="3d", interval="1d", start=date, progress=False, auto_adjust=True)
+        index = 0
     if isinstance(tickers, str):
         tickers = [tickers]
     # Gestion MultiIndex si plusieurs tickers
@@ -21,7 +26,7 @@ def GetLastValuePlacement(tickers: list) -> dict:
     if close_data.empty:
         return result  # Aucun résultat dispo
 
-    last_valid_date = close_data.index[-1]
+    last_valid_date = close_data.index[index]
     last_row = close_data.loc[last_valid_date]
 
     # Conversion de la date en int AAAAMMJJ
@@ -36,4 +41,4 @@ def GetLastValuePlacement(tickers: list) -> dict:
 
     return result
 
-print(GetLastValuePlacement("FR001400P1P2"))
+print(GetLastValuePlacement("US0378331005","2025-06-22"))
