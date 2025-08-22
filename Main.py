@@ -2678,9 +2678,10 @@ class MoneyManager(QMainWindow):
                 InsertHistoriquePlacement(historique_placement)
             else:
                 try:
-                    last_values = GetLastValuePlacement(placement.ticker,datetime.strptime(str(historique_placement.date), "%Y%m%d").strftime("%Y-%m-%d"))              
+                    last_values = GetLastValuePlacement(placement.ticker,datetime.datetime.strptime(str(historique_placement.date), "%Y%m%d").strftime("%Y-%m-%d"))              
                     InsertHistoriquePlacement(HistoriquePlacement(placement.nom,placement.type,last_values[placement.ticker][0],last_values[placement.ticker][1],"Actualisation automatique",placement.ticker))
                 except Exception as e:
+                    DeletePlacement(placement.nom)
                     print(e)
 
             self.account_list.clear()

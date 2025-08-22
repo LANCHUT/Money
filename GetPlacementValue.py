@@ -40,5 +40,3 @@ def GetLastValuePlacement(tickers: list,date = None) -> dict:
             continue  # Ticker non présent dans les données
 
     return result
-
-print(GetLastValuePlacement("US0378331005","2025-06-22"))
