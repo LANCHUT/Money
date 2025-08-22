@@ -2752,8 +2752,8 @@ class MoneyManager(QMainWindow):
         UpdateHistoriquePlacement(placement,old_nom)        
         if placement.ticker != '':
             try:
-                date,value = GetLastValuePlacement(placement.ticker)                
-                InsertHistoriquePlacement(HistoriquePlacement(placement.nom,placement.type,date,value,"Actualisation automatique",placement.ticker))
+                last_values = GetLastValuePlacement(placement.ticker)                
+                InsertHistoriquePlacement(HistoriquePlacement(placement.nom,placement.type,last_values[placement.ticker][0],last_values[placement.ticker][1],"Actualisation automatique",placement.ticker))
                 self.account_list.clear()
                 self.load_accounts()
                 self.placement_table.clearContents()
