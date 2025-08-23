@@ -2699,7 +2699,7 @@ class MoneyManager(QMainWindow):
                     InsertHistoriquePlacement(HistoriquePlacement(placement.nom,placement.type,last_values[placement.ticker][0],last_values[placement.ticker][1],"Actualisation automatique",placement.ticker))
                 except Exception as e:
                     DeletePlacement(placement.nom)
-                    print(e)
+                    QMessageBox.critical(self,"Erreur",f"Pas de valeur trouvé pour le N° ISIN {historique_placement.ticker}, vérifiez l'état de votre connexion internet puis réessayez")
 
             self.account_list.clear()
             self.load_accounts()
