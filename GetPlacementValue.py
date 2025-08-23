@@ -40,3 +40,6 @@ def GetLastValuePlacement(tickers: list,date = None) -> dict:
             continue  # Ticker non présent dans les données
 
     return result
+
+if __name__ == "__main__":
+    print(GetLastValuePlacement("US0378331005","2025-08-10"))

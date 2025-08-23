@@ -3418,7 +3418,7 @@ class MoneyManager(QMainWindow):
         from datetime import datetime
         dates = [datetime.strptime(str(h.date).zfill(8), "%Y%m%d") for h in historique]
         valeurs = [h.val_actualise for h in historique]
-        fig = go.Figure(data=[go.Scatter(x=dates, y=valeurs, mode='lines+markers', name=nom)])
+        fig = go.Figure(data=[go.Scatter(x=dates, y=valeurs, mode='lines', name=nom)])
         dates = [f"{str(h.date)[6:8]}/{str(h.date)[4:6]}/{str(h.date)[0:4]}" for h in historique]
 
         self.history_table.setRowCount(0)  # Réinitialiser

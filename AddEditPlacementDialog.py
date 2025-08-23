@@ -86,6 +86,10 @@ class AddEditPlacementDialog(BaseDialog):
             self.nom.setEnabled(False)
             self.date.setEnabled(True)
             self.val_actualisee.setReadOnly(False)
+            if self.mode == "actualiser":
+                self.ticker.setEnabled(False)
+            else:
+                self.ticker.setEnabled(True)
         else:
             self.date.setDisabled(True)
             self.val_actualisee.setText(str(self.placement.val_actualise))
