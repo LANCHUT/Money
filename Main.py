@@ -3025,7 +3025,7 @@ class MoneyManager(QMainWindow):
 
         self.position_table = QTableWidget(0, 12)
         self.position_table.setHorizontalHeaderLabels([
-            "Date", "Type", "Compte\nAssocié", "Placement","Bq", "Nombre\nparts", "Valeur\npart Achat", "Frais", "Intérêts", "Notes", "Montant\nInvestissement", "Montant\nPosition"
+            "Date", "Type", "Compte\nAssocié", "Placement","Bq", "Nombre\nparts", "Valeur\npart Achat", "Frais", "Intérêts", "Notes", "Montant\nInvestissement", "Montant\nPosition initial"
         ])
         table_style(self.position_table)
         self.position_table.resizeColumnsToContents()
