@@ -2059,6 +2059,28 @@ def GetComptePlacement(nom_placement:str,conn = None) -> list:
         result.append(row[0])
     return result
 
+def GetComptePlacementNameByPlacement(nom_placement:str,conn = None) -> list:
+    was_none = False
+    if conn is None:
+        was_none = True
+        conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(f"""select distinct c.nom
+from placement p
+inner join "position" p2 on p.nom = p2.nom_placement 
+inner join comptes c on p2.compte_id = c.id
+where p.nom = '{nom_placement}'""")
+
+    comptes = cursor.fetchall()
+    if was_none:
+        conn.close()
+
+    result = []
+    for row in comptes:
+        result.append(row[0])
+    return result
+
 def GetComptePret(conn = None) -> list:
     was_none = False
     if conn is None:

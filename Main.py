@@ -1086,6 +1086,23 @@ class MoneyManager(QMainWindow):
                 self.placement_table.item(row, 5).setText("Actualisation")
         self.show_placement_history_graph(self.placement_table.item(row, 0))
 
+    def voir_compte_selected_placement(self, row):
+        item_nom = self.placement_table.item(row, 0)
+        nom = item_nom.text()
+        # Supposons que cette fonction retourne une liste
+        resultats = GetComptePlacementNameByPlacement(nom)
+
+        # Convertir la liste en texte lisible
+        texte_popup = "\n".join(str(item) for item in resultats)
+
+        # Créer et afficher une popup
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Comptes associés au placement")
+        msg.setText(f"Liste des comptes associés au placement '{nom}':")
+        msg.setInformativeText(texte_popup)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.exec()
+
     def edit_selected_compte(self, row):
         # Récupérer les informations de la ligne sélectionnée
         item_nom = self.compte_table.item(row, 0)
@@ -3728,14 +3745,17 @@ class MoneyManager(QMainWindow):
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
         actualiser_action = QAction("Actualiser",self)
+        voir_compte_action = QAction("Voir comptes associés",self)
 
         edit_action.triggered.connect(lambda: self.edit_selected_placement(row))
         delete_action.triggered.connect(lambda: self.delete_selected_placement(row))
         actualiser_action.triggered.connect(lambda: self.actualiser_selected_placement(row))
+        voir_compte_action.triggered.connect(lambda:self.voir_compte_selected_placement(row))
 
         menu.addAction(edit_action)
         menu.addAction(delete_action)
         menu.addAction(actualiser_action)
+        menu.addAction(voir_compte_action)
 
         menu.exec(self.placement_table.viewport().mapToGlobal(pos))
 
