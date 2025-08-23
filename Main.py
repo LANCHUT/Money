@@ -3087,7 +3087,7 @@ class MoneyManager(QMainWindow):
         self.reprendre_pointage_btn.hide()
 
         self.pointage_info_label = QLabel()
-        self.pointage_info_label.setStyleSheet("font-weight: bold; color: #000000;")
+        self.pointage_info_label.setStyleSheet("font-weight: bold; color: #ffffff;")
         self.pointage_info_label.hide()  # caché tant qu'on ne commence pas
 
         self.end_pointage_btn = QPushButton("Terminer le pointage")
@@ -3990,7 +3990,7 @@ class MoneyManager(QMainWindow):
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte.")
             return
 
-        solde, date = GetDerniereValeurPointe(self.current_account)  # à créer dans GestionBD
+        solde, date = GetDerniereValeurPointe(self.current_account)
         result = show_pointage_dialog(self, solde, str(date))
 
         if result:
@@ -3998,8 +3998,8 @@ class MoneyManager(QMainWindow):
             self.pointage_state['somme_pointees'] = 0
             self.pointage_state['solde'] = result['solde']
             self.pointage_state['date'] = result['date']
-            self.pointage_state['solde'] = solde  # point de départ
-            self.pointage_state['target'] = result['solde']   # objectif à atteindre
+            self.pointage_state['solde'] = solde
+            self.pointage_state['target'] = result['solde']
 
             self.pointage_info_label.setText(
                 f"Dernier relevé : {result['solde']:.2f} €"

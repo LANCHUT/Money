@@ -1236,6 +1236,13 @@ def DeleteHistoriquePlacement(nom : str, date : int, db_path=None):
 
     conn.close()
 
+def DeleteHistoriquePointage(date : int, db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM historique_pointage where date = ?", (date,))
+    conn.commit()
+    conn.close()
+
 def DeleteSousCategorie(nom : str,categorie_parent:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -1871,13 +1878,19 @@ def InsertHistoriquePlacement(historique_placement:HistoriquePlacement,parent=No
 def InsertHistoriquePointage(compte_id,date,solde, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
-    cursor.execute('''
-    INSERT INTO historique_pointage (compte_id, date,solde)
-    VALUES (?, ?, ?)
-    ''', (compte_id, date,solde))
-
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute('''
+        INSERT INTO historique_pointage (compte_id, date,solde)
+        VALUES (?, ?, ?)
+        ''', (compte_id, date,solde))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    
+    finally:
+        conn.close()
+    
 
 # Insérer une sous-catégorie
 def InsertSousCategorie(sous_categorie, parent=None, db_path=None) -> bool:

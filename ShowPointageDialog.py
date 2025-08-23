@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox, QMessageBox,QTableWidget
 from PyQt6.QtCore import QDate,Qt
 from DateTableWidgetItem import CustomDateEdit
-from GestionBD import InsertHistoriquePointage, UpdateBqOperation
+from GestionBD import InsertHistoriquePointage, UpdateBqOperation, DeleteHistoriquePointage
 
 def show_pointage_dialog(parent, dernier_solde, derniere_date):
     # Convertir "YYYYMMDD" en QDate et format lisible
@@ -107,7 +107,9 @@ def finalize_pointage(pointage_state, solde_cible,date,parent):
     else:
         QMessageBox.warning(parent, "Écart détecté", f"Attention : il reste un écart de {delta:.2f} €")
 
-    InsertHistoriquePointage(parent.current_account,date,solde_cible)
+    if not InsertHistoriquePointage(parent.current_account,date,solde_cible):
+        DeleteHistoriquePointage(date)
+        InsertHistoriquePointage(parent.current_account,date,solde_cible)
     for operation_id in pointage_state['ops']:
         UpdateBqOperation(operation_id)    
 
