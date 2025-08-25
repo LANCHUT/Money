@@ -2527,8 +2527,9 @@ class MoneyManager(QMainWindow):
         elif position.type == TypePosition.Interet.value:
             InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,position.interets,f"Intérêts placement {position.nom_placement}",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
         type_placement = GetTypePlacement(position.nom_placement)
+        ticker = GetTickerPlacementByNomPlacement(position.nom_placement)
         last_value_placement = GetLastValueForPlacement(position.nom_placement)
-        if not InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type)) and last_value_placement != position.val_part:
+        if not InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type,ticker)) and last_value_placement != position.val_part:
             # Ici on suppose que le conflit est dû à un doublon. Tu peux filtrer plus précisément avec l'erreur SQL si nécessaire.
             msg_box = QMessageBox(self)
             msg_box.setWindowTitle("Conflit détecté")
@@ -2553,17 +2554,14 @@ class MoneyManager(QMainWindow):
             else:
                 reply_is_yes = False
 
-            if not reply_is_yes:
-                return  # L'utilisateur a annulé
-
             if reply_is_yes:
                 # Remplace l'ancienne valeur (mise à jour dans la BDD)
                 DeleteHistoriquePlacement(position.nom_placement,position.date)
-                InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type))
-                QMessageBox.information(None, "Mise à jour", "L'opération a été mise à jour avec succès.")
+                InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type,ticker))
+                QMessageBox.information(None, "Mise à jour", "L'historique des placements a été mise à jour avec succès.")
             else:
                 # Ne rien faire, l'utilisateur a choisi de garder l'existant
-                QMessageBox.information(None, "Annulé", "L'opération existante a été conservée.")
+                QMessageBox.information(None, "Annulé", "L'historique des placements n'a pas été mis à jour.")
         self.sound_effect("sound_effect/transaction.wav")
         self.account_list.clear()
         self.load_accounts()

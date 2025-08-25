@@ -118,7 +118,7 @@ class ShowPerformanceDialog(BaseDialog):
 
         for i, p in enumerate(placements):
             self.table.setItem(i, 0, align(QTableWidgetItem(p.get("nom", ""))))
-            self.table.setItem(i, 1, align(QTableWidgetItem(str(f"{float(p.get("nb_parts", 0)):,.4f}".replace(",", " ").replace(".", ","))),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 1, align(QTableWidgetItem(str(f"{float(p.get('nb_parts', 0)):,.4f}".replace(",", " ").replace(".", ","))),Qt.AlignmentFlag.AlignRight))
             self.table.setItem(i, 2, align(QTableWidgetItem(format_eur(p.get("val_part", 0),1)),Qt.AlignmentFlag.AlignRight))
             self.table.setItem(i, 3, align(QTableWidgetItem(format_eur(p.get("investi", 0))),Qt.AlignmentFlag.AlignRight))
             self.table.setItem(i, 4, align(QTableWidgetItem(format_eur(p.get("valorisation", 0))),Qt.AlignmentFlag.AlignRight))

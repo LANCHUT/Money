@@ -142,10 +142,18 @@ class AddEditPositionDialog(BaseDialog):
         if nb_part == 0 and type_placement not in [TypePosition.Interet.value]:
             QMessageBox.warning(self, "Erreur", "Le champs nb_part doit être remplis.")
             return
-        if type_placement in [TypePosition.Vente.value,TypePosition.Perte.value]:
+        if compte_associe_id is None and type_placement in [TypePosition.Interet.value,TypePosition.Achat.value,TypePosition.Vente.value]:
+            QMessageBox.warning(self, "Erreur", "Le champs compte associé doit être remplis.")
+            return
+
+        types_negatifs = {TypePosition.Vente.value, TypePosition.Perte.value}
+
+        types_positifs = {TypePosition.Gain.value, TypePosition.Achat.value, TypePosition.Don.value}
+
+        if type_placement in types_negatifs and nb_part > 0:
             nb_part *= -1
 
-        if nb_part < 0 and type_placement in [TypePosition.Gain.value,TypePosition.Achat.value,TypePosition.Don.value]:
+        elif type_placement in types_positifs and nb_part < 0:
             nb_part *= -1
 
         # Appliquer la logique "compte associé" seulement si c'est un transfert
@@ -263,32 +271,35 @@ class AddEditPositionDialog(BaseDialog):
     def format_montant(self, field: QLineEdit):
         text = field.text().strip()
 
-        if text in ("", "-", "-.", "."):
-            # Laisse l'utilisateur continuer à taper
-            return
+        if text in ("", "-", "-,", ","):
+            return  # Laisse l'utilisateur continuer à taper
 
         # Garde le signe négatif uniquement s'il est au début
         is_negative = text.startswith('-')
         text = text[1:] if is_negative else text
 
-        # Nettoyage : garder uniquement chiffres et le premier point
+        # Nettoyage : garder uniquement chiffres et la première virgule
         result = []
-        point_seen = False
+        comma_seen = False
         for c in text:
             if c.isdigit():
                 result.append(c)
-            elif c == '.' and not point_seen:
+            elif c == ',' and not comma_seen:
                 result.append(c)
-                point_seen = True
+                comma_seen = True
 
         clean_text = ''.join(result)
 
         if not clean_text:
             formatted = "-"
-        elif '.' in clean_text:
-            partie_entiere, partie_decimale = clean_text.split('.', 1)
+        elif ',' in clean_text:
+            partie_entiere, partie_decimale = clean_text.split(',', 1)
             partie_entiere = "{:,}".format(int(partie_entiere or "0")).replace(",", " ")
-            formatted = partie_entiere + '.' + partie_decimale
+
+            if partie_decimale == "":
+                formatted = partie_entiere + ','  # garde la virgule
+            else:
+                formatted = partie_entiere + ',' + partie_decimale
         else:
             formatted = "{:,}".format(int(clean_text)).replace(",", " ")
 

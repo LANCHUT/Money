@@ -2159,6 +2159,14 @@ def GetTickerPlacement(db_path = None):
 
     return result
 
+def GetTickerPlacementByNomPlacement(nom_placement,db_path = None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT ticker FROM placement where nom == ?",(nom_placement,))
+    row = cursor.fetchone()
+    return row[0]
+
 def GetLoan(compte_id, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
