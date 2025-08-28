@@ -16,8 +16,17 @@ def GetLastValuePlacement(tickers: list, date=None) -> dict:
         progress=False, 
         auto_adjust=True
     )
-
     index = 0 if date else -1
+    if data.empty:
+        data = yf.download(
+            tickers, 
+            period="3d", 
+            interval="1d", 
+            start= None, 
+            progress=False, 
+            auto_adjust=True
+        )
+        index = -1    
 
     # Extraire les prix de clôture
     close_data = data['Close'] if isinstance(data.columns, pd.MultiIndex) else data
@@ -73,4 +82,4 @@ def GetLastValuePlacement(tickers: list, date=None) -> dict:
     return result
 
 if __name__ == "__main__":
-    print(GetLastValuePlacement(["US0378331005", "AIR.PA"],"2025-08-21"))
+    print(GetLastValuePlacement("FR001400C7W0","2025-08-30"))
