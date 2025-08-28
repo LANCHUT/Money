@@ -127,10 +127,10 @@ class AddEditPlacementDialog(BaseDialog):
                 date = values[self.placement.ticker][0]
             else:    
                 valeur_actualisee = get_float_value(self.val_actualisee)
-            new_placement = HistoriquePlacement(nom, type, date, valeur_actualisee, "Actualisation",ticker)
+            self.new_placement = HistoriquePlacement(nom, type, date, valeur_actualisee, "Actualisation",ticker)
             DeleteHistoriquePlacement(nom,date)
 
-            if InsertHistoriquePlacement(new_placement):
+            if InsertHistoriquePlacement(self.new_placement):
                 self.parent().account_list.clear()
                 self.parent().load_accounts()
                 self.parent().compte_table.clearContents()
@@ -141,9 +141,9 @@ class AddEditPlacementDialog(BaseDialog):
             type = self.type.currentText()
             date = int(self.date.date().toString("yyyyMMdd"))
             valeur_actualisee = get_float_value(self.val_actualisee)
-            new_placement = HistoriquePlacement(nom, type, date, valeur_actualisee, "Création",ticker)
+            self.new_placement = HistoriquePlacement(nom, type, date, valeur_actualisee, "Création",ticker)
             
-            self.parent().add_placement(new_placement)
+            self.parent().add_placement(self.new_placement)
             self.accept()
 
     def format_montant(self, field: QLineEdit):

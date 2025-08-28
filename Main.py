@@ -1070,17 +1070,18 @@ class MoneyManager(QMainWindow):
         nom = self.placement_table.item(row, 0).text()
         placement = GetLastPlacementByName(nom)
         last_known_date = placement.date
-        
 
         dialog = AddEditPlacementDialog(self, placement=placement, mode="actualiser")
         if dialog.exec():
-            # Mise à jour complète de la ligne existante
-            self.placement_table.item(row, 0).setText(dialog.nom.text())
-            self.placement_table.item(row, 1).setText(dialog.ticker.text())
-            self.placement_table.item(row, 2).setText(dialog.type.currentText())
-            self.placement_table.item(row, 3).setText(datetime.datetime().strptime(str(last_known_date), "%Y%m%d").strftime("%d/%m/%Y"))
-            self.placement_table.item(row, 4).setText(format_montant(float(dialog.val_actualisee.text().replace(' ','')),1))
-            self.placement_table.item(row, 5).setText("Actualisation")
+
+            if int(dialog.date.date().toString("yyyyMMdd")) >= last_known_date:
+                # Mise à jour complète de la ligne existante
+                self.placement_table.item(row, 0).setText(dialog.nom.text())
+                self.placement_table.item(row, 1).setText(dialog.ticker.text())
+                self.placement_table.item(row, 2).setText(dialog.type.currentText())
+                self.placement_table.item(row, 3).setText(datetime.datetime.strptime(str(dialog.new_placement.date), "%Y%m%d").strftime("%d/%m/%Y"))
+                self.placement_table.item(row, 4).setText(format_montant(float(dialog.val_actualisee.text().replace(' ','')),1))
+                self.placement_table.item(row, 5).setText("Actualisation")
         self.show_placement_history_graph(self.placement_table.item(row, 0))
 
     def voir_compte_selected_placement(self, row):
