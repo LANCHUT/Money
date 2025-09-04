@@ -8,7 +8,7 @@ from GestionBD import *
 class AddEditTierDialog(BaseDialog):
     def __init__(self, parent=None, tier=None,type_tier:str=None):
         super().__init__(parent)
-        self.setWindowTitle("Ajouter / Modifier un Tier")
+        self.setWindowTitle("Ajouter / Modifier un Tiers")
 
         self.tier = tier
         self.type_tier_clicked = type_tier

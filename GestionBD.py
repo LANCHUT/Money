@@ -511,11 +511,18 @@ def InsertCompte(compte, parent = None, db_path=None) -> bool:
     finally:
         conn.close()
 
-def UpdateTier(tier, db_path=None):
+def UpdateTier(tier:Tier, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
+
+    if tier.categorie == '':
+        tier.categorie = None
+    if tier.sous_categorie == '':
+        tier.sous_categorie = None
+    if tier.moyen_paiement == '':
+        tier.moyen_paiement = None
 
     cursor.execute('''
     UPDATE tiers
@@ -2616,9 +2623,9 @@ def GetEcheanceToday(current_date = int((datetime.date.today() + datetime.timede
         WHERE prochaine_echeance <=  ?
     """, (current_date,))
     echeances = cursor.fetchall()
-    return int(datetime.date.today().strftime('%Y%m%d')),echeances
+    return echeances
 
-def GetEcheanceForce(echeance_date,echeance_id, db_path=None):
+def GetEcheanceForce(echeance_id, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
@@ -2629,7 +2636,7 @@ def GetEcheanceForce(echeance_date,echeance_id, db_path=None):
         WHERE id = ?
     """, (echeance_id,))
     echeances = cursor.fetchall()
-    return echeance_date,echeances
+    return echeances
 
 def UpdateProchaineEcheance(id,next_date, db_path=None):
     conn = connect_db(db_path)
@@ -2646,12 +2653,12 @@ def UpdateProchaineEcheance(id,next_date, db_path=None):
     conn.close()
 
 
-def RunEcheance(current_date,echeances, db_path=None):
+def RunEcheance(echeances, db_path=None):
     from Main import get_next_echeance
     for row in echeances:
         if row[21]:
             montant_investit = round(row[13]*row[14] + row[15],2)
-            position = Position(current_date,row[5],row[8],row[13],row[14],row[15],row[16],row[17],row[4],montant_investit,row[6])
+            position = Position(row[3],row[5],row[8],row[13],row[14],row[15],row[16],row[17],row[4],montant_investit,row[6])
             InsertPosition(position, db_path)
             if position.type == "Achat":
                 InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais,2),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)), db_path)
@@ -2659,8 +2666,8 @@ def RunEcheance(current_date,echeances, db_path=None):
                 InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais,2),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)), db_path)
             pass
         else:
-            operation = Operation(current_date,row[5],row[7],row[8],row[20],row[9],row[10],row[11],row[12],row[17],row[4],"",row[6],type_beneficiaire=row[18],beneficiaire=row[19])
+            operation = Operation(row[3],row[5],row[7],row[8],row[20],row[9],row[10],row[11],row[12],row[17],row[4],"",row[6],type_beneficiaire=row[18],beneficiaire=row[19])
             InsertOperation(operation, db_path)
             pass
 
-        UpdateProchaineEcheance(row[0],get_next_echeance(current_date,row[1]), db_path)
+        UpdateProchaineEcheance(row[0],get_next_echeance(row[3],row[1]), db_path)

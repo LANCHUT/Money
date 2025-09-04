@@ -369,8 +369,8 @@ class MoneyManager(QMainWindow):
         """Exécute RunEcheance seulement si une DB est active."""
         if self.current_db_path:
             try:
-                current_date, echeances = GetEcheanceToday(db_path=self.current_db_path)
-                RunEcheance(current_date, echeances, db_path=self.current_db_path)
+                echeances = GetEcheanceToday(db_path=self.current_db_path)
+                RunEcheance(echeances, db_path=self.current_db_path)
                 liste_compte_pret = GetComptePret()
                 for compte_id in liste_compte_pret:
                     new_solde,date, = GetCRD(compte_id,self.current_db_path)
@@ -1950,7 +1950,7 @@ class MoneyManager(QMainWindow):
                 QMessageBox.warning(self, "Erreur", "Impossible de trouver l'echéance sélectionnée.")
                 return
 
-            RunEcheance(*GetEcheanceForce(echeance.prochaine_echeance,echeance_id))
+            RunEcheance(GetEcheanceForce(echeance_id))
             self.reset_filters()
             self.placement_table.clearContents()
             self.load_placement()
@@ -2812,7 +2812,9 @@ class MoneyManager(QMainWindow):
     def update_position(self, position:Position,isEdit):
         if isEdit:
             DeletePosition(position)
-            self.add_position(position)
+            o = GetLinkOperation(str(position._id))
+            DeleteOperation(o,o.credit,o.debit)
+            self.add_position(position)         
         else:
             position._id = str(ObjectId())
             InsertPosition(position)
