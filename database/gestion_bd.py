@@ -2,6 +2,8 @@ import sqlite3
 from models import *
 from PyQt6.QtWidgets import QMessageBox
 import datetime
+from datetime import date
+from bson import ObjectId
 
 # DB_PATH ne sera plus une constante ici, mais sera défini dynamiquement
 # Initialisez-le à None ou à une valeur par défaut, ou supprimez-le si vous le passez toujours.
@@ -2654,7 +2656,7 @@ def UpdateProchaineEcheance(id,next_date, db_path=None):
 
 
 def RunEcheance(echeances, db_path=None):
-    from Main import get_next_echeance
+    from controllers.main_controller import get_next_echeance
     for row in echeances:
         if row[21]:
             montant_investit = round(row[13]*row[14] + row[15],2)
