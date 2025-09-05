@@ -2,8 +2,8 @@ name: Build and Publish EXE on Release
 
 on:
   push:
-    tags:
-      - 'v*' # Trigger on tags like v1.0.0
+    branches:
+      - 'feature/automated_release' # Trigger only on pushes to this branch
 
 jobs:
   build-and-publish:
