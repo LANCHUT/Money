@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="7a52af46-afcb-4bc8-9d7d-2f50e25d36ea" name="Changes" comment="Change fullScreen to maximized">
+      <change beforePath="$PROJECT_DIR$/AddEditAccountDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditBeneficiaireDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditCategorieDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditEcheanceDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditLoanDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditMoyenPaiementDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditOperationDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditPlacementDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditPositionDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditSousCategorieDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditTierDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditTypeBeneficiaireDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddEditTypeTierDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/BaseDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/CheckableComboBox.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ComputeLoan.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Datas.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DateTableWidgetItem.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/GestionBD.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/GetPlacementValue.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/HTMLJSTemplate.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ImportDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ImportQIF.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Money.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ReplaceCategorieDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ReplaceMoyenPaiementDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ReplaceSousCategorieDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ReplaceTierDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ReplaceTypeTierDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ShowPerformanceDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ShowPointageDialog.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/WebEngineWrapper.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/MainWindow.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/PopUpAjoutCategorieTier.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/PopUpAjoutCompte.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/PopUpAjoutOpération.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sound_effect/transaction.mp3" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sound_effect/transaction.wav" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;bouchutw&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/langelloantoine/Money.git&quot;,
+    &quot;accountId&quot;: &quot;4fa1309b-22f4-4409-a9f7-b87bab28d288&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="2ziiWZZ2QNKMTxwSA84QZCbI7L8" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.GestionBD.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.WebEngineWrapper.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/willi/Dev/Money&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RunManager" selected="Python.main">
+    <configuration name="Main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Money" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="WebEngineWrapper" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Money" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/WebEngineWrapper.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Money" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+        <item itemvalue="Python.Main" />
+        <item itemvalue="Python.WebEngineWrapper" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.26574.90" />
+        <option value="bundled-python-sdk-c1fac28bca04-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.26574.90" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="7a52af46-afcb-4bc8-9d7d-2f50e25d36ea" name="Changes" comment="" />
+      <created>1752220327503</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1752220327503</updated>
+      <workItem from="1752220328789" duration="2523000" />
+      <workItem from="1752228599925" duration="15676000" />
+      <workItem from="1752589857728" duration="773000" />
+      <workItem from="1752757890599" duration="382000" />
+      <workItem from="1753110698532" duration="901000" />
+      <workItem from="1753770986245" duration="626000" />
+      <workItem from="1753809841933" duration="66000" />
+      <workItem from="1754917961630" duration="1544000" />
+      <workItem from="1755694203507" duration="3390000" />
+      <workItem from="1756314423497" duration="1999000" />
+      <workItem from="1756365615746" duration="104000" />
+      <workItem from="1756894067190" duration="4358000" />
+      <workItem from="1756977004268" duration="632000" />
+      <workItem from="1757082392368" duration="208000" />
+      <workItem from="1757082612282" duration="738000" />
+      <workItem from="1757083463506" duration="1384000" />
+      <workItem from="1757085746572" duration="960000" />
+    </task>
+    <task id="LOCAL-00001" summary="Update requirements.txt">
+      <option name="closed" value="true" />
+      <created>1752226839201</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1752226839201</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Get data clicked from sunburst graph Figure">
+      <option name="closed" value="true" />
+      <created>1752240718815</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1752240718815</updated>
+    </task>
+    <task id="LOCAL-00003" summary="pushed data to gestion operations, WebEngineWrapper file test">
+      <option name="closed" value="true" />
+      <created>1752590036501</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1752590036501</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Change fullScreen to maximized">
+      <option name="closed" value="true" />
+      <created>1752758136956</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1752758136956</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Update requirements.txt" />
+    <MESSAGE value="Get data clicked from sunburst graph Figure" />
+    <MESSAGE value="pushed data to gestion operations, WebEngineWrapper file test" />
+    <MESSAGE value="Change fullScreen to maximized" />
+    <option name="LAST_COMMIT_MESSAGE" value="Change fullScreen to maximized" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/.venv/Lib/site-packages/yfinance/__init__.py</url>
+          <line>21</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/Money$test.coverage" NAME="test Coverage Results" MODIFIED="1752238651800" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Money$WebEngineWrapper.coverage" NAME="WebEngineWrapper Coverage Results" MODIFIED="1752240100471" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Money$Main.coverage" NAME="Main Coverage Results" MODIFIED="1756315656194" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Money$GestionBD.coverage" NAME="GestionBD Coverage Results" MODIFIED="1756315496195" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Money$main.coverage" NAME="main Coverage Results" MODIFIED="1757085117947" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>
