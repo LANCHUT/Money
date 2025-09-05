@@ -1,0 +1,54 @@
+name: Build and Publish EXE on Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags like v1.0.0
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest # PyInstaller works best on Windows for .exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build EXE with PyInstaller
+        run: |
+          pyinstaller --onefile --windowed --icon=..\..\assets\icons\Money.ico ..\..\main.py
+
+      - name: Test Software
+        run: |
+          .\dist\money.exe
+
+      - name: Upload EXE as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: your-app-exe
+          path: dist/your_script.exe
+
+#      - name: Publish EXE to another repo
+#        uses: dmnemec/copy_file_to_another_repo_action@main
+#        env:
+#          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+#        with:
+#          source-file: 'dist/your_script.exe'
+#          destination-repo: 'your-username/your-public-repo' # Replace with antoine new repo
+#          destination-folder: 'releases'
+#          user-email: 'williambouchut@gmail.com'
+#          user-name: 'bouchutw'
+#          commit-message: 'New BreezeBudget version${{ github.ref_name }}'
+#          user_email: ''
+#          user_name: ''
+#          destination_repo: ''
+#          source_file: ''
