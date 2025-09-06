@@ -51,8 +51,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Votre programme principal Main.exe
 ; Le fichier Main.exe doit être dans le même dossier que money_setup.iss
 Source: "dist\Main.exe"; DestDir: "{app}"
-Source: "assets/icons/Money.ico"; DestDir: "{app}"
-Source: "sound_effect\*"; DestDir:"{app}\sound_effect"
+Source: "assets\icons\Money.ico"; DestDir: "{app}\assets\icons"
+Source: "assets\sounds\*"; DestDir:"{app}\assets\sounds"
 ; Si vous avez d'autres fichiers (comme MyProg.chm ou Readme.txt dans l'exemple original),
 ; assurez-vous de les inclure ici.
 ; Par exemple, si vous avez un fichier Readme.txt :

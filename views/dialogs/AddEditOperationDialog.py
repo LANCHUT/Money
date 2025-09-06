@@ -381,6 +381,9 @@ class AddEditOperationDialog(BaseDialog):
             compte_id = None
             if self.echeance is not None:
                 compte_id = self.echeance.compte_id
+                if self.echeance.echeance1 == self.date_premiere:
+                    prochaine_echeance = self.echeance.prochaine_echeance
+
             elif self.compte_choisi_id is not None:
                 compte_id = self.compte_choisi_id
             else:
