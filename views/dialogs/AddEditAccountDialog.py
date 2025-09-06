@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from models import Compte, TypeCompte
 from PyQt6.QtCore import Qt
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 from database.gestion_bd import GetComptesNomBanque
 
 

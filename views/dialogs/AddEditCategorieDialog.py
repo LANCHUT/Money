@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QDialog, QLineEdit, QFormLayout, QMessageBox, QComboBox, QCheckBox
 )
 from models import Categorie
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 
 
 class AddEditCategorieDialog(BaseDialog):

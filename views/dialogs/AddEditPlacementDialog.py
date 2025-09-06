@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt, QEvent, QDate
 from models import TypePlacement,HistoriquePlacement
 from utils.DateTableWidgetItem import CustomDateEdit
 from database.gestion_bd import DeleteHistoriquePlacement, InsertHistoriquePlacement
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 import re
 from datetime import datetime
 from utils.GetPlacementValue import GetLastValuePlacement

@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QDialog, QLineEdit, QFormLayout, QMessageBox, QComboBox, QCheckBox,QComboBox
 )
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 from database.gestion_bd import *
 
 class AddEditTierDialog(BaseDialog):

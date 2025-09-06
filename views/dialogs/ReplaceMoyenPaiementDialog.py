@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QPushButton, QDialog, QVBoxLayout, QComboBox, QHBoxLayout, QLabel
 )
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 class ReplaceMoyenPaiementPopup(BaseDialog):
     def __init__(self, moyen_paiement_disponibles : list, parent=None):
         super().__init__(parent)

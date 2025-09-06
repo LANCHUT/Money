@@ -4,8 +4,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QDate,Qt
 from utils.DateTableWidgetItem import CustomDateEdit
 from datetime import *
-from .AddEditOperationDialog import get_next_echeance
-from .BaseDialog import BaseDialog
+from .AddEditOperationDialog import get_next_echeance,set_combobox_index_by_text,set_combobox_index_by_data
+from views.dialogs.BaseDialog import BaseDialog
 
 from database.gestion_bd import *
 
@@ -169,7 +169,6 @@ class AddEditPositionDialog(BaseDialog):
             compte_id = None
             if self.echeance is not None:
                 compte_id = self.echeance.compte_id
-                prochaine_echeance = self.echeance.prochaine_echeance
             elif self.compte_choisi_id is not None:
                 compte_id = self.compte_choisi_id
             else:
@@ -321,7 +320,6 @@ class AddEditPositionDialog(BaseDialog):
         self.set_echeancier_fields_visible(self.ajouter_echeancier_checkbox.isChecked())
 
     def fill_fields(self):
-        from AddEditOperationDialog import set_combobox_index_by_text,set_combobox_index_by_data
         self.date.setDate(QDate.fromString(str(self.position.date), "yyyyMMdd"))
         set_combobox_index_by_text(self.type_placement, self.position.type)
         set_combobox_index_by_text(self.placement, self.position.nom_placement)

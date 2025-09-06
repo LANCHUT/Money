@@ -5,4 +5,5 @@
 money_env
 build
 dist
+.idea
 __pycache__

@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QPushButton, QDialog, QVBoxLayout, QComboBox, QHBoxLayout, QLabel
 )
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 class ReplaceSousCategoriePopup(BaseDialog):
     def __init__(self, sous_categories_disponibles, parent=None):
         super().__init__(parent)

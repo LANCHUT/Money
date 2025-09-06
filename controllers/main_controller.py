@@ -467,7 +467,7 @@ class MoneyManager(QMainWindow):
         self.audio_output = QAudioOutput()
         self.player = QMediaPlayer()
         self.player.setAudioOutput(self.audio_output) # Associer la sortie audio au lecteur
-        icon_path = "Money.ico"
+        icon_path = "assets/icons/Money.ico"
         self.setWindowIcon(QIcon(icon_path))
 
         # Initialisation des états de la DB
@@ -694,6 +694,7 @@ class MoneyManager(QMainWindow):
         self.echeance_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.echeance_table.customContextMenuRequested.connect(self.show_context_menu_echeancier)
         self.echeance_table.setAlternatingRowColors(True)
+        self.echeance_table.sortItems(2,Qt.SortOrder.AscendingOrder)
         self.echeance_table.setSortingEnabled(True)
 
         generer_btn = QPushButton("Ajouter une échéance")
@@ -2420,7 +2421,7 @@ class MoneyManager(QMainWindow):
         self.load_accounts()
         self.compte_table.clearContents()
         self.load_comptes()
-        self.sound_effect("sound_effect/transaction.wav")
+        self.sound_effect("assets/sounds/transaction.wav")
 
     def sound_effect(self,sound_path:str):
         sound_path = os.path.abspath(sound_path)
@@ -2560,7 +2561,7 @@ class MoneyManager(QMainWindow):
             else:
                 # Ne rien faire, l'utilisateur a choisi de garder l'existant
                 QMessageBox.information(None, "Annulé", "L'historique des placements n'a pas été mis à jour.")
-        self.sound_effect("sound_effect/transaction.wav")
+        self.sound_effect("assets/sounds/transaction.wav")
         self.account_list.clear()
         self.load_accounts()
         self.add_position_row(position)
@@ -2804,7 +2805,7 @@ class MoneyManager(QMainWindow):
             operation._id = str(ObjectId())
             operation.bq = 0
             InsertOperation(operation)
-            self.sound_effect("sound_effect/transaction.wav")
+            self.sound_effect("assets/sounds/transaction.wav")
         self.account_list.clear()
         self.load_accounts()
         self.load_operations()
@@ -3123,9 +3124,10 @@ class MoneyManager(QMainWindow):
 
 
 
-        self.bq_filter = QCheckBox()
-        self.bq_filter.setTristate(True)
-        self.bq_filter.setCheckState(Qt.CheckState.PartiallyChecked)
+        self.bq_filter = QComboBox()
+        bq_filter_state = ["Rapprochées","Non rapprochées", "Tous"]
+        for state in bq_filter_state:
+            self.bq_filter.addItem(state)
 
         self.date_debut_filter = CustomDateEdit()
         self.date_debut_filter.setDate(QDate.currentDate().addMonths(-1))  # Par défaut, 1 mois avant
@@ -3189,7 +3191,7 @@ class MoneyManager(QMainWindow):
         filter_hbox1.addWidget(self.date_debut_filter)
         filter_hbox1.addWidget(QLabel("Date fin période:"))
         filter_hbox1.addWidget(self.date_fin_filter)
-        filter_hbox1.addWidget(QLabel("Pointées:"))
+        filter_hbox1.addWidget(QLabel("Rapprochées: "))
         filter_hbox1.addWidget(self.bq_filter)
         filter_hbox1.addStretch(1)
         filter_vbox.addLayout(filter_hbox1)
@@ -3916,11 +3918,11 @@ class MoneyManager(QMainWindow):
 
         date_debut = int(self.date_debut_filter.date().toString("yyyyMMdd"))
         date_fin = int(self.date_fin_filter.date().toString("yyyyMMdd"))
-        state = self.bq_filter.checkState()
-        if state == Qt.CheckState.Checked:
+        state = self.bq_filter.currentText()
+        if state == "Rapprochées":
             # filtrer uniquement les opérations pointées
             bq = True
-        elif state == Qt.CheckState.Unchecked:
+        elif state == "Non rapprochées":
             # filtrer uniquement les opérations non pointées
             bq = False
         else:

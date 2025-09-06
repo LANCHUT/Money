@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QLineEdit, QFormLayout, QMessageBox, QComboBox
 )
 from database.gestion_bd import GetTypeBeneficiaire
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 from models import Beneficiaire
 
 

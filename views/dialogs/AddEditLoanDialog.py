@@ -7,7 +7,7 @@ from utils.DateTableWidgetItem import CustomDateEdit
 from PyQt6.QtCore import Qt, QDate, QLocale
 from PyQt6.QtGui import QDoubleValidator, QIntValidator
 
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 from models import Loan
 from datetime import date
 from database.gestion_bd import GetComptesHorsPlacement,GetCompteName

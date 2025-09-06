@@ -59,7 +59,7 @@ Money/
 │
 ├── assets/                    # Static assets
 │   ├── icons/
-│   │   └── Money.ico         # Application icon
+│   │   └── assets/icons/Money.ico         # Application icon
 │   └── sounds/
 │       ├── transaction.mp3   # Sound effects
 │       └── transaction.wav

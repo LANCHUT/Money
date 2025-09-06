@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QLineEdit, QFormLayout, QMessageBox
 )
 from models import TypeTier
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 
 
 class AddEditTypeTierDialog(BaseDialog):

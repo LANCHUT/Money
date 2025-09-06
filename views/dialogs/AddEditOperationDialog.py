@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt,QDate
 from models import Operation,TypeOperation,Echeance
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 from utils.DateTableWidgetItem import CustomDateEdit
 from datetime import *
 
@@ -84,7 +84,10 @@ class AddEditOperationDialog(BaseDialog):
 
         self.tier = QComboBox(self)
         self.tier.setEditable(True)
-        tiers = GetTiersActifByType(types_tier[0].nom)
+        if operation:
+            tiers = GetTiersActifByType(operation.type_tier)
+        else:
+            tiers = GetTiersActifByType(types_tier[0].nom)
         self.tier_list = [t.nom for t in tiers]
         self.completer = QCompleter(self.tier_list, self)
         self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
@@ -238,9 +241,10 @@ class AddEditOperationDialog(BaseDialog):
 
     def fill_fields(self):
         self.date.setDate(QDate.fromString(str(self.operation.date), "yyyyMMdd"))
+        self.on_type_tier_changed(self.operation.type_tier)
         set_combobox_index_by_text(self.type_operation, self.operation.type)
         set_combobox_index_by_text(self.type_tier, self.operation.type_tier)
-        self.on_type_tier_changed(self.operation.type_tier)
+        set_combobox_index_by_data(self.tier, self.operation.tier)        
 
         # ComboBox tier (editable avec userData)
         if self.operation.tier == '':
@@ -252,6 +256,7 @@ class AddEditOperationDialog(BaseDialog):
             self.moyen_paiement.setCurrentText(tier.moyen_paiement)
             self.categorie.setCurrentText(tier.categorie)
             self.sous_categorie.setCurrentText(tier.categorie)
+            self.tier.setCurrentText(tier.nom)
             
         self.num_cheque.setText(str(self.operation.num_cheque))
         self.update_sous_categories(self.operation.categorie)
@@ -287,6 +292,10 @@ class AddEditOperationDialog(BaseDialog):
         beneficiaire = self.beneficiaire.currentText()
         frequence = self.frequence.currentText()
 
+        if type_operation in ["Transfert vers", "Transfert de"]:
+            compte_associe = self.compte_associe.currentData()
+        else :
+            compte_associe = ""
 
         if not self.ajouter_benef_checkbox.isChecked():
             type_beneficiaire = ""
@@ -372,7 +381,6 @@ class AddEditOperationDialog(BaseDialog):
             compte_id = None
             if self.echeance is not None:
                 compte_id = self.echeance.compte_id
-                prochaine_echeance = self.echeance.prochaine_echeance
             elif self.compte_choisi_id is not None:
                 compte_id = self.compte_choisi_id
             else:

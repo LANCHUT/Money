@@ -3,17 +3,17 @@ Models package for the Money application.
 Contains all data models and enums.
 """
 
-from .account import Compte
-from .operation import Operation
-from .position import Position
-from .placement import Placement, HistoriquePlacement
-from .tier import Tier, TypeTier
-from .category import Categorie, SousCategorie
-from .beneficiary import Beneficiaire, TypeBeneficiaire
-from .payment_method import MoyenPaiement
-from .loan import Loan
-from .echeance import Echeance
-from .enums import (
+from models.account import Compte
+from models.operation import Operation
+from models.position import Position
+from models.placement import Placement, HistoriquePlacement
+from models.tier import Tier, TypeTier
+from models.category import Categorie, SousCategorie
+from models.beneficiary import Beneficiaire, TypeBeneficiaire
+from models.payment_method import MoyenPaiement
+from models.loan import Loan
+from models.echeance import Echeance
+from models.enums import (
     TypeOperation, 
     FrequenceEcheancier, 
     TypePlacement, 

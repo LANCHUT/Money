@@ -1612,7 +1612,7 @@ def GetTiers(db_path=None):
 
     result = []
     for row in tiers:
-        t = Tier(row[1],row[2],row[3],row[4],row[5],ObjectId(row[0]),row[6])
+        t = Tier(row[1],row[2],row[3],row[4],row[5],str(row[0]),row[6])
         result.append(t)
 
     return result
@@ -1626,7 +1626,7 @@ def GetTierById(tier_id, db_path=None):
 
     conn.close()
 
-    tier = Tier(t[1],t[2],t[3],t[4],t[5],ObjectId(t[0]),t[6])
+    tier = Tier(t[1],t[2],t[3],t[4],t[5],str(t[0]),t[6])
     return tier
 
 def GetTiersActif(db_path=None):
@@ -1641,7 +1641,7 @@ def GetTiersActif(db_path=None):
     result = []
     for row in tiers:
         t = Tier(row[1],row[2],row[3],row[4],row[5])
-        t._id = ObjectId(row[0])
+        t._id = str(row[0])
         result.append(t)
 
     return result
@@ -1656,7 +1656,7 @@ def GetTierActif(tier_id : str, db_path=None):
     conn.close()
     if t is not None:
         tier = Tier(t[1],t[2],t[3],t[4],t[5],actif=t[6])
-        tier._id = ObjectId(t[0])
+        tier._id = str(t[0])
         return tier
     return
 
@@ -1672,7 +1672,7 @@ def GetTiersActifByType(type_tier: str, db_path=None):
     result = []
     for row in tiers:
         t = Tier(row[1],row[2],row[3],row[4],row[5])
-        t._id = ObjectId(row[0])
+        t._id = str(row[0])
         result.append(t)
 
     return result
@@ -1689,7 +1689,7 @@ def GetTiersByType(type_tier: str, db_path=None):
     result = []
     for row in tiers:
         t = Tier(row[1],row[2],row[3],row[4],row[5])
-        t._id = ObjectId(row[0])
+        t._id = str(row[0])
         result.append(t)
 
     return result

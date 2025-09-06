@@ -9,7 +9,7 @@ from database.gestion_bd import GetPerformanceGlobaleData,GetPerformanceByPlacem
 
 import plotly.graph_objects as go
 import tempfile
-from .BaseDialog import BaseDialog
+from views.dialogs.BaseDialog import BaseDialog
 
 def align(item: QTableWidgetItem,alignement:Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft) -> QTableWidgetItem:
     item.setTextAlignment(alignement)
