@@ -467,7 +467,7 @@ class MoneyManager(QMainWindow):
         self.audio_output = QAudioOutput()
         self.player = QMediaPlayer()
         self.player.setAudioOutput(self.audio_output) # Associer la sortie audio au lecteur
-        icon_path = "Money.ico"
+        icon_path = "Finao.ico"
         self.setWindowIcon(QIcon(icon_path))
 
         # Initialisation des états de la DB

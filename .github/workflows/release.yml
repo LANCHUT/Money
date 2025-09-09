@@ -2,12 +2,12 @@ name: Build and Publish EXE on Release
 
 on:
   push:
-    branches:
-      - 'feature/automated_release' # Trigger only on pushes to this branch
+    tags:
+      - 'v*'
 
 jobs:
   build-and-publish:
-    runs-on: windows-latest # PyInstaller works best on Windows for .exe
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -26,30 +26,25 @@ jobs:
 
       - name: Build EXE with PyInstaller
         run: |
-          python -m PyInstaller --onefile --windowed --name=money --icon=assets/icons/Money.ico main.py
+          python -m PyInstaller --onefile --windowed --name=finao --icon=assets/icons/Finao.ico main.py
 
       - name: Test Software
         run: |
-          .\dist\money.exe
+          .\dist\finao.exe
 
       - name: Upload EXE as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: your-app-exe
-          path: dist/your_script.exe
+          name: Finao_Software
+          path: dist/finao.exe
 
-#      - name: Publish EXE to another repo
-#        uses: dmnemec/copy_file_to_another_repo_action@main
-#        env:
-#          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-#        with:
-#          source-file: 'dist/your_script.exe'
-#          destination-repo: 'your-username/your-public-repo' # Replace with antoine new repo
-#          destination-folder: 'releases'
-#          user-email: 'williambouchut@gmail.com'
-#          user-name: 'bouchutw'
-#          commit-message: 'New BreezeBudget version${{ github.ref_name }}'
-#          user_email: ''
-#          user_name: ''
-#          destination_repo: ''
-#          source_file: ''
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/finao.exe
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "New Release of Finao ${{ github.ref_name }}"
+          repository: bouchutw/Finao
+        env:
+          GITHUB_TOKEN: ${{ secrets.FINAO_TOKEN }}

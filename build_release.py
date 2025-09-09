@@ -7,7 +7,7 @@ import sys
 
 PROJECT_NAME = "Money"
 MAIN_SCRIPT = "Main.py"
-ICON_PATH = "Money.ico"
+ICON_PATH = "Finao.ico"
 DIST_DIR = "dist"
 BUILD_DIR = "build"
 RELEASE_DIR = "release"
