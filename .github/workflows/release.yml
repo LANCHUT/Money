@@ -39,6 +39,7 @@ jobs:
 #          name: Finao_Software
 #          path: dist/finao.exe
 
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
