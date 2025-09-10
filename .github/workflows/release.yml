@@ -39,7 +39,6 @@ jobs:
 #          name: Finao_Software
 #          path: dist/finao.exe
 
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -49,3 +48,5 @@ jobs:
           body: "New Release of Finao ${{ github.ref_name }}"
           repository: LANCHUT/Finao
           token: '${{ secrets.FINAO_TOKEN }}'
+        env:
+          "GITHUB_TOKEN":'${{ secrets.FINAO_TOKEN }}'
