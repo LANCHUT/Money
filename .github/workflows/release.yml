@@ -13,13 +13,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE with PyInstaller
+        run: |
+          python -m PyInstaller --onefile --windowed --name=finao --icon=..\..\assets\icons\Finao.ico ..\..\Main.py
+
+      - name: Test Software
+        run: |
+          .\dist\finao.exe
+
+      - name: Upload EXE as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finao_Software
+          path: dist/finao.exe
+
       - name: Test GitHub Release Creation
         uses: softprops/action-gh-release@v1
         with:
-          files: requirements.txt  # Use an existing file in your repo
-          tag_name: v1.0.0-test  # Static tag name for testing
-          name: Test Release v1.0.0
-          body: "This is a test release to verify token permissions."
-          repository: LANCHUT/Finao  # Target repository
+          files: .\dist\finao.exe
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "New Release of Finao ${{ github.ref_name }}"
+          repository: LANCHUT/Finao
         env:
-          GITHUB_TOKEN: ${{ secrets.FINAO_TOKEN }}  # Use the secret directly
+          GITHUB_TOKEN: ${{ secrets.FINAO_TOKEN }}
