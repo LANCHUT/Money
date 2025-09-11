@@ -7,7 +7,7 @@ on:
 
 jobs:
   test-release:
-    runs-on: ubuntu-latest  # No need for Windows if just testing the release
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
