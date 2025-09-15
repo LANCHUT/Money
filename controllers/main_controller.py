@@ -3553,11 +3553,18 @@ class MoneyManager(QMainWindow):
         font_color = "#ffffff"
         self.graph_view = QWebEngineView()
         self.graph_view.setMinimumHeight(250)
-        self.graph_view.setHtml(f"""<head>
-            <meta charset="UTF-8">
-            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-            <style>body {{ margin: 0; background-color: {bg_color}; color: {font_color} }}</style>
-        </head><h3>Sélectionnez un placement pour voir l'historique.</h3>""")
+        self.graph_view.setHtml(f"""
+            <head>
+                <meta charset="UTF-8">
+                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+                <style>body {{ margin: 0; background-color: {bg_color}; color: {font_color} }}</style>
+            </head>
+            <body style="width: 100%; height: 100%">
+                <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+                    <h3 style="color: #ffffff; font-family: 'Segoe UI'";">Sélectionnez un placement pour voir l'historique</h3>
+                </div>
+            </body>
+            """)
         placement_layout.addWidget(self.graph_view)
 
         self.load_placement()
@@ -4083,7 +4090,7 @@ def main():
     qss = """
     QPushButton {
         background-color: #000000; 
-        color: #e0e0e0; 
+        color: #ffffff;
         border: 2px solid #007ACC;
         border-radius: 5px;
         padding: 8px 15px;
@@ -4096,17 +4103,15 @@ def main():
     background: #0078d7;
     color:white;
     font-weight:bold;
-}
+    }
 
     QPushButton:hover {
         background-color: #5A5A5A;
-        color: #ffffff;
         border: 2px solid #0096FF;
     }
 
     QPushButton:pressed {
         background-color: #2F2F2F;
-        color: #cccccc;
         border: 2px solid #005699;
     }
 
@@ -4115,8 +4120,10 @@ def main():
         color: #808080;
         border: 1px solid #404040;
     }
-    *{ font-size : 18px
-                      }
+    *{
+        font-family: "Segoe UI";
+        font-size : 18px
+    }
     """
     app.setStyleSheet(qss)
     window = MoneyManager()
