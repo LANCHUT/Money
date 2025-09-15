@@ -1326,7 +1326,7 @@ def GetComptesHorsPlacement(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type == "Courant" OR type == "Epargne"')
+    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type == "Courant" OR type == "Epargne" order by nom asc')
     comptes = cursor.fetchall()
 
     conn.close()

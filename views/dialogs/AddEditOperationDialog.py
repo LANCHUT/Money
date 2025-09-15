@@ -10,6 +10,35 @@ from datetime import *
 from database.gestion_bd import *
 
 
+def format_montant(field: QLineEdit):
+    try:
+        text = field.text().strip()
+        cursor_pos = field.cursorPosition()  # position avant formatage
+
+        # Gestion du signe négatif
+        clean = ''.join(c for c in text if c.isdigit() or c == '.')
+
+        if clean:
+            if '.' in clean:
+                ent, dec = clean.split('.', 1)
+                ent = "{:,}".format(int(ent)).replace(",", " ")
+                formatted = ent + '.' + dec
+            else:
+                formatted = "{:,}".format(int(clean)).replace(",", " ")
+
+        # Mise à jour du champ sans relancer l’événement
+        field.blockSignals(True)
+        field.setText(formatted)
+        field.blockSignals(False)
+
+        # Réajustement de la position du curseur
+        new_pos = min(cursor_pos, len(formatted))
+        field.setCursorPosition(new_pos)
+
+    except:
+        pass
+
+
 def get_next_echeance(date_premiere: int, frequence: str) -> int:
     from datetime import datetime
     from dateutil.relativedelta import relativedelta
@@ -102,9 +131,9 @@ class AddEditOperationDialog(BaseDialog):
 
         self.num_cheque = QLineEdit(self)
         self.num_cheque.setText(GetNextNumCheque())
-        self.num_cheque.textEdited.connect(lambda:self.format_montant(self.num_cheque))
+        self.num_cheque.textEdited.connect(lambda:format_montant(self.num_cheque))
         self.montant = QLineEdit(self)
-        self.montant.textEdited.connect(lambda:self.format_montant(self.montant))
+        self.montant.textEdited.connect(lambda:format_montant(self.montant))
         self.notes = QLineEdit(self)
 
                 # Checkbox pour ajouter un bénéficiaire
@@ -244,7 +273,11 @@ class AddEditOperationDialog(BaseDialog):
         self.on_type_tier_changed(self.operation.type_tier)
         set_combobox_index_by_text(self.type_operation, self.operation.type)
         set_combobox_index_by_text(self.type_tier, self.operation.type_tier)
-        set_combobox_index_by_data(self.tier, self.operation.tier)        
+        set_combobox_index_by_data(self.tier, self.operation.tier)
+        if self.operation.type_beneficiaire != "" and self.beneficiaire != "":
+           self.ajouter_benef_checkbox.setCheckState(Qt.CheckState.Checked)
+           set_combobox_index_by_text(self.type_beneficiaire, self.operation.type_beneficiaire)
+           set_combobox_index_by_text(self.beneficiaire, self.operation.beneficiaire)     
 
         # ComboBox tier (editable avec userData)
         if self.operation.tier == '':
@@ -343,6 +376,8 @@ class AddEditOperationDialog(BaseDialog):
                 self.operation.credit = credit
                 self.operation.notes = notes
                 self.operation.compte_associe = compte_associe
+                self.operation.beneficiaire = beneficiaire
+                self.operation.type_beneficiaire = type_beneficiaire
                 self.parent().update_operation(self.operation,old_credit,old_debit,self.isEdit)
             elif self.operation is None :
                 # Insertion
@@ -361,7 +396,7 @@ class AddEditOperationDialog(BaseDialog):
                 debit_associe = credit * -1
                 credit_associe = 0
             if GetCompteType(compte_associe) in ["Courant", "Epargne"]:
-                o = Operation(date, type_op_associe, "", "", "", "", "", debit_associe, credit_associe, "", compte_associe, "", self.account_id)
+                o = Operation(date, type_op_associe, "", "", "", "", "", debit_associe, credit_associe, "", compte_associe, "", self.account_id,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
                 if operation:
                     o.link = str(operation._id)
                     operation.link = str(o._id)
@@ -489,18 +524,3 @@ class AddEditOperationDialog(BaseDialog):
             self.num_cheque.setText(GetNextNumCheque())
         self.label_num_cheque.setVisible(is_cheque)
         self.num_cheque.setVisible(is_cheque)
-            
-
-    def format_montant(self,field:QLineEdit):
-        text = field.text().strip()
-        clean = ''.join(c for c in text if c.isdigit() or c == '.')
-        if '.' in clean:
-            ent, dec = clean.split('.', 1)
-            ent = "{:,}".format(int(ent)).replace(",", " ")
-            formatted = ent + '.' + dec
-        else:
-            formatted = "{:,}".format(int(clean)).replace(",", " ") if clean else ""
-        field.blockSignals(True)
-        field.setText(formatted)
-        field.blockSignals(False)
-        field.setCursorPosition(len(formatted))

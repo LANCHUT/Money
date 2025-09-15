@@ -9,6 +9,39 @@ from views.dialogs.BaseDialog import BaseDialog
 
 from database.gestion_bd import *
 
+def format_montant(field: QLineEdit):
+    try:
+        text = field.text().strip()
+        cursor_pos = field.cursorPosition()  # position avant formatage
+
+        # Gestion du signe négatif
+        neg = text.startswith('-')
+        clean = ''.join(c for c in text if c.isdigit() or c == '.')
+
+        if clean:
+            if '.' in clean:
+                ent, dec = clean.split('.', 1)
+                ent = "{:,}".format(int(ent)).replace(",", " ")
+                formatted = ent + '.' + dec
+            else:
+                formatted = "{:,}".format(int(clean)).replace(",", " ")
+            if neg:
+                formatted = '-' + formatted
+        else:
+            formatted = '-' if neg else ""
+
+        # Mise à jour du champ sans relancer l’événement
+        field.blockSignals(True)
+        field.setText(formatted)
+        field.blockSignals(False)
+
+        # Réajustement de la position du curseur
+        new_pos = min(cursor_pos, len(formatted))
+        field.setCursorPosition(new_pos)
+
+    except:
+        pass
+
 class AddEditPositionDialog(BaseDialog):
     def __init__(self, parent=None,account_id=None, position:Position = None, isEcheance = False, echeance = None, compte_choisi_id = None, isEdit = False):
         super().__init__(parent)
@@ -65,10 +98,10 @@ class AddEditPositionDialog(BaseDialog):
 
         self.set_echeancier_fields_visible(False)
 
-        self.nb_part.textEdited.connect(lambda: self.format_montant(self.nb_part))
-        self.val_part.textEdited.connect(lambda: self.format_montant(self.val_part))
-        self.frais.textEdited.connect(lambda: self.format_montant(self.frais))
-        self.interet.textEdited.connect(lambda: self.format_montant(self.interet))
+        self.nb_part.textEdited.connect(lambda: format_montant(self.nb_part))
+        self.val_part.textEdited.connect(lambda: format_montant(self.val_part))
+        self.frais.textEdited.connect(lambda: format_montant(self.frais))
+        self.interet.textEdited.connect(lambda: format_montant(self.interet))
 
 
 
@@ -266,49 +299,6 @@ class AddEditPositionDialog(BaseDialog):
             self.val_part.show()
             self.label_frais.show()
             self.frais.show()
-
-    def format_montant(self, field: QLineEdit):
-        text = field.text().strip()
-
-        if text in ("", "-", "-,", ","):
-            return  # Laisse l'utilisateur continuer à taper
-
-        # Garde le signe négatif uniquement s'il est au début
-        is_negative = text.startswith('-')
-        text = text[1:] if is_negative else text
-
-        # Nettoyage : garder uniquement chiffres et la première virgule
-        result = []
-        comma_seen = False
-        for c in text:
-            if c.isdigit():
-                result.append(c)
-            elif c == ',' and not comma_seen:
-                result.append(c)
-                comma_seen = True
-
-        clean_text = ''.join(result)
-
-        if not clean_text:
-            formatted = "-"
-        elif ',' in clean_text:
-            partie_entiere, partie_decimale = clean_text.split(',', 1)
-            partie_entiere = "{:,}".format(int(partie_entiere or "0")).replace(",", " ")
-
-            if partie_decimale == "":
-                formatted = partie_entiere + ','  # garde la virgule
-            else:
-                formatted = partie_entiere + ',' + partie_decimale
-        else:
-            formatted = "{:,}".format(int(clean_text)).replace(",", " ")
-
-        if is_negative:
-            formatted = '-' + formatted
-
-        field.blockSignals(True)
-        field.setText(formatted)
-        field.blockSignals(False)
-        field.setCursorPosition(len(formatted))
 
     def set_echeancier_fields_visible(self, visible: bool):
         self.label_frequence.setVisible(visible)

@@ -2814,7 +2814,8 @@ class MoneyManager(QMainWindow):
         if isEdit:
             DeletePosition(position)
             o = GetLinkOperation(str(position._id))
-            DeleteOperation(o,o.credit,o.debit)
+            if o is not None:
+                DeleteOperation(o,o.credit,o.debit)
             self.add_position(position)         
         else:
             position._id = str(ObjectId())
