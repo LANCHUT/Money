@@ -1376,7 +1376,7 @@ def GetComptesExceptCurrent(compte_id : str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT id, nom, solde, type, nom_banque FROM comptes where id != '{compte_id}'")
+    cursor.execute(f"SELECT id, nom, solde, type, nom_banque FROM comptes where id != '{compte_id}' order by nom asc")
     comptes = cursor.fetchall()
 
     conn.close()
