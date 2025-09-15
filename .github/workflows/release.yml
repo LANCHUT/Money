@@ -2,9 +2,8 @@ name: Test Release Creation
 
 on:
   push:
-    branches:
-      - 'feature/automated_release'
-
+    tags:
+      - 'v*'
 jobs:
   test-release:
     runs-on: windows-latest
