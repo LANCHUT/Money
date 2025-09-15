@@ -4100,9 +4100,9 @@ def main():
     }
 
     QTabBar::tab:selected{
-    background: #0078d7;
-    color:white;
-    font-weight:bold;
+        background: #0078d7;
+        color:white;
+        font-weight:bold;
     }
 
     QPushButton:hover {
