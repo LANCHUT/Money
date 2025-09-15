@@ -994,7 +994,7 @@ def GetBeneficiairesByType(type_beneficiaire : str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select * from beneficiaire where type_beneficiaire = ?",(type_beneficiaire,))
+    cursor.execute(f"select * from beneficiaire where type_beneficiaire = ? order by nom asc",(type_beneficiaire,))
     sous_categories = cursor.fetchall()
 
     conn.close()
