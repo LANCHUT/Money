@@ -2662,10 +2662,12 @@ def RunEcheance(echeances, db_path=None):
             montant_investit = round(row[13]*row[14] + row[15],2)
             position = Position(row[3],row[5],row[8],row[13],row[14],row[15],row[16],row[17],row[4],montant_investit,row[6])
             InsertPosition(position, db_path)
-            if position.type == "Achat":
+            if position.type == TypePosition.Achat.value:
                 InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais,2),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)), db_path)
-            elif position.type == "Vente":
+            elif position.type == TypePosition.Vente.value:
                 InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais,2),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)), db_path)
+            elif position.type == TypePosition.Interet.value:
+                InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,position.interets,f"Intérêts placement {position.nom_placement}",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)), db_path)
             pass
         else:
             operation = Operation(row[3],row[5],row[7],row[8],row[20],row[9],row[10],row[11],row[12],row[17],row[4],"",row[6],type_beneficiaire=row[18],beneficiaire=row[19])

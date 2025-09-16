@@ -2528,7 +2528,7 @@ class MoneyManager(QMainWindow):
         type_placement = GetTypePlacement(position.nom_placement)
         ticker = GetTickerPlacementByNomPlacement(position.nom_placement)
         last_value_placement = GetLastValueForPlacement(position.nom_placement)
-        if not InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type,ticker)) and last_value_placement != position.val_part:
+        if position.type != TypePosition.Interet.value and not InsertHistoriquePlacement(HistoriquePlacement(position.nom_placement, type_placement, position.date, position.val_part, position.type,ticker)) and last_value_placement != position.val_part:
             # Ici on suppose que le conflit est dû à un doublon. Tu peux filtrer plus précisément avec l'erreur SQL si nécessaire.
             msg_box = QMessageBox(self)
             msg_box.setWindowTitle("Conflit détecté")
