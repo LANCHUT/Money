@@ -41,7 +41,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.FINAO_TOKEN }}
-          file: /dist/finao.exe
+          file: ${{github.workspace}}/dist/finao.exe
           asset_name: finao.exe
           tag: ${{ github.ref_name }}
           overwrite: true
