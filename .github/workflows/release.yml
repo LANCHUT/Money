@@ -29,12 +29,6 @@ jobs:
         run: |
           python -m PyInstaller --onefile --windowed --name=finao --icon=assets/icons/Finao.ico Main.py
 
-      - name: List dist directory contents
-        run: dir dist
-
-      - name: Check if finao.exe exists
-        run: if not exist "dist\finao.exe" exit 1
-
       - name: Test Software
         run: |
           .\dist\finao.exe
@@ -47,12 +41,15 @@ jobs:
           name: Finao_Software
           path: dist/finao.exe
 
+      - name: List dist directory contents
+        run: dir dist
+
       - name: Publish new version Finao Software
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.FINAO_TOKEN }}
-          file: ${{ github.workspace }}\dist\finao.exe
-          asset_name: Release ${{ github.ref_name }}
+          file: /dist/finao.exe
+          asset_name: finao.exe
           tag: ${{ github.ref_name }}
           overwrite: true
           body: "New Release of Finao ${{ github.ref_name }}"
