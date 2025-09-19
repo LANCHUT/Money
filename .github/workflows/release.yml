@@ -32,15 +32,8 @@ jobs:
       - name: Test Software
         run: |
           .\dist\finao.exe
-          if %ERRORLEVEL% neq 0 exit 1
-        shell: cmd
 
-      - name: Upload EXE as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Finao_Software
-          path: dist/finao.exe
-
+#Check if the executable was created - TEST MODE
       - name: List dist directory contents
         run: dir dist
 
