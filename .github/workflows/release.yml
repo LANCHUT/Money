@@ -37,14 +37,13 @@ jobs:
           name: Finao_Software
           path: dist/finao.exe
 
-      - name: Publish new release Finao software
-        uses: softprops/action-gh-release@v1
+      - name: Publish new version Finao Software
+        uses: svenstaro/upload-release-action@v2
         with:
-          files: \dist\finao
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          repo_token: ${{ secrets.FINAO_TOKEN }}
+          file: \dist\finao
+          asset_name: Release ${{ github.ref_name }}
+          tag: ${{ github.ref_name }}
+          overwrite: true
           body: "New Release of Finao ${{ github.ref_name }}"
-          repository: LANCHUT/Finao
-        env:
-          GITHUB_TOKEN: ${{ secrets.FINAO_TOKEN }}
-         
+          repo_name: LANCHUT/Finao
