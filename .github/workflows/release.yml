@@ -2,8 +2,10 @@ name: Test Release Creation
 
 on:
   push:
-    tags:
-      - 'v*'
+#    tags:
+#      - 'v*'
+    branches:
+      - 'feature/automated_release'
 jobs:
   test-release:
     runs-on: windows-latest
@@ -27,9 +29,17 @@ jobs:
         run: |
           python -m PyInstaller --onefile --windowed --name=finao --icon=assets/icons/Finao.ico Main.py
 
+      - name: List dist directory contents
+        run: dir dist
+
+      - name: Check if finao.exe exists
+        run: if not exist "dist\finao.exe" exit 1
+
       - name: Test Software
         run: |
           .\dist\finao.exe
+          if %ERRORLEVEL% neq 0 exit 1
+        shell: cmd
 
       - name: Upload EXE as artifact
         uses: actions/upload-artifact@v4
@@ -37,14 +47,13 @@ jobs:
           name: Finao_Software
           path: dist/finao.exe
 
-      - name: Publish new release Finao software
-        uses: softprops/action-gh-release@v1
+      - name: Publish new version Finao Software
+        uses: svenstaro/upload-release-action@v2
         with:
-          files: \dist\finao
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          repo_token: ${{ secrets.FINAO_TOKEN }}
+          file: ${{ github.workspace }}\dist\finao.exe
+          asset_name: Release ${{ github.ref_name }}
+          tag: ${{ github.ref_name }}
+          overwrite: true
           body: "New Release of Finao ${{ github.ref_name }}"
-          repository: LANCHUT/Finao
-        env:
-          GITHUB_TOKEN: ${{ secrets.FINAO_TOKEN }}
-         
+          repo_name: LANCHUT/Finao
