@@ -1,0 +1,44 @@
+name: Publish FINAO release version
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  test-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE with PyInstaller
+        run: |
+          python -m PyInstaller --onefile --windowed --name=finao --icon=assets/icons/Finao.ico Main.py
+
+      - name: Test Software
+        run: |
+          .\dist\finao.exe
+
+      - name: Publish new version Finao Software
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.FINAO_TOKEN }}
+          file: ${{github.workspace}}/dist/finao.exe
+          asset_name: finao.exe
+          tag: ${{ github.ref_name }}
+          overwrite: true
+          body: "New Release of Finao ${{ github.ref_name }}"
+          repo_name: LANCHUT/Finao
