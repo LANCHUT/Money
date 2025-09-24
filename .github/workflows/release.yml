@@ -1,11 +1,10 @@
-name: Test Release Creation
+name: Publish FINAO release version
 
 on:
   push:
-#    tags:
-#      - 'v*'
-    branches:
-      - 'feature/automated_release'
+    tags:
+      - 'v*'
+
 jobs:
   test-release:
     runs-on: windows-latest
@@ -32,10 +31,6 @@ jobs:
       - name: Test Software
         run: |
           .\dist\finao.exe
-
-#Check if the executable was created - TEST MODE
-      - name: List dist directory contents
-        run: dir dist
 
       - name: Publish new version Finao Software
         uses: svenstaro/upload-release-action@v2
