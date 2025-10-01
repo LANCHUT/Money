@@ -121,10 +121,16 @@ class AddEditPlacementDialog(BaseDialog):
             type = self.type.currentText()
             
             if ticker != "":
-                values = GetLastValuePlacement(self.placement.ticker,datetime.strptime(str(date), "%Y%m%d").strftime("%Y-%m-%d"))
-                valeur_actualisee = values[self.placement.ticker][1]
-                self.val_actualisee.setText(str(valeur_actualisee))
-                date = values[self.placement.ticker][0]
+                try : 
+
+                    values = GetLastValuePlacement(self.placement.ticker,datetime.strptime(str(date), "%Y%m%d").strftime("%Y-%m-%d"))
+                    valeur_actualisee = values[self.placement.ticker][1]
+                    self.val_actualisee.setText(str(valeur_actualisee))
+                    date = values[self.placement.ticker][0]
+
+                except KeyError:
+                    QMessageBox.critical(self,"Erreur lors de la récuparation des données boursières",f"Impossible de récupérer la valeur du n° ISIN {ticker} dans les 100 derniers jours, données sans doutes indisponibles")
+                    return
             else:    
                 valeur_actualisee = get_float_value(self.val_actualisee)
             self.new_placement = HistoriquePlacement(nom, type, date, valeur_actualisee, "Actualisation",ticker)

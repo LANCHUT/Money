@@ -385,7 +385,7 @@ class AddEditOperationDialog(BaseDialog):
                                         debit, credit, notes, self.account_id, num_cheque, compte_associe,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
                 self.parent().add_operation(operation)
 
-        if type_operation in ["Transfert vers", "Transfert de"]:
+        if type_operation in ["Transfert vers", "Transfert de"] and not self.isEcheance :
             compte_associe = self.compte_associe.currentData()
             if type_operation == "Transfert vers":
                 type_op_associe = "Transfert de"
@@ -405,7 +405,7 @@ class AddEditOperationDialog(BaseDialog):
                 self.parent().account_list.clear()
                 self.parent().load_accounts()
             type_tier = id_tier = moyen_paiement = categorie = sous_categorie = ""
-        else:
+        if type_operation not in ["Transfert vers", "Transfert de"]:
             compte_associe = ""
 
         

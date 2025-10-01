@@ -386,7 +386,7 @@ def UpdateValoComptePlacement(compte_id : str,conn = None):
         valo_placement = val_part*nb_part
         valo += valo_placement
     compte = GetCompte(compte_id,conn)
-    compte.solde = valo
+    compte.solde = round(valo,2)
     UpdateSoldeCompte(compte_id,compte.solde,conn)
     if was_none:
         conn.close()
@@ -2672,6 +2672,23 @@ def RunEcheance(echeances, db_path=None):
         else:
             operation = Operation(row[3],row[5],row[7],row[8],row[20],row[9],row[10],row[11],row[12],row[17],row[4],"",row[6],type_beneficiaire=row[18],beneficiaire=row[19])
             InsertOperation(operation, db_path)
+            if operation.type in [TypeOperation.TransfertD.value,TypeOperation.TransfertV.value]:
+                compte_associe = row[6]
+                if operation.type == TypeOperation.TransfertV.value:
+                    type_op_associe = TypeOperation.TransfertD.value
+                    debit_associe = 0
+                    credit_associe = row[11] * -1
+                else:
+                    type_op_associe = TypeOperation.TransfertV.value
+                    debit_associe = row[11] * -1
+                    credit_associe = 0
+                if GetCompteType(compte_associe) in ["Courant", "Epargne"]:
+                    o = Operation(row[3], type_op_associe, "", "", "", "", "", debit_associe, credit_associe, "", compte_associe, "", row[4],type_beneficiaire=row[18],beneficiaire=row[19])
+                    if operation:
+                        o.link = str(operation._id)
+                        operation.link = str(o._id)
+                    InsertOperation(o)
+                    UpdateOperationLink(operation)
             pass
 
         UpdateProchaineEcheance(row[0],get_next_echeance(row[3],row[1]), db_path)
