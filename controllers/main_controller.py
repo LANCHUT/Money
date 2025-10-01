@@ -2356,7 +2356,7 @@ class MoneyManager(QMainWindow):
             6: QTableWidgetItem(operation.type_beneficiaire),
             7: QTableWidgetItem(operation.beneficiaire),
             8: QTableWidgetItem(operation.moyen_paiement),
-            9: QTableWidgetItem(str(operation.num_cheque) if operation.num_cheque is not None else ""),
+            9: QTableWidgetItem(str(operation.num_cheque) if (operation.num_cheque is not None and operation.num_cheque != "None") else ""),
             10: QTableWidgetItem('R' if operation.bq else ""),
             11: QTableWidgetItem(operation.categorie),
             12: QTableWidgetItem(operation.sous_categorie),
