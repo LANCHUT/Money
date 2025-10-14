@@ -92,7 +92,7 @@ class AddEditOperationDialog(BaseDialog):
             self.type_operation.addItem(type_op)
 
         self.compte_associe = QComboBox(self)
-        comptes = GetComptesExceptCurrent(self.account_id)
+        comptes = GetComptes(alphabetical=True)
         for compte in comptes:
             self.compte_associe.addItem(compte.nom, userData=str(compte._id))
 
@@ -334,6 +334,9 @@ class AddEditOperationDialog(BaseDialog):
             type_beneficiaire = ""
             beneficiaire = ""
 
+        if self.account_id == compte_associe:
+            QMessageBox.warning(self, "Erreur", "Le compte associé ne peut pas être le compte actuel")
+            return
 
         if (not date or not type_operation or not montant or not tier) and type_operation not in ["Transfert vers", "Transfert de"]:
             QMessageBox.warning(self, "Erreur", "Les champs Date, Type, Tier et Montant doivent être remplis.")
@@ -397,7 +400,13 @@ class AddEditOperationDialog(BaseDialog):
                 credit_associe = 0
             if GetCompteType(compte_associe) in ["Courant", "Epargne"]:
                 o = Operation(date, type_op_associe, "", "", "", "", "", debit_associe, credit_associe, "", compte_associe, "", self.account_id,type_beneficiaire=type_beneficiaire,beneficiaire=beneficiaire)
-                if operation:
+                if operation is None:
+                    operation = self.operation
+                if self.isEdit:
+                    o._id = operation.link
+                    old_operation = GetOperation(o._id)
+                    DeleteOperation(o,old_operation.credit,old_operation.debit)
+                else:
                     o.link = str(operation._id)
                     operation.link = str(o._id)
                 InsertOperation(o)

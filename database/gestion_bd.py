@@ -1306,11 +1306,13 @@ def DeleteMoyenPaiement(nom : str, db_path=None):
     conn.close()
 
 # Obtenir tous les comptes
-def GetComptes(db_path=None):
+def GetComptes(db_path=None,alphabetical = False):
     conn = connect_db(db_path)
     cursor = conn.cursor()
-
-    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes order by type,nom asc')
+    if alphabetical:
+        cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes order by nom asc')
+    else:
+        cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes order by type,nom asc')
     comptes = cursor.fetchall()
 
     conn.close()
@@ -1359,7 +1361,7 @@ def GetComptesHorsPret(db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type <> "Prêt" order by type,nom asc')
+    cursor.execute('SELECT id, nom, solde, type, nom_banque FROM comptes where type <> "Prêt" order by nom asc')
     comptes = cursor.fetchall()
 
     conn.close()

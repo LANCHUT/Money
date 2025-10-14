@@ -3808,7 +3808,7 @@ class MoneyManager(QMainWindow):
 
     def show_context_menu_operation(self, pos: QPoint):
         item = self.transaction_table.itemAt(pos)
-        if not item or self.pointage_state["actif"] :
+        if not item or (self.pointage_state["actif"] and not self.pointage_state["suspendu"]) :
             return
 
         row = item.row()

@@ -64,7 +64,7 @@ class AddEditPositionDialog(BaseDialog):
             self.type_placement.addItem(type_placement)
 
         self.compte_associe = QComboBox(self)
-        comptes = GetComptesExceptCurrent(self.account_id)
+        comptes = GetComptes(alphabetical=True)
         for compte in comptes:
             self.compte_associe.addItem(compte.nom, userData=str(compte._id))
 
@@ -172,6 +172,10 @@ class AddEditPositionDialog(BaseDialog):
         date = int(self.date.date().toString("yyyyMMdd"))
         notes = self.notes.text()
         type_placement = self.type_placement.currentText()
+
+        if self.account_id == compte_associe_id:
+            QMessageBox.warning(self, "Erreur", "Le compte associé ne peut pas être le compte actuel")
+            return
         if nb_part == 0 and type_placement not in [TypePosition.Interet.value]:
             QMessageBox.warning(self, "Erreur", "Le champs nb_part doit être remplis.")
             return
