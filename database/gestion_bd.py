@@ -547,7 +547,7 @@ def UpdateTier(tier:Tier, db_path=None):
     conn.commit()
     conn.close()
 
-def UpdateBqOperation(operation_id : str, db_path=None):
+def UpdateBqOperation(operation_id : str, bq:int = 1, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
@@ -555,9 +555,9 @@ def UpdateBqOperation(operation_id : str, db_path=None):
 
     cursor.execute('''
     UPDATE operations
-    SET bq = 1
+    SET bq = ?
     WHERE id = ?
-    ''', (operation_id,))
+    ''', (bq,operation_id))
 
     conn.commit()
     conn.close()
@@ -953,7 +953,7 @@ def GetEcheance(echeance_id, db_path=None):
     row = cursor.fetchone()
 
     conn.close()
-    echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[20],row[21],row[6],row[17],row[18],row[0])
+    echeance = Echeance(row[1],row[2],row[3],row[5],row[7],row[8],row[9],row[10],row[11],row[12],row[17],row[4],row[13],row[14],row[15],row[16],row[20],row[21],row[6],row[18],row[19],row[0])
 
     return echeance
 

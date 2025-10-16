@@ -226,6 +226,7 @@ class AddEditOperationDialog(BaseDialog):
             self.fill_fields()
 
         if self.echeance:
+            self.fill_fields()
             self.fill_fields_echeance()
 
         if self.isEcheance:
@@ -274,7 +275,7 @@ class AddEditOperationDialog(BaseDialog):
         set_combobox_index_by_text(self.type_operation, self.operation.type)
         set_combobox_index_by_text(self.type_tier, self.operation.type_tier)
         set_combobox_index_by_data(self.tier, self.operation.tier)
-        if self.operation.type_beneficiaire != "" and self.beneficiaire != "":
+        if self.operation.type_beneficiaire != "" and self.operation.beneficiaire != "":
            self.ajouter_benef_checkbox.setCheckState(Qt.CheckState.Checked)
            set_combobox_index_by_text(self.type_beneficiaire, self.operation.type_beneficiaire)
            set_combobox_index_by_text(self.beneficiaire, self.operation.beneficiaire)     
@@ -286,13 +287,13 @@ class AddEditOperationDialog(BaseDialog):
             self.sous_categorie.setCurrentText("")            
         else:
             tier = GetTierById(self.operation.tier) or ""
-            self.moyen_paiement.setCurrentText(tier.moyen_paiement)
-            self.categorie.setCurrentText(tier.categorie)
-            self.sous_categorie.setCurrentText(tier.categorie)
+            self.moyen_paiement.setCurrentText(self.operation.moyen_paiement)
+            self.categorie.setCurrentText(self.operation.categorie)
+            self.sous_categorie.setCurrentText(self.operation.sous_categorie)
             self.tier.setCurrentText(tier.nom)
             
         self.num_cheque.setText(str(self.operation.num_cheque))
-        self.update_sous_categories(self.operation.categorie)
+        # self.update_sous_categories(self.operation.categorie)
 
         montant = self.operation.credit or self.operation.debit or 0
         self.montant.setText("{:,.2f}".format(abs(montant)).replace(",", " "))

@@ -690,6 +690,7 @@ class MoneyManager(QMainWindow):
                                                        "Catégorie","Sous-\nCatégorie","Moyen\nde\npaiement","Type\nbénéficiaire","Bénéficiaire","Débit","Crédit","Nb parts","Val part","Frais","Intérêts","Notes"])
         self.echeance_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table_style(self.echeance_table)
+        self.echeance_table.hideColumn(1)
         self.echeance_table.resizeColumnsToContents()
         self.echeance_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.echeance_table.customContextMenuRequested.connect(self.show_context_menu_echeancier)
@@ -2103,6 +2104,52 @@ class MoneyManager(QMainWindow):
             print("Erreur lors de la modification de la position:", e)
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
 
+    def mark_r_selected_operation(self,row):
+        try:
+            # Récupère l'ID de l'opération à partir d'une colonne cachée ou d'une donnée stockée
+            operation_id_item = self.transaction_table.item(row, 0)  # Assure-toi que l'ID est dans la colonne 0
+            if not operation_id_item:
+                return
+
+            operation_id = operation_id_item.data(Qt.ItemDataRole.UserRole)
+            if not operation_id:
+                return
+            date = operation_id_item.date.getDate()
+            dateint = int(f"{date[0]:04d}{date[1]:02d}{date[2]:02d}")
+            _,date_pointage = GetDerniereValeurPointe(self.current_account)
+            if dateint < date_pointage:
+                QMessageBox.warning(self,"Attention","Cette opération est marquée comme rapprochée alors qu'un pointage plus récent existe")
+            else:
+                QMessageBox.warning(self,"Attention","Impossible de marquer cette opération comme rapprochée, veuillez utiliser la fonction de pointage")
+                return
+
+            UpdateBqOperation(str(operation_id),1)
+            self.transaction_table.clearContents()
+            self.load_operations()
+            
+
+        except Exception as e:
+            print("Erreur lors de la modification de l'opération:", e)
+            QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
+
+
+    def unmark_r_selected_operation(self,row):
+        try:
+            # Récupère l'ID de l'opération à partir d'une colonne cachée ou d'une donnée stockée
+            operation_id_item = self.transaction_table.item(row, 0)  # Assure-toi que l'ID est dans la colonne 0
+            if not operation_id_item:
+                return
+
+            operation_id = operation_id_item.data(Qt.ItemDataRole.UserRole)
+            if not operation_id:
+                return
+            
+            UpdateBqOperation(str(operation_id),0)
+            self.transaction_table.clearContents()
+            self.load_operations()
+        except Exception as e:
+            print("Erreur lors de la modification de l'opération:", e)
+            QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
 
     def unmark_r_selected_position(self,row):
         try:
@@ -2579,18 +2626,10 @@ class MoneyManager(QMainWindow):
             new_solde = -1 * pret.montant_initial
         if date is None:
             date = int(echeancier[0]["date"].strftime('%Y%m%d'))
-        
-        echeance = Echeance(pret.frequence_paiement,int(echeancier[0]["date"].strftime('%Y%m%d')),date,"Débit","","","","",-1*echeancier[-1]["mensualite"],0,f"Remboursement prêt {pret.nom}",compte_associe,0,0,0,0,"Prélèvement",0,compte_associe=compte_id)
-        # if echeance.echeance1 <= int(datetime.date.today().strftime("%Y%m%d")):
-        #     operation = Operation(echeance.echeance1,"Débit","","","Prélèvement","","",echeance.debit,echeance.credit,echeance.notes,echeance.compte_id,"",echeance.compte_associe)
-        #     InsertOperation(operation)
-        InsertEcheance(echeance)
         UpdateSoldeCompte(self.current_account,new_solde)
         self.load_pret()
         self.account_list.clear()
         self.load_accounts()
-        self.echeance_table.clearContents()
-        self.load_echeance()
         self.compte_table.clearContents()
         self.load_comptes()
 
@@ -3810,14 +3849,24 @@ class MoneyManager(QMainWindow):
         item = self.transaction_table.itemAt(pos)
         if not item or (self.pointage_state["actif"] and not self.pointage_state["suspendu"]) :
             return
+        
+
 
         row = item.row()
-
+        bq = self.transaction_table.item(row, 10).data(2)
+        if not item or (self.pointage_state["actif"] and self.pointage_state["suspendu"] and bq == 'P') :
+            QMessageBox.warning(self,"Attention","Veuillez dépointer l'opération avant d'envisager toutes modifications")
+            return
         menu = QMenu(self)
 
         edit_action = QAction("Modifier", self)
         delete_action = QAction("Supprimer", self)
         dupliquer_action = QAction("Dupliquer", self)
+        markr_action = QAction("Marquer comme rapproché", self)
+        unmarkr_action = QAction("Marquer comme non rapproché", self)
+        markr_action.triggered.connect(lambda: self.mark_r_selected_operation(row))
+        unmarkr_action.triggered.connect(lambda: self.unmark_r_selected_operation(row))
+
 
         edit_action.triggered.connect(lambda: self.edit_selected_operation(row,True))
         delete_action.triggered.connect(lambda: self.delete_selected_operation(row))
@@ -3826,6 +3875,10 @@ class MoneyManager(QMainWindow):
         menu.addAction(edit_action)
         menu.addAction(delete_action)
         menu.addAction(dupliquer_action)
+        if bq != '':
+            menu.addAction(unmarkr_action)
+        else:
+            menu.addAction(markr_action)
 
         menu.exec(self.transaction_table.viewport().mapToGlobal(pos))
 
