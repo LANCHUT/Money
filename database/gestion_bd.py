@@ -2586,31 +2586,90 @@ def GetPerformanceByPlacement(compte_id: str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    # Récupération groupée par nom_placement
+    # Récupère toutes les positions en une seule fois
     cursor.execute("""
-        SELECT nom_placement, SUM(nb_part), SUM(montant_investit), SUM(interets)
+        SELECT type, nb_part, nom_placement, montant_investit, val_part, interets, frais
         FROM position
         WHERE compte_id = ?
-        GROUP BY nom_placement
     """, (compte_id,))
-    placements = cursor.fetchall()
+    positions = cursor.fetchall()
 
+    last_values = {}
+    placements = {}
+
+    for p in positions:
+        type_op, nb_part, nom_placement, montant_investit, val_part, interets, frais = p
+
+        # Cache pour éviter les requêtes répétées
+        if nom_placement not in last_values:
+            last_values[nom_placement] = GetLastValueForPlacement(nom_placement, conn)
+        valeur_part = last_values[nom_placement]
+
+        # Initialise les totaux pour ce placement
+        if nom_placement not in placements:
+            placements[nom_placement] = {
+                "nb_parts": 0,
+                "investi": 0,
+                "don": 0,
+                "vente": 0,
+                "perte": 0,
+                "interet": 0,
+                "frais": 0,
+                "valorisation": 0
+            }
+
+        pl = placements[nom_placement]
+
+        pl["frais"] += frais
+
+        # Reproduit la logique globale
+        if type_op in ['Achat', 'Gain de parts', 'Don gratuit']:
+            pl["nb_parts"] += nb_part
+            pl["valorisation"] += nb_part * valeur_part
+            if type_op == 'Achat':
+                pl["investi"] += montant_investit
+
+        elif type_op == 'Don gratuit':
+            pl["don"] += nb_part * val_part
+
+        elif type_op == 'Intérêts':
+            pl["interet"] += interets
+
+        elif type_op == 'Vente':
+            pl["nb_parts"] += nb_part  # ventes → nb_part souvent négatif
+            pl["vente"] += nb_part * val_part
+            pl["valorisation"] += nb_part * val_part
+
+        elif type_op == 'Perte de parts':
+            pl["nb_parts"] += nb_part
+            pl["perte"] += nb_part * val_part
+            pl["valorisation"] += nb_part * val_part
+
+        else:
+            # Cas par défaut : appliquer la valorisation courante
+            pl["nb_parts"] += nb_part
+            pl["valorisation"] += nb_part * valeur_part
+
+    # Finalisation des calculs par placement
     performance_data = []
-    for nom_placement, nb_parts, montant_investi, interets in placements:
-        val_part = GetLastValueForPlacement(nom_placement, conn) # Pass conn
-        valo = nb_parts * val_part
-        plus_value = valo - montant_investi
-        perf = ((plus_value+interets) / montant_investi * 100) if montant_investi != 0 else 0
+    for nom_placement, data in placements.items():
+        plus_value = data["valorisation"] - data["investi"]
+        perf = ((plus_value + data["interet"]) / data["investi"] * 100) if data["investi"] != 0 else 0
+        val_part = last_values[nom_placement]
 
         performance_data.append({
             "nom": nom_placement,
-            "nb_parts": round(nb_parts, 4),
+            "nb_parts": round(data["nb_parts"], 4),
             "val_part": round(val_part, 4),
-            "investi": round(montant_investi, 2),
-            "valorisation": round(valo, 2),
-            "interet": round(interets, 2),
+            "investi": round(data["investi"], 2),
+            "valorisation": round(data["valorisation"], 2),
+            "interet": round(data["interet"], 2),
             "plus-value": round(plus_value, 2),
-            "performance": round(perf, 2)
+            "performance": round(perf, 2),
+            "frais": round(data["frais"], 2),
+            "don": round(data["don"], 2),
+            "vente": round(data["vente"], 2),
+            "perte": round(data["perte"], 2)
         })
 
     conn.close()
