@@ -619,18 +619,20 @@ def UpdateBeneficiaire(beneficiaire,old_nom:str, old_type_beneficiaire:str,paren
     conn.commit()
     conn.close()
 
-def UpdateCategorie(categorie,old_nom:str, db_path=None):
-    conn = connect_db(db_path)
+def UpdateCategorie(categorie, old_nom):
+    conn = connect_db()
     cursor = conn.cursor()
+    
+    new_nom = categorie.nom
 
-    cursor.execute("PRAGMA foreign_keys = ON;")
+    # Met à jour les tables dépendantes avant la table principale
+    cursor.execute("UPDATE sous_categorie SET categorie_parent = ? WHERE categorie_parent = ?", (new_nom, old_nom))
+    cursor.execute("UPDATE operations SET categorie = ? WHERE categorie = ?", (new_nom, old_nom))
+    cursor.execute("UPDATE echeancier SET categorie = ? WHERE categorie = ?", (new_nom, old_nom))
+    cursor.execute("UPDATE tiers SET categorie = ? WHERE categorie = ?", (new_nom, old_nom))
 
-    cursor.execute('''
-    UPDATE categorie
-    SET nom = ?
-    WHERE nom = ?
-    ''', (categorie.nom,
-          old_nom))
+    # Enfin, mettre à jour la catégorie elle-même
+    cursor.execute("UPDATE categorie SET nom = ? WHERE nom = ?", (new_nom, old_nom))
 
     conn.commit()
     conn.close()

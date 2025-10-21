@@ -1843,15 +1843,20 @@ class MoneyManager(QMainWindow):
     def edit_selected_categorie(self, row):
         # Récupérer les informations de la ligne sélectionnée
         item_nom = self.categorie_table.item(row, 0)
-        nom = item_nom.text()
-        # Créer l'objet Tier existant
-        categorie = Categorie(nom)
+        old_nom = item_nom.text()        
+        # Créer l'objet Categorie existant
+        categorie = Categorie(old_nom)
 
-        # Ouvrir la fenêtre AddTierDialog en mode modification
+        # Ouvrir la fenêtre AddEditCategorieDialog en mode modification
         dialog = AddEditCategorieDialog(self, categorie=categorie)
         if dialog.exec():
-            # Si validé : actualiser la ligne du tableau
-            self.categorie_table.item(row, 0).setText(dialog.nom.text())
+            new_nom = dialog.nom.text()
+
+            item_nom.setText(new_nom)
+
+            item_nom.setData(Qt.ItemDataRole.UserRole, new_nom)
+
+            # Recharger les dépendances liées
             self.load_sous_categories()
             self.load_tiers()
             self.load_operations()
