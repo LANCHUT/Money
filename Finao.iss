@@ -1,5 +1,5 @@
-; -- money_setup.iss --
-; Ce script est adapté pour installer votre application Money.exe
+; -- Finao_setup.iss --
+; Ce script est adapté pour installer votre application Finao.exe
 ; Assurez-vous que votre application (Main.exe) est bien une application 64-bit
 ; pour que les paramètres ArchitecturesAllowed et ArchitecturesInstallIn64BitMode soient corrects.
 
@@ -7,22 +7,22 @@
 ; vous devez avoir une édition "x64" de Windows ou Windows 11 on Arm.
 
 [Setup]
-AppName=Money
+AppName=Finao
 AppVersion=1.0.0.0
 WizardStyle=modern
-DefaultDirName={autopf}\Money
-DefaultGroupName=Money
+DefaultDirName={autopf}\Finao
+DefaultGroupName=Finao
 ; Attention: Un programme de désinstallation affiche le fichier principal de l'app.
 ; Si votre app principale est 'Main.exe', c'est ce qu'il faut indiquer ici.
 UninstallDisplayIcon={app}\Main.exe
 Compression=lzma2
 SolidCompression=yes
 OutputDir=userdocs:Inno Setup Output
-; Le nom de votre fichier d'installation final (ex: Setup_Money.exe)
-OutputBaseFilename=Setup_Money
+; Le nom de votre fichier d'installation final (ex: Setup_Finao.exe)
+OutputBaseFilename=Setup_Finao
 ; Votre icône personnalisée pour le programme d'installation
-; Le fichier assets/icons/Money.ico doit être dans le même dossier que money_setup.iss
-SetupIconFile="assets/icons/Money.ico"
+; Le fichier assets/icons/Finao.ico doit être dans le même dossier que Finao_setup.iss
+SetupIconFile="assets/icons/Finao.ico"
 ; "ArchitecturesAllowed=x64compatible" spécifie que le programme d'installation ne peut s'exécuter
 ; que sur les systèmes 64-bit (x64 ou Windows 11 on Arm).
 ArchitecturesAllowed=x64compatible
@@ -37,9 +37,9 @@ AppPublisher=Langello Antoine
 ; AppSupportURL=https://www.votresite.com/support
 ; AppUpdatesURL=https://www.votresite.com/updates
 VersionInfoVersion=1.0.0.0
-VersionInfoCompany=Money
+VersionInfoCompany=Finao
 VersionInfoDescription=Logiciel de gestion de budget personnel
-VersionInfoCopyright=Copyright (c) 2025 Langello Corp. Tous droits réservés.
+VersionInfoCopyright=Copyright (c) 2025 Langello&BOUCHUT Corp. Tous droits réservés.
 ; --------------------------------------------------------------------------
 
 [Tasks]
@@ -48,10 +48,10 @@ VersionInfoCopyright=Copyright (c) 2025 Langello Corp. Tous droits réservés.
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-; Votre programme principal Main.exe
-; Le fichier Main.exe doit être dans le même dossier que money_setup.iss
-Source: "dist\Main.exe"; DestDir: "{app}"
-Source: "assets\icons\Money.ico"; DestDir: "{app}\assets\icons"
+; Votre programme principal Finao.exe
+; Le fichier MaFinaoin.exe doit être dans le même dossier que Finao_setup.iss
+Source: "Finao.exe"; DestDir: "{app}"
+Source: "assets\icons\Finao.ico"; DestDir: "{app}\assets\icons"
 Source: "assets\sounds\*"; DestDir:"{app}\assets\sounds"
 ; Si vous avez d'autres fichiers (comme MyProg.chm ou Readme.txt dans l'exemple original),
 ; assurez-vous de les inclure ici.
@@ -63,6 +63,6 @@ Source: "assets\sounds\*"; DestDir:"{app}\assets\sounds"
 
 [Icons]
 ; Raccourci dans le menu Démarrer
-Name: "{group}\Money"; Filename: "{app}\Main.exe"; IconFilename: "{app}\Main.exe"
+Name: "{group}\Finao"; Filename: "{app}\Finao.exe"; IconFilename: "{app}\Finao.exe"
 ; Raccourci sur le bureau (maintenant que la tâche "desktopicon" est définie)
-Name: "{autodesktop}\Money"; Filename: "{app}\Main.exe"; Tasks: desktopicon; IconFilename: "{app}\Main.exe"
+Name: "{autodesktop}\Finao"; Filename: "{app}\Finao.exe"; Tasks: desktopicon; IconFilename: "{app}\Finao.exe"

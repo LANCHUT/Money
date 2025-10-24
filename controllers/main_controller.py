@@ -1,5 +1,6 @@
 import sys
-
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -46,6 +47,8 @@ import os
 import datetime
 from utils.HTMLJSTemplate import generate_html_with_js
 from utils.ComputeLoan import *
+from config import __version__
+from utils.UpdateChecker import UpdateChecker
 
 
 class ClickHandler(QObject):
@@ -302,12 +305,10 @@ def table_style(table:QTableWidget):
                 padding-left: 6px;
                 padding-right: 6px;}""")
 
-
 def align(item: QTableWidgetItem,alignement:Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft) -> QTableWidgetItem:
     item.setTextAlignment(alignement)
     return item
     
-
 def format_montant(montant,is_nb_part = 0):
     if is_nb_part:
         return f"{float(montant):,.4f}".replace(",", " ").replace(".", ",") + " €" if montant != 0 else ""
@@ -480,6 +481,10 @@ class MoneyManager(QMainWindow):
         self.pointage_state = {'actif': False, 'solde': 0.0, 'date': '','ops' : set(),'rows' : set(),'suspendu': False}
 
         self.settings = QSettings("Langello Corp", "Money") # Remplacez par le nom de votre organisation/app
+        
+        # Check latest software version 
+        update_ckecker = UpdateChecker(self)
+
 
         # Tenter de charger la dernière DB utilisée
         self.load_last_db_path()
