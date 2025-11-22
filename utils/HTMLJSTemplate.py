@@ -1,6 +1,6 @@
 import json
 
-def generate_html_with_js(plotly_div):
+def generate_html_with_js(bg_color,plotly_div):
     js_code = """
         <script src=\"qrc:///qtwebchannel/qwebchannel.js\"></script>
         <script>
@@ -28,7 +28,7 @@ def generate_html_with_js(plotly_div):
         <meta charset="utf-8">
         <style>
             body {{
-                background-color: #1e1e1e;
+                background-color: {bg_color};
                 margin: 0;
             }}
         </style>

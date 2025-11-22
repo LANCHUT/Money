@@ -107,7 +107,15 @@ class AddEditPositionDialog(BaseDialog):
 
 
 
-        self.layout.addRow(QLabel("Date:"),self.date)
+        if not self.isEcheance :
+            self.layout.addRow(QLabel("Date:"), self.date)
+        else :
+            year = self.echeance.prochaine_echeance // 10000
+            month = (self.echeance.prochaine_echeance // 100) % 100
+            day = self.echeance.prochaine_echeance % 100
+            self.date_prochaine_echeance = CustomDateEdit()
+            self.date_prochaine_echeance.setDate(QDate(year, month, day))
+            self.layout.addRow(QLabel("Prochaine échéance:"), self.date_prochaine_echeance)
         self.layout.addRow(QLabel("Type:"), self.type_placement)
         self.label_compte_associe = QLabel("Compte Associé:")
         self.layout.addRow(self.label_compte_associe, self.compte_associe)
@@ -169,11 +177,15 @@ class AddEditPositionDialog(BaseDialog):
         val_part = get_float_value(self.val_part)
         frais = get_float_value(self.frais)
         interets = get_float_value(self.interet)
-        date = int(self.date.date().toString("yyyyMMdd"))
         notes = self.notes.text()
         type_placement = self.type_placement.currentText()
 
-        if self.account_id == compte_associe_id:
+        if not self.isEcheance:
+            date = int(self.date.date().toString("yyyyMMdd"))
+        else :
+            date = int(self.date_prochaine_echeance.date().toString("yyyyMMdd"))
+
+        if self.account_id == compte_associe_id and not self.isEcheance:
             QMessageBox.warning(self, "Erreur", "Le compte associé ne peut pas être le compte actuel")
             return
         if nb_part == 0 and type_placement not in [TypePosition.Interet.value]:
@@ -206,6 +218,8 @@ class AddEditPositionDialog(BaseDialog):
             compte_id = None
             if self.echeance is not None:
                 compte_id = self.echeance.compte_id
+                if date != prochaine_echeance:
+                    prochaine_echeance = date
             elif self.compte_choisi_id is not None:
                 compte_id = self.compte_choisi_id
             else:

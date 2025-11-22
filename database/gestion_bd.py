@@ -5,6 +5,8 @@ import datetime
 from datetime import date
 from bson import ObjectId
 
+from models.theme import Theme
+
 # DB_PATH ne sera plus une constante ici, mais sera défini dynamiquement
 # Initialisez-le à None ou à une valeur par défaut, ou supprimez-le si vous le passez toujours.
 DB_PATH = None
@@ -40,6 +42,33 @@ def  create_tables(db_path=None):
         type TEXT,
         nom_banque TEXT
     )
+    ''')
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS theme (
+        id INTEGER PRIMARY KEY,
+        window_bg TEXT DEFAULT '#1e1e1e',
+        text_color TEXT DEFAULT '#ffffff',
+        button_bg TEXT DEFAULT '#000000',
+        button_fg TEXT DEFAULT '#ffffff',
+        button_border TEXT DEFAULT '#007ACC',
+        button_hover_bg TEXT DEFAULT '#5A5A5A',
+        button_hover_border TEXT DEFAULT '#0096FF',
+        button_pressed_bg TEXT DEFAULT '#2F2F2F',
+        button_pressed_border TEXT DEFAULT '#005699',
+        button_disabled_bg TEXT DEFAULT '#303030',
+        button_disabled_fg TEXT DEFAULT '#808080',
+        button_disabled_border TEXT DEFAULT '#404040',
+        tab_selected_bg TEXT DEFAULT '#0078d7',
+        tab_selected_fg TEXT DEFAULT '#ffffff',
+        font_family TEXT DEFAULT 'Segoe UI',
+        font_size TEXT DEFAULT '18',
+        header_tab_bg TEXT DEFAULT '#1e1e1e',
+        header_tab_fg TEXT DEFAULT '#ffffff',
+        header_tab_border TEXT DEFAULT '#ffffff',
+        positive_color TEXT DEFAULT '#2ecc71',
+        negative_color TEXT DEFAULT '#e74c3c',
+        line_color TEXT DEFAULT '#636efa')
     ''')
 
     cursor.execute('''
@@ -1545,6 +1574,23 @@ def GetLinkOperation(link, db_path=None):
     # return operation
     return operation
 
+
+def GetLinkPosition(link, db_path=None):
+    position = None
+    try:
+        conn = connect_db(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT date,type,nom_placement,nb_part,val_part,frais,interets,notes,compte_id,montant_investit,compte_associe,id,bq FROM position where id  = '{link}'")
+        row = cursor.fetchone()
+
+        conn.close()
+        position = Position(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9],row[10],row[11],row[12])
+    except:
+        pass
+    # return operation
+    return position
+
 # Mise à jour du solde d'un compte
 def UpdateSoldeCompte(compte_id: str, new_solde: float, conn=None):
     was_none = False
@@ -1663,6 +1709,16 @@ def GetTierActif(tier_id : str, db_path=None):
         tier._id = str(t[0])
         return tier
     return
+
+
+def GetTheme(db_path=None) -> Theme:
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM theme LIMIT 1')
+    c = cursor.fetchone()
+    theme = Theme(c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12],c[13],c[14],c[15],c[16],c[17],c[18],c[19],c[20],c[21],c[22])
+    return theme
 
 def GetTiersActifByType(type_tier: str, db_path=None):
     conn = connect_db(db_path)

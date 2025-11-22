@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-from database.gestion_bd import GetPerformanceGlobaleData,GetPerformanceByPlacement
+from database.gestion_bd import GetPerformanceGlobaleData,GetPerformanceByPlacement,GetTheme
 
 import plotly.graph_objects as go
 import tempfile
@@ -16,20 +16,20 @@ def align(item: QTableWidgetItem,alignement:Qt.AlignmentFlag = Qt.AlignmentFlag.
     return item
 
 
-def table_style(table:QTableWidget):
-    table.setStyleSheet("""
-            QHeaderView::section{
-                border: 1px solid white;
-                padding: 4px;
-                font-weight: bold;}
-            QTableWidget::item{
-                padding-left: 6px;
-                padding-right: 6px;}""")
+# def table_style(table:QTableWidget):
+#     table.setStyleSheet("""
+#             QHeaderView::section{
+#                 border: 1px solid white;
+#                 padding: 4px;
+#                 font-weight: bold;}
+#             QTableWidget::item{
+#                 padding-left: 6px;
+#                 padding-right: 6px;}""")
 
 class ShowPerformanceDialog(BaseDialog):
     def __init__(self, parent=None, account_id=None):
         super().__init__(parent)
-        self.resize(1200, 700)
+        self.resize(1700, 900)
         self.setWindowTitle("Performances du portefeuille")
         self.account_id = account_id
 
@@ -69,7 +69,7 @@ class ShowPerformanceDialog(BaseDialog):
         self.table.setHorizontalHeaderLabels([
             "Placement", "Nbre de parts", "Val. Part", "Investissement", "Valorisation", "Intérêts", "Plus-Value", "Performance"
         ])
-        table_style(self.table)
+        #table_style(self.table)
         self.table.resizeColumnsToContents()
         left_layout.addWidget(QLabel("\nDétail des placements :"))
         left_layout.addWidget(self.table)
@@ -141,8 +141,7 @@ class ShowPerformanceDialog(BaseDialog):
             else f"{v:,.2f}".replace(",", " ").replace(".", ",") + " €"
             for v in values
         ]  # note: espace insécable = U+202F
-        bg_color = "#1e1e1e"
-        font_color = "#ffffff"
+        theme = GetTheme()
 
         fig = go.Figure(data=[go.Pie(
             labels=labels,
@@ -170,9 +169,9 @@ class ShowPerformanceDialog(BaseDialog):
                 xanchor="center",
                 x=0.5
             ),
-            paper_bgcolor=bg_color,
-            plot_bgcolor=bg_color,
-            font=dict(color=font_color),   # Fond général du graphique
+            paper_bgcolor=theme.window_bg,
+            plot_bgcolor=theme.window_bg,
+            font=dict(color=theme.text_color),   # Fond général du graphique
         )
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as f:
@@ -180,7 +179,7 @@ class ShowPerformanceDialog(BaseDialog):
             # Injecte style CSS pour changer la couleur de fond du body
             html = html.replace(
                 "<head>",
-                "<head><style>body { background-color: #1e1e1e; margin: 0; }</style>"
+                f"<head><style>body {{ background-color: {theme.window_bg}; margin: 0; }}</style>"
             )
             f.write(html)
             self.web_view.load(QUrl.fromLocalFile(f.name))

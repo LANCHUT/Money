@@ -185,7 +185,15 @@ class AddEditOperationDialog(BaseDialog):
         self.label_categorie = QLabel("Catégorie:")
         self.label_sous_categorie = QLabel("Sous Catégorie:")
 
-        self.layout.addRow(QLabel("Date:"), self.date)
+        if not self.isEcheance :
+            self.layout.addRow(QLabel("Date:"), self.date)
+        else :
+            year = self.echeance.prochaine_echeance // 10000
+            month = (self.echeance.prochaine_echeance // 100) % 100
+            day = self.echeance.prochaine_echeance % 100
+            self.date_prochaine_echeance = CustomDateEdit()
+            self.date_prochaine_echeance.setDate(QDate(year, month, day))
+            self.layout.addRow(QLabel("Prochaine échéance:"), self.date_prochaine_echeance)
         self.layout.addRow(self.label_type_operation, self.type_operation)
         self.layout.addRow(self.label_compte_associe, self.compte_associe)
         self.layout.addRow(self.label_type_tier, self.type_tier)
@@ -316,7 +324,10 @@ class AddEditOperationDialog(BaseDialog):
         moyen_paiement = self.moyen_paiement.currentText()
         num_cheque = self.num_cheque.text()
         compte_associe = self.compte_associe.currentData()
-        date = int(self.date.date().toString("yyyyMMdd"))
+        if not self.isEcheance:
+            date = int(self.date.date().toString("yyyyMMdd"))
+        else :
+            date = int(self.date_prochaine_echeance.date().toString("yyyyMMdd"))
         notes = self.notes.text()
         categorie = self.categorie.currentText()
         sous_categorie = self.sous_categorie.currentText()
@@ -335,7 +346,7 @@ class AddEditOperationDialog(BaseDialog):
             type_beneficiaire = ""
             beneficiaire = ""
 
-        if self.account_id == compte_associe:
+        if self.account_id == compte_associe and not self.isEcheance:
             QMessageBox.warning(self, "Erreur", "Le compte associé ne peut pas être le compte actuel")
             return
 
@@ -428,6 +439,8 @@ class AddEditOperationDialog(BaseDialog):
                 compte_id = self.echeance.compte_id
                 if self.echeance.echeance1 == self.date_premiere or (self.isEdit and self.isEcheance):
                     prochaine_echeance = self.echeance.prochaine_echeance
+                if date != prochaine_echeance:
+                    prochaine_echeance = date
 
             elif self.compte_choisi_id is not None:
                 compte_id = self.compte_choisi_id

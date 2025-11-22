@@ -6,10 +6,11 @@ from PyQt6.QtWidgets import (
     QListWidget, QPushButton, QLabel, QTableWidget, QTableWidgetItem, QListWidgetItem, QMessageBox,
     QAbstractItemView, QTabWidget,QMenu,QStackedLayout,QGridLayout,QSpacerItem,QSizePolicy,QFileDialog,QGroupBox
 )
+from views.dialogs.ThemeEditor import ThemeEditor
 from views.dialogs.ShowPointageDialog import show_pointage_dialog, handle_bq_click, finalize_pointage,cancel_pointage
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtGui import QAction,QColor,QCursor,QIcon,QFont
-from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths
+from PyQt6.QtCore import Qt, QPoint, QUrl, QObject, pyqtSlot, pyqtSignal,QSettings,QStandardPaths,QSize
 from database.gestion_bd import *
 from utils.CheckableComboBox import *
 from utils.DateTableWidgetItem import *
@@ -165,9 +166,10 @@ def sunburst_chart(data_raw, hierarchy_columns,title, value_column="montant", co
 
             if i == len(hierarchy_columns) - 1:  # This is the leaf node
                 if current_id not in added_ids_to_sunburst_lists:
+                    montant_fr = f"{montant:,.2f}".replace(",", " ").replace(".", ",")
                     sunburst_ids.append(current_id)
                     # For leaf nodes, display the absolute value in label
-                    sunburst_labels.append(f"{component} ({montant}€)")
+                    sunburst_labels.append(f"{component} ({montant_fr}€)")
                     sunburst_parents.append(parent_id if parent_id else root_name)
                     sunburst_values.append(montant) # Append the absolute amount
 
@@ -236,13 +238,21 @@ def sunburst_chart(data_raw, hierarchy_columns,title, value_column="montant", co
     root_label_text = ""
     root_color_final = ''
     if true_total_balance < 0:
-        root_label_text = f"{root_name} (Déficit: {abs(round(true_total_balance, 2))}€)"
+        root_label_text = (
+            f"{root_name} (Déficit: "
+            f"{abs(round(true_total_balance, 2)):,.2f}".replace(",", " ").replace(".", ",")
+            + " €)"
+        )
         root_color_final = COLOR_ROOT_NEGATIVE
     elif true_total_balance > 0:
-        root_label_text = f"{root_name} (Surplus: {round(true_total_balance, 2)}€)"
+        root_label_text = (
+            f"{root_name} (Surplus: "
+            f"{abs(round(true_total_balance, 2)):,.2f}".replace(",", " ").replace(".", ",")
+            + " €)"
+        )
         root_color_final = COLOR_ROOT_POSITIVE
     else:
-        root_label_text = f"{root_name} (Equilibre: 0€)"
+        root_label_text = f"{root_name} (Equilibre: 0 €)"
         root_color_final = COLOR_ROOT_ZERO
 
     sum_of_top_level_abs_values = 0
@@ -279,28 +289,20 @@ def sunburst_chart(data_raw, hierarchy_columns,title, value_column="montant", co
         customdata=custom_data,
         marker=dict(colors=sunburst_colors)
     ))
-
+    theme = GetTheme()
+    color = theme.window_bg
+    font_color = theme.text_color
     fig.update_layout(
         title=title, # Generic title
         height=1200,
         width=1200,
         margin=dict(t=30, l=0, r=0, b=0),
-        paper_bgcolor="#1e1e1e",
-        plot_bgcolor="#1e1e1e",
-        font=dict(color="#ffffff")
+        paper_bgcolor=color,
+        plot_bgcolor=color,
+        font=dict(color = font_color)
     )
 
     return fig
-
-def table_style(table:QTableWidget):
-    table.setStyleSheet("""
-            QHeaderView::section{
-                border: 1px solid white;
-                padding: 4px;
-                font-weight: bold;}
-            QTableWidget::item{
-                padding-left: 6px;
-                padding-right: 6px;}""")
 
 
 def align(item: QTableWidgetItem,alignement:Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft) -> QTableWidgetItem:
@@ -512,12 +514,17 @@ class MoneyManager(QMainWindow):
             import_qif_action.triggered.connect(self.import_qif)
             file_menu.addAction(import_qif_action)
 
+            changer_theme_action = QAction("Personaliser le thème", self)
+            changer_theme_action.triggered.connect(self.changer_theme)
+            file_menu.addAction(changer_theme_action)
+
         self.showMaximized()
            
     def setup_ui(self):
         # Menu Bar
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("Fichier")
+        option_menu = menu_bar.addMenu("Options")
         help_menu = menu_bar.addMenu("Aide")
 
         exit_action = QAction("Quitter", self)
@@ -535,6 +542,10 @@ class MoneyManager(QMainWindow):
         import_qif_action = QAction("Importer", self)
         import_qif_action.triggered.connect(self.import_qif)
         file_menu.addAction(import_qif_action)
+
+        changer_theme_action = QAction("Personaliser le thème", self)
+        changer_theme_action.triggered.connect(self.changer_theme)
+        option_menu.addAction(changer_theme_action)
 
         about_action = QAction("À propos", self)
         about_action.triggered.connect(self.show_about)
@@ -613,7 +624,8 @@ class MoneyManager(QMainWindow):
             fig = sunburst_chart(data_raw,hierarchy_level,choix,negative_value_treatment=negative_value_treatment)
         # 1. Générez le div Plotly
         plotly_div = plotly.offline.plot(fig, include_plotlyjs='cdn', output_type='div')
-        html_with_js = generate_html_with_js(plotly_div)
+        theme = GetTheme()
+        html_with_js = generate_html_with_js(theme.window_bg,plotly_div)
         self.etat_chart.setHtml(html_with_js)
 
     def setup_etat_tab(self):
@@ -689,9 +701,14 @@ class MoneyManager(QMainWindow):
         self.echeance_table.setHorizontalHeaderLabels(["Fréquence", "1 ère\néchéance", "Prochaine\néchéance", "Compte", "Type\nopération", "Compte\nassocié", "Type\nde\ntiers", "Tiers\nPlacement",
                                                        "Catégorie","Sous-\nCatégorie","Moyen\nde\npaiement","Type\nbénéficiaire","Bénéficiaire","Débit","Crédit","Nb parts","Val part","Frais","Intérêts","Notes"])
         self.echeance_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        table_style(self.echeance_table)
+        #table_style(self.echeance_table)
+        header = self.echeance_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.echeance_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.echeance_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.echeance_table.hideColumn(1)
         self.echeance_table.resizeColumnsToContents()
+        self.echeance_table.setWordWrap(False)
         self.echeance_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.echeance_table.customContextMenuRequested.connect(self.show_context_menu_echeancier)
         self.echeance_table.setAlternatingRowColors(True)
@@ -724,7 +741,12 @@ class MoneyManager(QMainWindow):
     def load_accounts(self):
         for compte in GetComptes(self.current_db_path):
             self.add_account_to_list(compte)
-        self.add_total_to_list()  # Ajoute le total à la fin
+        self.add_total_to_list()
+        theme = GetTheme() 
+        size = int(int(theme.font_size.split('px')[0]) * 2.3)
+        for i in range(self.account_list.count()):
+            item = self.account_list.item(i)
+            item.setSizeHint(QSize(size, size))
 
     def load_tiers(self,tiers = None):
         self.tier_table.setSortingEnabled(False)
@@ -873,10 +895,11 @@ class MoneyManager(QMainWindow):
         # Solde formaté
         solde_str = f"{compte.solde:,.2f}".replace(",", " ").replace(".", ",") + " €"
         solde_label = QLabel(solde_str)
+        theme = GetTheme()
         if compte.solde >= 0:
-            solde_label.setStyleSheet("color: #2ecc71;")
+            solde_label.setStyleSheet(f"color: {theme.positive_color};")
         else:
-            solde_label.setStyleSheet("color: #e74c3c;")
+            solde_label.setStyleSheet(f"color: {theme.negative_color};")
 
         solde_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
@@ -2317,28 +2340,114 @@ class MoneyManager(QMainWindow):
         
 
     def add_echeance_row(self, row, echeance: Echeance):
+
+        # Col 0
         frequence_item = DateTableWidgetItem(echeance.frequence)
         frequence_item.setData(Qt.ItemDataRole.UserRole, echeance._id)
+        frequence_item.setToolTip(frequence_item.text())
         self.echeance_table.setItem(row, 0, align(frequence_item))
-        self.echeance_table.setItem(row, 1, align(DateTableWidgetItem(echeance.echeance1),Qt.AlignmentFlag.AlignCenter))
-        self.echeance_table.setItem(row, 2, align(DateTableWidgetItem(echeance.prochaine_echeance),Qt.AlignmentFlag.AlignCenter))
-        self.echeance_table.setItem(row, 3, align(QTableWidgetItem(GetCompteName(echeance.compte_id))))
-        self.echeance_table.setItem(row, 4, align(QTableWidgetItem(echeance.type)))
-        self.echeance_table.setItem(row, 5, align(QTableWidgetItem(GetCompteName(echeance.compte_associe))))
-        self.echeance_table.setItem(row, 6, align(QTableWidgetItem(echeance.type_tier)))
-        self.echeance_table.setItem(row, 7, align(QTableWidgetItem(GetTierName(echeance.tier) if GetTierName(echeance.tier) is not None else echeance.tier)))
-        self.echeance_table.setItem(row, 8, align(QTableWidgetItem(echeance.categorie)))
-        self.echeance_table.setItem(row, 9, align(QTableWidgetItem(echeance.sous_categorie)))
-        self.echeance_table.setItem(row, 10, align(QTableWidgetItem(echeance.moyen_paiement)))
-        self.echeance_table.setItem(row, 11, align(QTableWidgetItem(echeance.type_beneficiaire)))
-        self.echeance_table.setItem(row, 12, align(QTableWidgetItem(echeance.beneficiaire)))
-        self.echeance_table.setItem(row, 13, align(NumericTableWidgetItem(echeance.debit, format_montant(echeance.debit)),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 14, align(NumericTableWidgetItem(echeance.credit, format_montant(echeance.credit)),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 15, align(NumericTableWidgetItem(echeance.nb_part, str(f"{float(echeance.nb_part):,.4f}".replace(",", " ").replace(".", ","))) if echeance.nb_part != 0 else QTableWidgetItem(""),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 16, align(NumericTableWidgetItem(echeance.val_part, format_montant(echeance.val_part,1) if echeance.type != "Intérêts" else "") ,Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 17, align(NumericTableWidgetItem(echeance.frais, format_montant(echeance.frais)),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 18, align(NumericTableWidgetItem(echeance.interets, format_montant(echeance.interets)),Qt.AlignmentFlag.AlignRight))
-        self.echeance_table.setItem(row, 19, align(QTableWidgetItem(echeance.notes)))
+
+        # Col 1
+        item = DateTableWidgetItem(echeance.echeance1)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 1, align(item, Qt.AlignmentFlag.AlignCenter))
+
+        # Col 2
+        item = DateTableWidgetItem(echeance.prochaine_echeance)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 2, align(item, Qt.AlignmentFlag.AlignCenter))
+
+        # Col 3
+        txt = GetCompteName(echeance.compte_id)
+        item = QTableWidgetItem(txt)
+        item.setToolTip(txt)
+        self.echeance_table.setItem(row, 3, align(item))
+
+        # Col 4
+        item = QTableWidgetItem(echeance.type)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 4, align(item))
+
+        # Col 5
+        txt = GetCompteName(echeance.compte_associe)
+        item = QTableWidgetItem(txt)
+        item.setToolTip(txt)
+        self.echeance_table.setItem(row, 5, align(item))
+
+        # Col 6
+        item = QTableWidgetItem(echeance.type_tier)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 6, align(item))
+
+        # Col 7
+        txt = GetTierName(echeance.tier) or echeance.tier
+        item = QTableWidgetItem(txt)
+        item.setToolTip(txt)
+        self.echeance_table.setItem(row, 7, align(item))
+
+        # Col 8
+        item = QTableWidgetItem(echeance.categorie)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 8, align(item))
+
+        # Col 9
+        item = QTableWidgetItem(echeance.sous_categorie)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 9, align(item))
+
+        # Col 10
+        item = QTableWidgetItem(echeance.moyen_paiement)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 10, align(item))
+
+        # Col 11
+        item = QTableWidgetItem(echeance.type_beneficiaire)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 11, align(item))
+
+        # Col 12
+        item = QTableWidgetItem(echeance.beneficiaire)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 12, align(item))
+
+        # Col 13
+        item = NumericTableWidgetItem(echeance.debit, format_montant(echeance.debit))
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 13, align(item, Qt.AlignmentFlag.AlignRight))
+
+        # Col 14
+        item = NumericTableWidgetItem(echeance.credit, format_montant(echeance.credit))
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 14, align(item, Qt.AlignmentFlag.AlignRight))
+
+        # Col 15
+        txt = "" if echeance.nb_part == 0 else f"{float(echeance.nb_part):,.4f}".replace(",", " ").replace(".", ",")
+        item = NumericTableWidgetItem(echeance.nb_part, txt)
+        item.setToolTip(txt)
+        self.echeance_table.setItem(row, 15, align(item, Qt.AlignmentFlag.AlignRight))
+
+        # Col 16
+        val_part_text = format_montant(echeance.val_part, 1) if echeance.type != "Intérêts" else ""
+        item = NumericTableWidgetItem(echeance.val_part, val_part_text)
+        item.setToolTip(val_part_text)
+        self.echeance_table.setItem(row, 16, align(item, Qt.AlignmentFlag.AlignRight))
+
+        # Col 17
+        txt = format_montant(echeance.frais)
+        item = NumericTableWidgetItem(echeance.frais, txt)
+        item.setToolTip(txt)
+        self.echeance_table.setItem(row, 17, align(item, Qt.AlignmentFlag.AlignRight))
+
+        # Col 18
+        txt = format_montant(echeance.interets)
+        item = NumericTableWidgetItem(echeance.interets, txt)
+        item.setToolTip(txt)
+        self.echeance_table.setItem(row, 18, align(item, Qt.AlignmentFlag.AlignRight))
+
+        # Col 19
+        item = QTableWidgetItem(echeance.notes)
+        item.setToolTip(item.text())
+        self.echeance_table.setItem(row, 19, align(item))
 
     def add_compte_row(self, row, compte: Compte):
         item_nom = QTableWidgetItem(str(compte.nom))
@@ -2347,12 +2456,13 @@ class MoneyManager(QMainWindow):
 
         solde = compte.solde
         solde_str = f"{solde:,.2f}".replace(",", " ").replace(".", ",") + " €"
+        theme = GetTheme()
         if solde < 0:
             solde_str = solde_str.replace("-", "- ")
-            color = QColor("#e74c3c")
+            color = QColor(theme.negative_color)
         else:
             solde_str = "+ " + solde_str
-            color = QColor("#2ecc71")
+            color = QColor(theme.positive_color)
 
         item_solde = NumericTableWidgetItem(solde, solde_str)
         item_solde.setForeground(color)
@@ -2416,17 +2526,17 @@ class MoneyManager(QMainWindow):
             13: QTableWidgetItem(""),  # Debit column, might be overwritten
             14: QTableWidgetItem(""),  # Credit column, might be overwritten
         }
-
+        theme = GetTheme()
         if operation.type.lower() in ["débit", "transfert vers"]:
             debit_formate = f"{operation.debit:,.2f}".replace(",", " ").replace(".", ",").replace("-", "- ") + " €" if operation.debit < 0 else ""
             debit_item = NumericTableWidgetItem(operation.debit, debit_formate)
-            debit_item.setForeground(QColor("#e74c3c"))
+            debit_item.setForeground(QColor(theme.negative_color))
             debit_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             row_data[13] = debit_item
         elif operation.type.lower() in ["crédit", "transfert de"]:
             credit_formate = f"+ {operation.credit:,.2f}".replace(",", " ").replace(".", ",") + " €" if operation.credit > 0 else ""
             credit_item = NumericTableWidgetItem(operation.credit, credit_formate)
-            credit_item.setForeground(QColor("#2ecc71"))
+            credit_item.setForeground(QColor(theme.positive_color))
             credit_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             row_data[14] = credit_item
 
@@ -2435,18 +2545,19 @@ class MoneyManager(QMainWindow):
         if solde < 0:
             solde_formate = solde_formate.replace("-","- ") + " €"
             solde_item = NumericTableWidgetItem(solde, solde_formate)
-            solde_item.setForeground(QColor("#e74c3c"))
+            solde_item.setForeground(QColor(theme.negative_color))
         else:
             solde_formate = "+ " + solde_formate + " €"
             solde_item = NumericTableWidgetItem(solde, solde_formate)
-            solde_item.setForeground(QColor("#2ecc71"))
+            solde_item.setForeground(QColor(theme.positive_color))
         solde_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         row_data[16] = solde_item
         row_data['solde'] = solde
         return row_data
 
     def _add_row_to_table(self, row_index: int, row_data: dict):
-        for col, item in row_data.items():
+        for col, item  in row_data.items():
+            item.setToolTip(item.text())
             if isinstance(item,NumericTableWidgetItem):
                 self.transaction_table.setItem(row_index, col, align(item,Qt.AlignmentFlag.AlignRight))
             else :
@@ -2516,7 +2627,8 @@ class MoneyManager(QMainWindow):
         # Déterminer la couleur en fonction de la date
         echeance_date = int(data[1])
         today = int(date.today().strftime("%Y%m%d"))
-        background_color = QColor("#2ecc71") if echeance_date <= today else QColor("#e74c3c")
+        theme = GetTheme()
+        background_color = QColor(theme.positive_color) if echeance_date <= today else QColor(theme.negative_color)
 
         # Définition des colonnes : (valeur, type, [alignement], [format_numeric], [suffix])
         columns = [
@@ -2843,6 +2955,24 @@ class MoneyManager(QMainWindow):
     def update_operation(self, operation:Operation,old_credit,old_debit,isEdit):
         if isEdit:
             DeleteOperation(operation,old_credit,old_debit)
+            p = GetLinkPosition(str(operation.link))
+            if p is not None:
+                DeletePosition(p)
+                type_position = p.type
+                if type_position == TypePosition.Interet.value:
+                    p.interets = operation.credit
+                elif type_position in [TypePosition.Vente.value,TypePosition.Perte.value]:
+                    p.nb_part = round(operation.credit/p.val_part,4) * -1
+                    p.compte_id = operation.compte_associe
+                    if TypePosition.Vente.value :
+                        operation.notes = f"Vente de {p.nb_part * -1} parts de {p.nom_placement} à {p.val_part} €"
+                else:
+                    p.nb_part = round(operation.debit/p.val_part,4) * -1
+                    p.compte_id = operation.compte_associe
+                    if TypePosition.Achat.value :
+                        operation.notes = f"Achat de {p.nb_part} parts de {p.nom_placement} à {p.val_part} €"
+                    
+                InsertPosition(p)
             InsertOperation(operation)
         else:
             operation._id = str(ObjectId())
@@ -2945,6 +3075,15 @@ class MoneyManager(QMainWindow):
                 self.load_tiers()
                 self.transaction_table.clearContents()
                 self.load_operations()
+
+    def changer_theme(self):
+        dlg = ThemeEditor(self.current_db_path,self)
+        if dlg.exec():
+            # recharger le thème immédiatement
+            qss = load_theme()
+            QApplication.instance().setStyleSheet(qss)
+            self.account_list.clear()
+            self.load_accounts()
 
 
         
@@ -3074,11 +3213,15 @@ class MoneyManager(QMainWindow):
             "Moyen\nPaiement", "Numéro\nchèque", "Bq", "Catégorie", "Sous-\nCatégorie",
             "Débit", "Crédit", "Notes", "Solde"
         ])
-        table_style(self.transaction_table)
-        self.transaction_table.resizeColumnsToContents()
+        #table_style(self.transaction_table)
+        header = self.transaction_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.transaction_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.transaction_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.transaction_table.setSortingEnabled(True)
+        self.transaction_table.setWordWrap(False)
         self.transaction_table.setAlternatingRowColors(True)
+        self.transaction_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.transaction_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.transaction_table.customContextMenuRequested.connect(self.show_context_menu_operation)
         self.transaction_table.cellClicked.connect(self.handle_table_click)
@@ -3087,9 +3230,10 @@ class MoneyManager(QMainWindow):
         self.position_table.setHorizontalHeaderLabels([
             "Date", "Type", "Compte\nAssocié", "Placement","Bq", "Nombre\nparts", "Valeur\npart Achat", "Frais", "Intérêts", "Notes", "Montant\nInvestissement", "Montant\nPosition initial"
         ])
-        table_style(self.position_table)
+        #table_style(self.position_table)
         self.position_table.resizeColumnsToContents()
         self.position_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.position_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.position_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.position_table.sortItems(0,Qt.SortOrder.AscendingOrder)
         self.position_table.customContextMenuRequested.connect(self.show_context_menu_position)
@@ -3100,8 +3244,9 @@ class MoneyManager(QMainWindow):
         self.pret_table.setHorizontalHeaderLabels([
             "N°\nEch", "Date", "Capital restant\n dû", "Intérêts", "Capital", "Assurance", "Total", "Années", "Taux\nPériode", "Taux"
         ])
-        table_style(self.pret_table)
+        #table_style(self.pret_table)
         self.pret_table.resizeColumnsToContents()
+        self.pret_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.pret_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.pret_table.setSortingEnabled(True)
         self.pret_table.setAlternatingRowColors(True)
@@ -3315,11 +3460,15 @@ class MoneyManager(QMainWindow):
         self.tier_table = QTableWidget(0, 6)
         self.tier_table.setHorizontalHeaderLabels(["Nom", "Type", "Catégorie\ndéfaut", "Sous-\ncatégorie\ndéfaut", "Moy de\npaiement\ndéfaut", "Actif"])
         self.tier_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        table_style(self.tier_table)
+        #table_style(self.tier_table)
         self.tier_table.resizeColumnsToContents()
         self.tier_table.setAlternatingRowColors(True)
-        self.tier_table.setSortingEnabled(True)
+        self.tier_table.setSortingEnabled(True)        
+        self.tier_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tier_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tier_table.setWordWrap(False)
+        self.tier_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.tier_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.tier_table.sortItems(0,Qt.SortOrder.AscendingOrder)
         self.tier_table.customContextMenuRequested.connect(self.show_context_menu_tier)
         tiers_section.addWidget(self.tier_table)
@@ -3330,8 +3479,11 @@ class MoneyManager(QMainWindow):
         types_section = QVBoxLayout()
         self.type_tier_table = QTableWidget(0, 1)
         self.type_tier_table.setHorizontalHeaderLabels(["Type\nde\nTiers"])
+        self.type_tier_table.setWordWrap(False)
+        self.type_tier_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.type_tier_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.type_tier_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        table_style(self.type_tier_table)
+        #table_style(self.type_tier_table)
         self.type_tier_table.resizeColumnsToContents()
         self.type_tier_table.setAlternatingRowColors(True)
         self.type_tier_table.setSortingEnabled(True)
@@ -3355,8 +3507,12 @@ class MoneyManager(QMainWindow):
         cat_section = QVBoxLayout()
         self.categorie_table = QTableWidget(0, 1)
         self.categorie_table.setHorizontalHeaderLabels(["Catégorie"])
+        self.categorie_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.categorie_table.setWordWrap(False)
+        self.categorie_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.categorie_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.categorie_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        table_style(self.categorie_table)
+        #table_style(self.categorie_table)
         self.categorie_table.resizeColumnsToContents()
         self.categorie_table.setAlternatingRowColors(True)
         self.categorie_table.sortItems(1,Qt.SortOrder.AscendingOrder)
@@ -3370,9 +3526,13 @@ class MoneyManager(QMainWindow):
 
         sous_cat_section = QVBoxLayout()
         self.sous_categorie_table = QTableWidget(0, 2)
+        self.sous_categorie_table.setWordWrap(False)
+        self.sous_categorie_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.sous_categorie_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.sous_categorie_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.sous_categorie_table.setHorizontalHeaderLabels(["Sous-Catégorie", "Catégorie"])
         self.sous_categorie_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        table_style(self.sous_categorie_table)
+        #table_style(self.sous_categorie_table)
         self.sous_categorie_table.resizeColumnsToContents()
         self.sous_categorie_table.setAlternatingRowColors(True)
         self.sous_categorie_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -3393,8 +3553,11 @@ class MoneyManager(QMainWindow):
         layout = QVBoxLayout(self.comptes_tab)
         self.compte_table = QTableWidget(0, 4)
         self.compte_table.setHorizontalHeaderLabels(["Nom", "Solde", "Type", "Etablissement Bancaire"])
-        table_style(self.compte_table)
-        self.compte_table.resizeColumnsToContents()
+        #table_style(self.compte_table)
+        self.compte_table.setWordWrap(False)
+        self.compte_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.compte_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.compte_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.compte_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.compte_table.setAlternatingRowColors(True)
         self.compte_table.setSortingEnabled(True)
@@ -3410,9 +3573,12 @@ class MoneyManager(QMainWindow):
     def setup_moyen_paiement_tab(self):
         layout = QVBoxLayout(self.moyen_paiement_tab)
         self.moyen_paiement_table = QTableWidget(0, 1)
+        self.moyen_paiement_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.moyen_paiement_table.setHorizontalHeaderLabels(["Nom"])
-        table_style(self.moyen_paiement_table)
-        self.moyen_paiement_table.resizeColumnsToContents()
+        #table_style(self.moyen_paiement_table)
+        self.moyen_paiement_table.setWordWrap(False)
+        self.moyen_paiement_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.moyen_paiement_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.moyen_paiement_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.moyen_paiement_table.setAlternatingRowColors(True)
         self.moyen_paiement_table.setSortingEnabled(True)
@@ -3431,8 +3597,11 @@ class MoneyManager(QMainWindow):
         cat2_section = QVBoxLayout()
         self.categorie2_table = QTableWidget(0, 1)
         self.categorie2_table.setHorizontalHeaderLabels(["Type Bénéficiaire"])
-        table_style(self.categorie2_table)
-        self.categorie2_table.resizeColumnsToContents()
+        #table_style(self.categorie2_table)
+        self.categorie2_table.setWordWrap(False)
+        self.categorie2_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.categorie2_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.categorie2_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.categorie2_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.categorie2_table.setAlternatingRowColors(True)
         self.categorie2_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -3446,8 +3615,11 @@ class MoneyManager(QMainWindow):
         sous_cat2_section = QVBoxLayout()
         self.sous_categorie2_table = QTableWidget(0, 2)
         self.sous_categorie2_table.setHorizontalHeaderLabels(["Bénéficiaire", "Type bénéficiaire"])
-        table_style(self.sous_categorie2_table)
-        self.sous_categorie2_table.resizeColumnsToContents()
+        #table_style(self.sous_categorie2_table)
+        self.sous_categorie2_table.setWordWrap(False)
+        self.sous_categorie2_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.sous_categorie2_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.sous_categorie2_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.sous_categorie2_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.sous_categorie2_table.setAlternatingRowColors(True)
         self.sous_categorie2_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -3479,7 +3651,8 @@ class MoneyManager(QMainWindow):
         from datetime import datetime
         dates = [datetime.strptime(str(h.date).zfill(8), "%Y%m%d") for h in historique]
         valeurs = [h.val_actualise for h in historique]
-        fig = go.Figure(data=[go.Scatter(x=dates, y=valeurs, mode='lines', name=nom)])
+        theme = GetTheme()
+        fig = go.Figure(data=[go.Scatter(x=dates, y=valeurs, mode='lines', name=nom, line=dict(color=theme.line_color) )])
         dates = [f"{str(h.date)[6:8]}/{str(h.date)[4:6]}/{str(h.date)[0:4]}" for h in historique]
 
         self.history_table.setRowCount(0)  # Réinitialiser
@@ -3495,10 +3668,10 @@ class MoneyManager(QMainWindow):
         self.history_table.resizeColumnsToContents()
 
         self.history_table.setVisible(True)
-        
+        theme = GetTheme()
+        bg_color = theme.window_bg
+        font_color = theme.text_color
 
-        bg_color = "#1e1e1e"
-        font_color = "#ffffff"
 
         fig.update_layout(
             title=f"Évolution de {nom}",
@@ -3512,11 +3685,11 @@ class MoneyManager(QMainWindow):
                 tickformat="%d %b %Y",
                 tickangle=-45,         
                 showgrid=True,
-                gridcolor='rgba(255,255,255,0.1)'
+                gridcolor= hex_to_rgba(font_color)
             ),
             yaxis=dict(
                 showgrid=True,
-                gridcolor='rgba(255,255,255,0.1)',
+                gridcolor=hex_to_rgba(font_color),
                 zeroline=False
             )
         )
@@ -3554,7 +3727,11 @@ class MoneyManager(QMainWindow):
         placement_table_panel = QVBoxLayout()
         self.placement_table = QTableWidget(0, 6)        
         self.placement_table.setHorizontalHeaderLabels(["Nom", "N° ISIN", "Type", "Date", "Valeur actualisée", "Origine"])
-        table_style(self.placement_table)
+        #table_style(self.placement_table)
+        self.placement_table.setWordWrap(False)
+        self.placement_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.placement_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.placement_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.placement_table.resizeColumnsToContents()
         self.placement_table.setAlternatingRowColors(True)
         self.placement_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -3574,9 +3751,10 @@ class MoneyManager(QMainWindow):
 
         self.history_table = QTableWidget(0, 2)
         self.history_table.setHorizontalHeaderLabels(["Date", "Valeur"])
-        table_style(self.history_table)
+        #table_style(self.history_table)
         self.history_table.resizeColumnsToContents()
         self.history_table.setAlternatingRowColors(True)
+        self.history_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.history_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.history_table.setMinimumWidth(250)
         self.history_table.setVisible(False)  # Caché initialement
@@ -3593,8 +3771,9 @@ class MoneyManager(QMainWindow):
         placement_layout.addLayout(placement_main_panel)
 
         # === 2. Web view pour le graphique en bas ===
-        bg_color = "#1e1e1e"
-        font_color = "#ffffff"
+        theme = GetTheme()
+        bg_color = theme.window_bg
+        font_color = theme.text_color
         self.graph_view = QWebEngineView()
         self.graph_view.setMinimumHeight(250)
         self.graph_view.setHtml(f"""
@@ -3605,7 +3784,7 @@ class MoneyManager(QMainWindow):
             </head>
             <body style="width: 100%; height: 100%">
                 <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
-                    <h3 style="color: #ffffff; font-family: 'Segoe UI'";">Sélectionnez un placement pour voir l'historique</h3>
+                    <h3 style={{"color: {font_color}; font-family: '{theme.font_family} }}'";">Sélectionnez un placement pour voir l'historique</h3>
                 </div>
             </body>
             """)
@@ -3623,15 +3802,16 @@ class MoneyManager(QMainWindow):
         name_label.setStyleSheet("font-weight: bold;")
         solde_label = QLabel(f"{total:,.2f} €".replace(",", " "))
         solde_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        theme = GetTheme()
         if total > 0:
-            solde_label.setStyleSheet("font-weight: bold; color: #2ecc71;")
+            solde_label.setStyleSheet(f"font-weight: bold; color: {theme.positive_color};")
         else:
-            solde_label.setStyleSheet("font-weight: bold; color: #e74c3c;")
+            solde_label.setStyleSheet(f"font-weight: bold; color: {theme.negative_color};")
 
         layout.addWidget(name_label)
         layout.addStretch()
         layout.addWidget(solde_label)
-        layout.setContentsMargins(5, 2, 5, 2)
+        # layout.setContentsMargins(5, 2, 5, 2)
 
         item = QListWidgetItem(self.account_list)
         item.setFlags(Qt.ItemFlag.NoItemFlags)  # Non sélectionnable
@@ -4141,50 +4321,140 @@ class MoneyManager(QMainWindow):
         self.pointage_btn.show()
         self.add_transaction_btn.setEnabled(True)
 
+def load_theme():
 
-def main():
-    app = QApplication(sys.argv)
-    app.styleHints().setColorScheme(Qt.ColorScheme.Dark)
-    qss = """
-    QPushButton {
-        background-color: #000000; 
-        color: #ffffff;
-        border: 2px solid #007ACC;
+    theme = GetTheme()
+
+    return f"""
+
+    QWidget {{
+    background-color: {theme.window_bg};
+}}
+
+    QMenuBar {{
+        background-color: {theme.window_bg};
+        color: {theme.text_color};
+    }}
+
+    QMenuBar::item {{
+        background: transparent;
+        padding: 4px 12px;
+    }}
+
+    QMenuBar::item:selected {{
+        background: {adjust_brightness(theme.window_bg)};
+        color: {theme.text_color};
+    }}
+
+    QMenuBar::item:pressed {{
+        background: {adjust_brightness(theme.window_bg)};
+        color: {theme.text_color};
+    }}
+
+    QMenu {{
+        background-color: {adjust_brightness(theme.window_bg)};
+        color: {theme.text_color};
+        border: 1px solid;
+        padding: 4px;
+    }}
+
+    QMenu::item {{
+        padding: 6px 20px;
+        background-color: transparent;
+        color: {theme.text_color};
+    }}
+
+    QMenu::item:selected {{
+        background-color: {adjust_brightness(theme.window_bg,0.6)};
+        color: {theme.text_color};
+    }}
+
+    QMenu::separator {{
+        height: 1px;
+        background: {theme.text_color};
+        margin: 4px 8px;
+    }}
+
+    QHeaderView::section{{
+    background-color: {theme.header_tab_bg};   
+    color: {theme.header_tab_fg};
+    border: 1px solid {theme.header_tab_border};
+    padding: 4px;
+    font-weight: bold;}}
+                    
+    QTableWidget::item{{
+        padding-left: 6px;
+        padding-right: 6px;}}
+
+    QPushButton {{
+        background-color: {theme.button_bg};
+        color: {theme.button_fg};
+        border: 2px solid {theme.button_border};
         border-radius: 5px;
         padding: 8px 15px;
         font-size: 18px;
         min-width: 120px;
         margin: 5px;
-    }
+    }}
 
-    QTabBar::tab:selected{
-        background: #0078d7;
-        color:white;
-        font-weight:bold;
-    }
+    QPushButton:hover {{
+        background-color: {theme.button_hover_bg};
+        border: 2px solid {theme.button_hover_border};
+    }}
 
-    QPushButton:hover {
-        background-color: #5A5A5A;
-        border: 2px solid #0096FF;
-    }
+    QPushButton:pressed {{
+        background-color: {theme.button_pressed_bg};
+        border: 2px solid {theme.button_pressed_border};
+    }}
 
-    QPushButton:pressed {
-        background-color: #2F2F2F;
-        border: 2px solid #005699;
-    }
+    QPushButton:disabled {{
+        background-color: {theme.button_disabled_bg};
+        color: {theme.button_disabled_fg};
+        border: 1px solid {theme.button_disabled_border};
+    }}
 
-    QPushButton:disabled {
-        background-color: #303030;
-        color: #808080;
-        border: 1px solid #404040;
-    }
-    *{
-        font-family: "Segoe UI";
-        font-size : 18px
-    }
+    QTabBar::tab:selected {{
+        background: {theme.tab_selected_bg};
+        color: {theme.tab_selected_fg};
+        font-weight: bold;
+    }}
+
+    * {{
+        color: {theme.text_color};
+        font-family: "{theme.font_family}";
+        font-size: {theme.font_size + "px"};
+    }}
     """
-    app.setStyleSheet(qss)
+
+def hex_to_rgba(hex_color, alpha = 0.3):
+    hex_color = hex_color.lstrip('#')
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+def adjust_brightness(hex_color, factor=0.8):
+    """
+    factor < 1  → couleur plus sombre
+    factor > 1  → couleur plus claire
+    """
+    hex_color = hex_color.lstrip('#')
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+
+    r = int(max(0, min(255, r * factor)))
+    g = int(max(0, min(255, g * factor)))
+    b = int(max(0, min(255, b * factor)))
+
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+def main():
+    app = QApplication(sys.argv)
+    app.styleHints().setColorScheme(Qt.ColorScheme.Dark)
     window = MoneyManager()
+    qss = load_theme()
+    app.setStyleSheet(qss)
     window.show()
     sys.exit(app.exec())
 
