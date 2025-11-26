@@ -68,7 +68,10 @@ def  create_tables(db_path=None):
         header_tab_border TEXT DEFAULT '#ffffff',
         positive_color TEXT DEFAULT '#2ecc71',
         negative_color TEXT DEFAULT '#e74c3c',
-        line_color TEXT DEFAULT '#636efa')
+        line_color TEXT DEFAULT '#636efa',
+        row_selected_bg TEXT DEFAULT '#3874f2',
+        row_selected_fg TEXT DEFAULT '#ffffff',
+        odd_line_bg TEXT DEFAULT '#4d4d4d')
     ''')
 
     cursor.execute('''
@@ -917,7 +920,7 @@ def GetHistoriquePlacement(nom:str, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"select nom,type,date,valeur_actualise,origine,ticker from historique_placement where nom = '{nom}'")
+    cursor.execute(f"select nom,type,date,valeur_actualise,origine,ticker from historique_placement where nom = '{nom}' order by date desc")
     historique_placement = cursor.fetchall()
 
     conn.close()
@@ -1717,7 +1720,7 @@ def GetTheme(db_path=None) -> Theme:
 
     cursor.execute('SELECT * FROM theme LIMIT 1')
     c = cursor.fetchone()
-    theme = Theme(c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12],c[13],c[14],c[15],c[16],c[17],c[18],c[19],c[20],c[21],c[22])
+    theme = Theme(c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12],c[13],c[14],c[15],c[16],c[17],c[18],c[19],c[20],c[21],c[22],c[23],c[24],c[25])
     return theme
 
 def GetTiersActifByType(type_tier: str, db_path=None):

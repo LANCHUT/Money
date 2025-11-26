@@ -40,7 +40,12 @@ class Theme:
         positive_color: str = "#2ecc71",
         negative_color: str = "#e74c3c",
 
-        line_color: str = "#636efa"
+        line_color: str = "#636efa",
+
+        row_selected_bg = "#3874f2",
+        row_selected_fg = "#ffffff",
+
+        odd_line_bg = "#4d4d4d"
     ):
         self._id = _id
 
@@ -80,6 +85,11 @@ class Theme:
 
         self.line_color = line_color
 
+        self.row_selected_bg = row_selected_bg
+        self.row_selected_fg = row_selected_fg
+
+        self.odd_line_bg = odd_line_bg
+
     def to_dict(self):
         """Convert theme to a dictionary for database storage."""
         return {
@@ -114,5 +124,11 @@ class Theme:
             "positive_color": self.positive_color,
             "negative_color": self.negative_color,
 
-            "line_color" : self.line_color
+            "line_color" : self.line_color,
+
+            "row_selecteg_bg" : self.row_selected_bg,
+            "row_selecteg_fg" : self.row_selected_fg,
+            
+            "odd_line_bg" : self.odd_line_bg
+
         }

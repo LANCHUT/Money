@@ -14,7 +14,25 @@ from views.dialogs.BaseDialog import BaseDialog
 def align(item: QTableWidgetItem,alignement:Qt.AlignmentFlag = Qt.AlignmentFlag.AlignLeft) -> QTableWidgetItem:
     item.setTextAlignment(alignement)
     return item
+def italic(item: QTableWidgetItem):
+    f = item.font()
+    f.setItalic(True)
+    item.setFont(f)
+    return item
 
+def align_table_headers(table):
+    """
+    Aligne les headers d'un tableau PyQt6.
+    
+    Args:
+        table: QTableWidget ou QTableView
+        horizontal: Qt.AlignmentFlag pour l'alignement horizontal (par défaut AlignCenter)
+        vertical: Qt.AlignmentFlag pour l'alignement vertical (par défaut AlignVCenter)
+    """
+    
+    # Alignement vertical header
+    if table.verticalHeader() is not None:
+        table.verticalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
 
 # def table_style(table:QTableWidget):
 #     table.setStyleSheet("""
@@ -69,7 +87,7 @@ class ShowPerformanceDialog(BaseDialog):
         self.table.setHorizontalHeaderLabels([
             "Placement", "Nbre de parts", "Val. Part", "Investissement", "Valorisation", "Intérêts", "Plus-Value", "Performance"
         ])
-        #table_style(self.table)
+        align_table_headers(self.table)
         self.table.resizeColumnsToContents()
         left_layout.addWidget(QLabel("\nDétail des placements :"))
         left_layout.addWidget(self.table)
@@ -117,14 +135,14 @@ class ShowPerformanceDialog(BaseDialog):
         self.table.setRowCount(len(placements))
 
         for i, p in enumerate(placements):
-            self.table.setItem(i, 0, align(QTableWidgetItem(p.get("nom", ""))))
-            self.table.setItem(i, 1, align(QTableWidgetItem(str(f"{float(p.get('nb_parts', 0)):,.4f}".replace(",", " ").replace(".", ","))),Qt.AlignmentFlag.AlignRight))
-            self.table.setItem(i, 2, align(QTableWidgetItem(format_eur(p.get("val_part", 0),1)),Qt.AlignmentFlag.AlignRight))
-            self.table.setItem(i, 3, align(QTableWidgetItem(format_eur(p.get("investi", 0))),Qt.AlignmentFlag.AlignRight))
-            self.table.setItem(i, 4, align(QTableWidgetItem(format_eur(p.get("valorisation", 0))),Qt.AlignmentFlag.AlignRight))
-            self.table.setItem(i, 5, align(QTableWidgetItem(format_eur(p.get("interet", 0))),Qt.AlignmentFlag.AlignRight))
-            self.table.setItem(i, 6, align(QTableWidgetItem(format_eur(p.get("plus-value", 0))),Qt.AlignmentFlag.AlignRight))
-            self.table.setItem(i, 7, align(QTableWidgetItem(f'{p.get("performance", 0)} %'),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 0, align(italic(QTableWidgetItem(p.get("nom", "")))))
+            self.table.setItem(i, 1, align(italic(QTableWidgetItem(str(f"{float(p.get('nb_parts', 0)):,.4f}".replace(",", " ").replace(".", ",")))),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 2, align(italic(QTableWidgetItem(format_eur(p.get("val_part", 0),1))),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 3, align(italic(QTableWidgetItem(format_eur(p.get("investi", 0)))),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 4, align(italic(QTableWidgetItem(format_eur(p.get("valorisation", 0)))),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 5, align(italic(QTableWidgetItem(format_eur(p.get("interet", 0)))),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 6, align(italic(QTableWidgetItem(format_eur(p.get("plus-value", 0)))),Qt.AlignmentFlag.AlignRight))
+            self.table.setItem(i, 7, align(italic(QTableWidgetItem(f'{p.get("performance", 0)} %')),Qt.AlignmentFlag.AlignRight))
 
         # === Graphique Plotly : donut ===
         self.plot_donut(placements)

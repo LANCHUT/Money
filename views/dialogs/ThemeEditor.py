@@ -135,7 +135,10 @@ class ThemeEditor(BaseDialog):
             "header_tab_border": "En-tête tableau - bordure",
             "positive_color": "Couleur de solde positif",
             "negative_color": "Couleur de solde négatif",
-            "line_color": "Couleur courbe placements"
+            "line_color": "Couleur courbe placements",
+            "row_selected_bg": "Ligne selectionnée - fond",
+            "row_selected_fg": "Ligne selectionnée - texte",
+            "odd_line_bg": "Lignes paires - fond"
         }
 
         # Création des boutons dans le scroll
