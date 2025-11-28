@@ -71,7 +71,8 @@ def  create_tables(db_path=None):
         line_color TEXT DEFAULT '#636efa',
         row_selected_bg TEXT DEFAULT '#3874f2',
         row_selected_fg TEXT DEFAULT '#ffffff',
-        odd_line_bg TEXT DEFAULT '#4d4d4d')
+        odd_line_bg TEXT DEFAULT '#4d4d4d',
+        account_list_border TEXT DEFAULT '#ffffff')
     ''')
 
     cursor.execute('''
@@ -1454,7 +1455,8 @@ def GetOperations(compte_id, db_path=None):
 
     return result
 
-
+def placeholders(values, prefix):
+        return ','.join(f':{prefix}{i}' for i in range(len(values)))
 def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories=None, tiers=None, comptes=None, bq=None, type_tiers = None,beneficiaires = None,type_beneficiaires = None, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -1462,13 +1464,14 @@ def GetFilteredOperations(date_debut, date_fin, categories=None, sous_categories
     categories = categories or []
     sous_categories = sous_categories or []
     tiers = tiers or []
+    if tiers == [None]:
+        tiers = [""]
     type_tiers = type_tiers or []
     comptes = comptes or []
     beneficiaires = beneficiaires or []
     type_beneficiaires = type_beneficiaires or []
 
-    def placeholders(values, prefix):
-        return ','.join(f':{prefix}{i}' for i in range(len(values)))
+
 
     query = f"""
     SELECT * FROM operations
@@ -1670,6 +1673,22 @@ def GetTiers(db_path=None):
 
     return result
 
+def GetTiersFilter(db_path=None):
+    conn = connect_db(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM tiers order by nom asc')
+    tiers = cursor.fetchall()
+
+    conn.close()
+
+    result = []
+    for row in tiers:
+        t = Tier(row[1],row[2],row[3],row[4],row[5],str(row[0]),row[6])
+        result.append(t)
+
+    return result
+
 def GetTierById(tier_id, db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
@@ -1720,7 +1739,7 @@ def GetTheme(db_path=None) -> Theme:
 
     cursor.execute('SELECT * FROM theme LIMIT 1')
     c = cursor.fetchone()
-    theme = Theme(c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12],c[13],c[14],c[15],c[16],c[17],c[18],c[19],c[20],c[21],c[22],c[23],c[24],c[25])
+    theme = Theme(c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12],c[13],c[14],c[15],c[16],c[17],c[18],c[19],c[20],c[21],c[22],c[23],c[24],c[25],c[26])
     return theme
 
 def GetTiersActifByType(type_tier: str, db_path=None):
@@ -2568,16 +2587,19 @@ def GetPerformanceGlobaleData(compte_id: str, db_path=None):
     }
 
 
-def GetBilanByCategorie(date_debut:int,date_fin:int, db_path=None):
+def GetBilanByCategorie(date_debut:int,date_fin:int,comptes:list = [], db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
-    cursor.execute("""
+    request = f"""
         select c.nom, c.id, o.categorie,o.sous_categorie,(sum(o.debit)+sum(o.credit)) as somme
         from operations o
         inner join comptes c on o.compte_id = c.id
         where o.date >= ? and o.date <= ?
-        group by o.compte_id,o.categorie,o.sous_categorie
-    """,(date_debut,date_fin,))
+    """
+    if comptes != []:
+        request += f"and compte_id IN ({placeholders(comptes, 'compte')})"
+    request += "group by o.compte_id,o.categorie,o.sous_categorie"
+    cursor.execute(request,(date_debut,date_fin,*comptes))
     rows = cursor.fetchall()
     result = []
     hierarchy_level = ["type_flux","compte","categorie","sous_cat"]
@@ -2592,16 +2614,19 @@ def GetBilanByCategorie(date_debut:int,date_fin:int, db_path=None):
     
     return result,hierarchy_level,negative_treatment
 
-def GetBilanByBeneficiaire(date_debut:int,date_fin:int, db_path=None):
+def GetBilanByBeneficiaire(date_debut:int,date_fin:int,comptes:list = [], db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
-    cursor.execute("""
+    request = """
         select c.nom, c.id, o.beneficiaire,o.type_beneficiaire,(sum(o.debit)+sum(o.credit)) as somme
         from operations o
         inner join comptes c on o.compte_id = c.id
         where o.date >= ? and o.date <= ?
-        group by o.compte_id,o.type_beneficiaire,o.beneficiaire
-    """,(date_debut,date_fin,))
+    """
+    if comptes != []:
+        request += f"and compte_id IN ({placeholders(comptes, 'compte')})"
+    request += "group by o.compte_id,o.beneficiaire,o.type_beneficiaire"
+    cursor.execute(request,(date_debut,date_fin,*comptes))
     rows = cursor.fetchall()
     result = []
     hierarchy_level = ["type_flux","compte","type_beneficiaire","beneficiaire"]
@@ -2616,17 +2641,21 @@ def GetBilanByBeneficiaire(date_debut:int,date_fin:int, db_path=None):
     
     return result,hierarchy_level,negative_treatment
 
-def GetBilanByTiers(date_debut:int,date_fin:int, db_path=None):
+def GetBilanByTiers(date_debut:int,date_fin:int,comptes:list = [], db_path=None):
     conn = connect_db(db_path)
     cursor = conn.cursor()
-    cursor.execute("""
+    request = """
         select c.nom,c.id,t.type,t.nom,t.id,(sum(o.debit)+sum(o.credit)) as somme
         from operations o
         inner join comptes c on o.compte_id = c.id
-        inner join tiers t  on o.tier = t.id
+        left join tiers t  on o.tier = t.id
         where o.date >= ? and o.date <= ?
-        group by o.compte_id,o.tier
-    """,(date_debut,date_fin,))
+    """
+    if comptes != []:
+        request += f"and compte_id IN ({placeholders(comptes, 'compte')})"
+    request += "group by o.compte_id,o.tier"
+    cursor.execute(request,(date_debut,date_fin,*comptes))
+
     rows = cursor.fetchall()
     result = []
     hierarchy_level = ["type_flux","compte","type_tiers","tiers"]
@@ -2637,7 +2666,7 @@ def GetBilanByTiers(date_debut:int,date_fin:int, db_path=None):
 }
 
     for row in rows:
-        result.append({"compte": row[0], "compte_id": row[1], "type_tiers": row[2], "tiers": row[3],"tiers_id" : row[4], "montant": row[5]})
+        result.append({"compte": row[0], "compte_id": row[1], "type_tiers": row[2] if row[2] is not None else 'Transferts', "tiers": row[3] if row[3] is not None else 'Transferts',"tiers_id" : row[4], "montant": row[5]})
     
     return result,hierarchy_level,negative_treatment
 

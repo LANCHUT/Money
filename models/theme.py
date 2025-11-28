@@ -45,7 +45,9 @@ class Theme:
         row_selected_bg = "#3874f2",
         row_selected_fg = "#ffffff",
 
-        odd_line_bg = "#4d4d4d"
+        odd_line_bg = "#4d4d4d",
+
+        account_list_border = "#ffffff"
     ):
         self._id = _id
 
@@ -90,6 +92,8 @@ class Theme:
 
         self.odd_line_bg = odd_line_bg
 
+        self.account_list_border = account_list_border
+
     def to_dict(self):
         """Convert theme to a dictionary for database storage."""
         return {
@@ -129,6 +133,8 @@ class Theme:
             "row_selecteg_bg" : self.row_selected_bg,
             "row_selecteg_fg" : self.row_selected_fg,
             
-            "odd_line_bg" : self.odd_line_bg
+            "odd_line_bg" : self.odd_line_bg,
+
+            "account_list_border" : self.account_list_border
 
         }

@@ -185,7 +185,7 @@ class AddEditOperationDialog(BaseDialog):
         self.label_categorie = QLabel("Catégorie:")
         self.label_sous_categorie = QLabel("Sous Catégorie:")
 
-        if not self.isEcheance :
+        if self.echeance is None:
             self.layout.addRow(QLabel("Date:"), self.date)
         else :
             year = self.echeance.prochaine_echeance // 10000

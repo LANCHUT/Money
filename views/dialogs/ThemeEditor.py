@@ -138,7 +138,8 @@ class ThemeEditor(BaseDialog):
             "line_color": "Couleur courbe placements",
             "row_selected_bg": "Ligne selectionnée - fond",
             "row_selected_fg": "Ligne selectionnée - texte",
-            "odd_line_bg": "Lignes paires - fond"
+            "odd_line_bg": "Lignes paires - fond",
+            "account_list_border": "Liste comptes - bordure"
         }
 
         # Création des boutons dans le scroll

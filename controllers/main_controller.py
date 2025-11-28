@@ -632,17 +632,21 @@ class MoneyManager(QMainWindow):
     def update_etat_graph(self):
         date_debut = int(self.date_debut_filter_etat.date().toString("yyyyMMdd"))
         date_fin = int(self.date_fin_filter_etat.date().toString("yyyyMMdd"))
+        selected_comptes = []
+        for nom in self.compte_filter_etat.checkedItems():
+            if nom in self.comptes_nom_to_id:
+                selected_comptes.append(self.comptes_nom_to_id[nom])
         choix = self.etat_combobox.currentText()
         if choix == "Bilan Période par catégorie":
-            data_raw,hierarchy_level,negative_value_treatment = GetBilanByCategorie(date_debut,date_fin)
+            data_raw,hierarchy_level,negative_value_treatment = GetBilanByCategorie(date_debut,date_fin,selected_comptes)
             fig = sunburst_chart(data_raw,hierarchy_level,choix,negative_value_treatment=negative_value_treatment)
 
         elif choix == "Bilan Période par tiers":
-            data_raw,hierarchy_level,negative_value_treatment = GetBilanByTiers(date_debut,date_fin)
+            data_raw,hierarchy_level,negative_value_treatment = GetBilanByTiers(date_debut,date_fin,selected_comptes)
             fig = sunburst_chart(data_raw,hierarchy_level,choix,negative_value_treatment=negative_value_treatment)
 
         elif choix == "Bilan Période par bénéficiaire":
-            data_raw,hierarchy_level,negative_value_treatment = GetBilanByBeneficiaire(date_debut,date_fin)
+            data_raw,hierarchy_level,negative_value_treatment = GetBilanByBeneficiaire(date_debut,date_fin,selected_comptes)
             fig = sunburst_chart(data_raw,hierarchy_level,choix,negative_value_treatment=negative_value_treatment)
         # 1. Générez le div Plotly
         plotly_div = plotly.offline.plot(fig, include_plotlyjs='cdn', output_type='div')
@@ -660,6 +664,13 @@ class MoneyManager(QMainWindow):
         self.date_fin_filter_etat = CustomDateEdit()
         self.date_fin_filter_etat.setDate(QDate.currentDate())  # Aujourd'hui
 
+        self.compte_filter_etat = CheckableComboBox()
+        self.compte_filter_etat.setPlaceholderText("Selectionner...")
+        comptes = GetComptesHorsPlacement()
+        for compte in comptes:
+                self.compte_filter_etat.addItem(compte.nom)
+                self.comptes_nom_to_id[compte.nom] = str(compte._id)
+
         self.apply_filters_etat_btn = QPushButton("Appliquer les filtres")
         self.reload_etat_btn = QPushButton("Recharger le graphique")
 
@@ -672,6 +683,9 @@ class MoneyManager(QMainWindow):
         filter_layout.addSpacing(10) # Add 10 pixels of spacing
         filter_layout.addWidget(QLabel("Date fin période: "))
         filter_layout.addWidget(self.date_fin_filter_etat)
+        filter_layout.addSpacing(10) # Still good to add a stretch at the end
+        filter_layout.addWidget(QLabel("Compte: "))
+        filter_layout.addWidget(self.compte_filter_etat)
         filter_layout.addSpacing(10) # Still good to add a stretch at the end
         filter_layout.addWidget(self.apply_filters_etat_btn)
         filter_layout.addSpacing(10)
@@ -2199,7 +2213,7 @@ class MoneyManager(QMainWindow):
         )
             if dialog.exec():
                 # Recharger les opérations du compte courant après édition
-                self.load_operations()
+                self.apply_filters()
 
         except Exception as e:
             print("Erreur lors de la modification de l'opération:", e)
@@ -3085,7 +3099,7 @@ class MoneyManager(QMainWindow):
             self.sound_effect("assets/sounds/transaction.wav")
         self.account_list.clear()
         self.load_accounts()
-        self.load_operations()
+        self.apply_filters()
 
     def update_position(self, position:Position,isEdit):
         if isEdit:
@@ -3298,6 +3312,13 @@ class MoneyManager(QMainWindow):
         panel.addWidget(add_account_btn)
 
         panel_widget = QWidget()
+        theme = GetTheme()
+        self.account_list.setObjectName("list")
+        self.account_list.setStyleSheet(f"""
+            #list {{
+                border: 2px solid {theme.account_list_border};
+            }}
+        """)
         panel_widget.setLayout(panel)
         panel_widget.setMaximumWidth(700)
 
@@ -3449,7 +3470,7 @@ class MoneyManager(QMainWindow):
         self.tiers_nom_to_id = {}
 
         # Ajout dans le combo
-        for tier in GetTiers():
+        for tier in GetTiersFilter():
             self.tiers_filter.addItem(tier.nom)
             self.tiers_nom_to_id[tier.nom] = str(tier._id)
         self.tiers_filter.setEditable(True)
@@ -3895,10 +3916,10 @@ class MoneyManager(QMainWindow):
         widget = QWidget()
         layout = QHBoxLayout(widget)
 
-        name_label = QLabel("Total")
-        name_label.setStyleSheet("font-weight: bold;")
+        name_label = QLabel("TOTAL")
         solde_label = QLabel(f"{total:,.2f} €".replace(",", " "))
         solde_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
         theme = GetTheme()
         if total > 0:
             solde_label.setStyleSheet(f"font-weight: bold; color: {theme.positive_color};")
@@ -3908,11 +3929,11 @@ class MoneyManager(QMainWindow):
         layout.addWidget(name_label)
         layout.addStretch()
         layout.addWidget(solde_label)
-        # layout.setContentsMargins(5, 2, 5, 2)
 
         item = QListWidgetItem(self.account_list)
         item.setFlags(Qt.ItemFlag.NoItemFlags)  # Non sélectionnable
         item.setSizeHint(widget.sizeHint())
+
         self.account_list.addItem(item)
         self.account_list.setItemWidget(item, widget)
 
@@ -4300,7 +4321,7 @@ class MoneyManager(QMainWindow):
             self.sous_categorie_filter.addItem(sous_cat.nom)
         self.tiers_filter.addSpecialItem("Tout sélectionner", "select_all")
         self.tiers_filter.addSpecialItem("Tout désélectionner", "deselect_all")
-        for tier in GetTiers():
+        for tier in GetTiersFilter():
             self.tiers_filter.addItem(tier.nom)
         self.type_tiers_filter.addSpecialItem("Tout sélectionner", "select_all")
         self.type_tiers_filter.addSpecialItem("Tout désélectionner", "deselect_all")
