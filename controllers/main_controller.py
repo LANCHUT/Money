@@ -1184,7 +1184,7 @@ class MoneyManager(QMainWindow):
 
             # Mettre à jour l'ID si besoin (normalement pas nécessaire sauf si recréation)
             self.tier_table.item(row, 0).setData(Qt.ItemDataRole.UserRole, tier_id)
-            self.load_operations()
+            self.apply_filters()
 
     def edit_selected_placement(self, row):
         # Récupérer uniquement les informations nécessaires
@@ -1416,7 +1416,7 @@ class MoneyManager(QMainWindow):
                 self.transaction_table.clearContents()
                 self.compte_table.clearContents()
                 self.load_accounts()
-                self.load_operations()
+                self.apply_filters()
                 self.load_comptes()
 
     def delete_selected_position(self, row):
@@ -1563,7 +1563,7 @@ class MoneyManager(QMainWindow):
 
         DeleteTypeBeneficiaire(nom)  # Supprime le type de bénéficiaire
         self.load_type_beneficiaire()
-        self.load_operations()
+        self.apply_filters()
 
 
     def delete_selected_beneficiaire(self, row):
@@ -1619,7 +1619,7 @@ class MoneyManager(QMainWindow):
 
         DeleteBeneficiaire(nom,type_beneficiaire)  # Supprime le type de bénéficiaire
         self.load_beneficiaire()
-        self.load_operations()
+        self.apply_filters()
 
 
 
@@ -1677,7 +1677,7 @@ class MoneyManager(QMainWindow):
                     DeleteSousCategorie(nom,categorie_parent)
                     self.load_tiers()
                     self.load_sous_categories()
-                    self.load_operations()
+                    self.apply_filters()
                 else:
                     return  # L'utilisateur a annulé
             else:
@@ -1689,7 +1689,7 @@ class MoneyManager(QMainWindow):
                     UpdateSousCategorieTier(nom,selected_value,categorie_parent)
                     self.load_tiers()
                     self.load_sous_categories()
-                    self.load_operations()
+                    self.apply_filters()
                     return
                 else:
                     return  # L'utilisateur a annulé
@@ -1698,7 +1698,7 @@ class MoneyManager(QMainWindow):
         DeleteSousCategorie(nom,categorie_parent)
         self.load_sous_categories()
         self.load_tiers()
-        self.load_operations()
+        self.apply_filters()
 
 
 
@@ -1760,7 +1760,7 @@ class MoneyManager(QMainWindow):
                     DeleteCategorie(nom)
                     self.load_tiers()
                     self.load_sous_categories()
-                    self.load_operations()
+                    self.apply_filters()
                 else:
                     return  # L'utilisateur a annulé
             else:
@@ -1772,14 +1772,14 @@ class MoneyManager(QMainWindow):
                     UpdateCategorieTier(nom,selected_value)
                     self.load_tiers()
                     self.load_sous_categories()
-                    self.load_operations()
+                    self.apply_filters()
                 else:
                     return  # L'utilisateur a annulé
 
         # Suppression de la sous-catégorie
         DeleteCategorie(nom)
         self.load_tiers()
-        self.load_operations()
+        self.apply_filters()
         self.load_sous_categories()
         self.categorie_table.removeRow(row)
 
@@ -1839,7 +1839,7 @@ class MoneyManager(QMainWindow):
                 if reply_is_yes:
                     DeleteTypeTier(nom)
                     self.load_tiers()
-                    self.load_operations()
+                    self.apply_filters()
                 else:
                     return  # L'utilisateur a annulé
             else:
@@ -1850,14 +1850,14 @@ class MoneyManager(QMainWindow):
                     UpdateTypeTierInOperations(nom, selected_value)
                     UpdateTypeTier(nom,selected_value)
                     self.load_tiers()
-                    self.load_operations()
+                    self.apply_filters()
                 else:
                     return  # L'utilisateur a annulé
 
         # Suppression de la sous-catégorie
         DeleteTypeTier(nom)
         self.load_tiers()
-        self.load_operations()
+        self.apply_filters()
         self.type_tier_table.removeRow(row)
 
 
@@ -1913,7 +1913,7 @@ class MoneyManager(QMainWindow):
                 if reply_is_yes:
                     DeleteMoyenPaiement(nom)
                     self.load_tiers()
-                    self.load_operations()
+                    self.apply_filters()
                 else:
                     return  # L'utilisateur a annulé
             else:
@@ -1924,14 +1924,14 @@ class MoneyManager(QMainWindow):
                     UpdateMoyenPaiementInOperations(nom, selected_value)
                     UpdateMoyenPaiementTier(nom,selected_value)
                     self.load_tiers()
-                    self.load_operations()
+                    self.apply_filters()
                 else:
                     return  # L'utilisateur a annulé
 
         # Suppression de la sous-catégorie
         DeleteMoyenPaiement(nom)
         self.load_tiers()
-        self.load_operations()
+        self.apply_filters()
         self.moyen_paiement_table.removeRow(row)
 
 
@@ -1951,7 +1951,7 @@ class MoneyManager(QMainWindow):
             self.sous_categorie_table.item(row, 0).setText(dialog.nom.text())
             self.sous_categorie_table.item(row, 1).setText(dialog.categorie_parent.currentText())
             self.load_tiers()
-            self.load_operations()
+            self.apply_filters()
 
 
     def edit_selected_benficiaire(self, row):
@@ -1968,7 +1968,7 @@ class MoneyManager(QMainWindow):
             # Si validé : actualiser la ligne du tableau
             self.sous_categorie2_table.item(row, 0).setText(dialog.nom.text())
             self.sous_categorie2_table.item(row, 1).setText(dialog.type_beneficiaire_parent.currentText())
-            self.load_operations()
+            self.apply_filters()
 
     def edit_selected_categorie(self, row):
         # Récupérer les informations de la ligne sélectionnée
@@ -1989,7 +1989,7 @@ class MoneyManager(QMainWindow):
             # Recharger les dépendances liées
             self.load_sous_categories()
             self.load_tiers()
-            self.load_operations()
+            self.apply_filters()
 
     def edit_selected_type_beneficiaire(self, row):
         # Récupérer les informations de la ligne sélectionnée
@@ -2003,7 +2003,7 @@ class MoneyManager(QMainWindow):
         if dialog.exec():
             # Si validé : actualiser la ligne du tableau
             self.categorie_table.item(row, 0).setText(dialog.nom.text())
-            self.load_operations()
+            self.apply_filters()
             self.load_type_beneficiaire()
             self.load_beneficiaire()
 
@@ -2020,7 +2020,7 @@ class MoneyManager(QMainWindow):
             # Si validé : actualiser la ligne du tableau
             self.type_tier_table.item(row, 0).setText(dialog.nom.text())
             self.load_tiers()
-            self.load_operations()
+            self.apply_filters()
 
 
     def edit_selected_echeance(self, row):
@@ -2260,7 +2260,7 @@ class MoneyManager(QMainWindow):
 
             UpdateBqOperation(str(operation_id),1)
             self.transaction_table.clearContents()
-            self.load_operations()
+            self.apply_filters()
             
 
         except Exception as e:
@@ -2281,7 +2281,7 @@ class MoneyManager(QMainWindow):
             
             UpdateBqOperation(str(operation_id),0)
             self.transaction_table.clearContents()
-            self.load_operations()
+            self.apply_filters()
         except Exception as e:
             print("Erreur lors de la modification de l'opération:", e)
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite : {e}")
@@ -2350,7 +2350,7 @@ class MoneyManager(QMainWindow):
             # Si validé : actualiser la ligne du tableau
             self.moyen_paiement_table.item(row, 0).setText(dialog.nom.text())
             self.load_tiers()
-            self.load_operations()
+            self.apply_filters()
 
     def open_performance_dialog(self):
         if self.current_account is not None:
@@ -2684,7 +2684,7 @@ class MoneyManager(QMainWindow):
     def add_operation(self, operation):
         InsertOperation(operation)
         if  not self.pointage_state['suspendu']:
-            self.load_operations()
+            self.apply_filters()
         else :
             # Récupérer toutes les opérations de nouveau
             operations = GetOperationsNotBq(self.current_account)
@@ -2801,14 +2801,14 @@ class MoneyManager(QMainWindow):
         self.position_table.setSortingEnabled(True)
 
 
-    def add_position(self, position:Position):
+    def add_position(self, position:Position,bq = 0):
         InsertPosition(position)
         if position.type == TypePosition.Achat.value:
-            InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais,2),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
+            InsertOperation(Operation(position.date,TypeOperation.TransfertV.value,"","","","","",round((position.nb_part*position.val_part * -1) - position.frais,2),0,f"Achat de {position.nb_part} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id),bq = bq))
         elif position.type == TypePosition.Vente.value:
-            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais,2),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
+            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,round((position.nb_part*position.val_part * -1) - position.frais,2),f"Vente de {position.nb_part * -1} parts de {position.nom_placement} à {position.val_part} €",position.compte_associe,compte_associe=position.compte_id,link = str(position._id),bq = bq))
         elif position.type == TypePosition.Interet.value:
-            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,position.interets,f"Intérêts placement {position.nom_placement}",position.compte_associe,compte_associe=position.compte_id,link = str(position._id)))
+            InsertOperation(Operation(position.date,TypeOperation.TransfertD.value,"","","","","",0,position.interets,f"Intérêts placement {position.nom_placement}",position.compte_associe,compte_associe=position.compte_id,link = str(position._id),bq = bq))
         type_placement = GetTypePlacement(position.nom_placement)
         ticker = GetTickerPlacementByNomPlacement(position.nom_placement)
         last_value_placement = GetLastValueForPlacement(position.nom_placement)
@@ -3109,7 +3109,7 @@ class MoneyManager(QMainWindow):
             o = GetLinkOperation(str(position._id))
             if o is not None:
                 DeleteOperation(o,o.credit,o.debit)
-            self.add_position(position)         
+            self.add_position(position,o.bq)         
         else:
             position._id = str(ObjectId())
             InsertPosition(position)
