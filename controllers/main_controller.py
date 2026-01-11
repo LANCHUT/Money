@@ -501,7 +501,7 @@ class MoneyManager(QMainWindow):
         self.type_tier_clicked = None
         self.current_account_label = None
         self.current_account = None # Gardez ceci si vous l'utilisez pour l'état de l'application
-        self.pointage_state = {'actif': False, 'solde': 0.0, 'date': '','ops' : set(),'rows' : set(),'suspendu': False}
+        self.pointage_state = {'actif': False, 'solde': 0.0, 'date': '','ops' : set(),'rows' : set(),'suspendu': False, 'nb_operation' : 0}
 
         self.settings = QSettings("Langello Corp", "Money") # Remplacez par le nom de votre organisation/app
 
@@ -2695,9 +2695,11 @@ class MoneyManager(QMainWindow):
             self._populate_transaction_table(operations, solde_depart)
 
             # Réappliquer les styles sur les lignes déjà pointées
-            for row in self.pointage_state['rows']:
-                self.transaction_table.selectRow(row)
-                self.transaction_table.item(row, 10).setText("P")  # Colonne Bq
+            for row in range(self.transaction_table.rowCount()):
+                item = self.transaction_table.item(row, 0)
+                if item.data(Qt.ItemDataRole.UserRole) in self.pointage_state['ops']:
+                    self.transaction_table.selectRow(row)
+                    self.transaction_table.item(row, 10).setText("P")  # Colonne Bq
         self.account_list.clear()
         self.load_accounts()
         self.compte_table.clearContents()
@@ -4363,9 +4365,10 @@ class MoneyManager(QMainWindow):
             self.pointage_state['date'] = result['date']
             self.pointage_state['solde'] = solde
             self.pointage_state['target'] = result['solde']
+            self.pointage_state['nb_operation'] = 0
 
             self.pointage_info_label.setText(
-                f"Dernier relevé : {result['solde']:.2f} €"
+                f"Relevé courant: {result['solde']:.2f} €"
             )
             self.pointage_info_label.show()
             self.pointage_btn.hide()
@@ -4387,7 +4390,8 @@ class MoneyManager(QMainWindow):
 
 
     def handle_table_click(self, row, column):
-        handle_bq_click(row, column, self.transaction_table, self.pointage_state, self, self)
+        solde,_ = GetDerniereValeurPointe(self.current_account)
+        handle_bq_click(row, column, self.transaction_table, self.pointage_state, self, self,solde)
 
     def reprendre_pointage(self):
         if not self.pointage_state.get('suspendu', False):
@@ -4406,15 +4410,18 @@ class MoneyManager(QMainWindow):
         self._populate_transaction_table(operations, solde_depart)
 
         # Réappliquer les styles sur les lignes déjà pointées
-        for row in self.pointage_state['rows']:
-            self.transaction_table.selectRow(row)
-            self.transaction_table.item(row, 10).setText("P")  # Colonne Bq
+        for row in range(self.transaction_table.rowCount()):
+            item = self.transaction_table.item(row, 0)
+            if item.data(Qt.ItemDataRole.UserRole) in self.pointage_state['ops']:
+                self.transaction_table.selectRow(row)
+                self.transaction_table.item(row, 10).setText("P")  # Colonne Bq
 
         # UI
-        self.pointage_info_label.setText(f"Dernier relevé : {self.pointage_state['target']:.2f} € – Somme pointées : {self.pointage_state['somme_pointees']:.2f} € – Écart : {round(self.pointage_state['target'] - self.pointage_state['solde'],2):.2f} €")
+        self.pointage_info_label.setText(f"Dernier relevé : {self.pointage_state['target']:.2f} € – Somme pointées : {self.pointage_state['somme_pointees']:.2f} € – Écart : {round(self.pointage_state['target'] - self.pointage_state['solde'],2):.2f} €\nNombre d'opérations pointées : {self.pointage_state['nb_operation']} – Dernier relevé : {solde_depart:.2f} €")
         self.pointage_info_label.show()
         self.reprendre_pointage_btn.hide()
         self.suspendre_pointage_btn.show()
+        self.add_transaction_btn.setEnabled(False)
         self.end_pointage_btn.show()
         self.cancel_pointage_btn.show()
         self.pointage_btn.hide()

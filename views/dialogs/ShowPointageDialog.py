@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox, QMessageBox,QTableWidget
 from PyQt6.QtCore import QDate,Qt
 from utils.DateTableWidgetItem import CustomDateEdit
-from database.gestion_bd import InsertHistoriquePointage, UpdateBqOperation, DeleteHistoriquePointage
+from database.gestion_bd import GetDerniereValeurPointe, InsertHistoriquePointage, UpdateBqOperation, DeleteHistoriquePointage
 
 def show_pointage_dialog(parent, dernier_solde, derniere_date):
     # Convertir "YYYYMMDD" en QDate et format lisible
@@ -49,7 +49,7 @@ def show_pointage_dialog(parent, dernier_solde, derniere_date):
         return None
 
 
-def handle_bq_click(row, column, table: QTableWidget, pointage_state, parent, ui_parent):
+def handle_bq_click(row, column, table: QTableWidget, pointage_state, parent, ui_parent,dernier_releve):
     if not pointage_state['actif'] or column != 10 or pointage_state["suspendu"]:
         return
 
@@ -79,6 +79,7 @@ def handle_bq_click(row, column, table: QTableWidget, pointage_state, parent, ui
         pointage_state['ops'].discard(op_id)
         pointage_state['rows'].discard(row)
         pointage_state['somme_pointees'] -= montant
+        pointage_state['nb_operation'] -= 1
         bq_item.setText('')
     else:
         # Pointage
@@ -86,6 +87,7 @@ def handle_bq_click(row, column, table: QTableWidget, pointage_state, parent, ui
         pointage_state['ops'].add(op_id)
         pointage_state['rows'].add(row)
         pointage_state['somme_pointees'] += montant
+        pointage_state['nb_operation'] += 1
         bq_item.setText('P')
 
     # Mise à jour de l’affichage
@@ -96,7 +98,7 @@ def handle_bq_click(row, column, table: QTableWidget, pointage_state, parent, ui
     ui_parent.end_pointage_btn.setEnabled(abs(delta) < 0.01)
 
     ui_parent.pointage_info_label.setText(
-        f"Dernier relevé : {target:.2f} € – Somme pointées : {pointage_state['somme_pointees']:.2f} € – Écart : {delta:.2f} €"
+        f"Relevé courant: {target:.2f} € – Somme pointées : {pointage_state['somme_pointees']:.2f} € – Écart : {delta:.2f} € \nNombre d'opérations pointées : {pointage_state['nb_operation']} – Dernier relevé : {dernier_releve:.2f} €"
     )
 
 
