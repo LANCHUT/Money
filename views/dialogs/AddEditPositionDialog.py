@@ -180,7 +180,7 @@ class AddEditPositionDialog(BaseDialog):
         notes = self.notes.text()
         type_placement = self.type_placement.currentText()
 
-        if not self.isEcheance:
+        if self.echeance is None:
             date = int(self.date.date().toString("yyyyMMdd"))
         else :
             date = int(self.date_prochaine_echeance.date().toString("yyyyMMdd"))

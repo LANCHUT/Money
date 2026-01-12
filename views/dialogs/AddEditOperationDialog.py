@@ -324,7 +324,7 @@ class AddEditOperationDialog(BaseDialog):
         moyen_paiement = self.moyen_paiement.currentText()
         num_cheque = self.num_cheque.text()
         compte_associe = self.compte_associe.currentData()
-        if not self.isEcheance:
+        if self.echeance is None:
             date = int(self.date.date().toString("yyyyMMdd"))
         else :
             date = int(self.date_prochaine_echeance.date().toString("yyyyMMdd"))
