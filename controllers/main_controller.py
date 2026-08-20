@@ -3103,13 +3103,16 @@ class MoneyManager(QMainWindow):
         self.load_accounts()
         self.apply_filters()
 
-    def update_position(self, position:Position,isEdit):
+    def update_position(self, position: Position, isEdit):
         if isEdit:
             DeletePosition(position)
             o = GetLinkOperation(str(position._id))
+            bq_val = 0
             if o is not None:
-                DeleteOperation(o,o.credit,o.debit)
-            self.add_position(position,o.bq)         
+                bq_val = o.bq
+                DeleteOperation(o, o.credit, o.debit)
+                
+            self.add_position(position, bq_val)         
         else:
             position._id = str(ObjectId())
             InsertPosition(position)
@@ -3438,7 +3441,12 @@ class MoneyManager(QMainWindow):
         self.sous_cats_label = QLabel()
         self.tiers_label = QLabel()
         self.type_tiers_label = QLabel()
+        self.use_filter_label = QLabel()
         self.filter_group_box = QGroupBox("Filtres")
+        self.filter_group_box.setCheckable(True)
+        self.filter_group_box.setChecked(False)
+        self.filter_group_box.toggled.connect(self._toggle_filter_elements)
+        self._toggle_filter_elements(False)
         filter_vbox = QVBoxLayout()
         self.filter_group_box.setLayout(filter_vbox)
         filter_vbox.setContentsMargins(10, 10, 10, 10)
@@ -3581,6 +3589,10 @@ class MoneyManager(QMainWindow):
 
         operation_tab_layout.addLayout(right_panel, 3)
 
+    def _toggle_filter_elements(self, enabled: bool):
+        """Active ou grise tous les widgets contenus dans le groupbox de filtre."""
+        for widget in self.filter_group_box.findChildren(QWidget):
+            widget.setEnabled(enabled)
     def select_all_items(self, combo: CheckableComboBox, checked: bool):
         for i in range(combo.model().rowCount()):
             item = combo.model().item(i)
@@ -4263,44 +4275,47 @@ class MoneyManager(QMainWindow):
         menu.exec(self.echeance_table.viewport().mapToGlobal(pos))
 
     def apply_filters(self):
-        if self.current_account is None:
-            QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte d'abord.")
-            return
-        self.pointage_btn.setEnabled(False)
-        selected_categories = set(self.categorie_filter.checkedItems())
-        selected_type_tiers = set(self.type_tiers_filter.checkedItems())
-        selected_sous_categories = set(self.sous_categorie_filter.checkedItems())
-        selected_tiers = [
-            self.tiers_nom_to_id[nom]
-            for nom in self.tiers_filter.checkedItems()
-            if nom in self.tiers_nom_to_id
-        ]
-
-        selected_comptes = []
-        for nom in self.compte_filter.checkedItems():
-            if nom in self.comptes_nom_to_id:
-                selected_comptes.append(self.comptes_nom_to_id[nom])
-
-        date_debut = int(self.date_debut_filter.date().toString("yyyyMMdd"))
-        date_fin = int(self.date_fin_filter.date().toString("yyyyMMdd"))
-        state = self.bq_filter.currentText()
-        if state == "Rapprochées":
-            # filtrer uniquement les opérations pointées
-            bq = True
-        elif state == "Non rapprochées":
-            # filtrer uniquement les opérations non pointées
-            bq = False
+        if not self.filter_group_box.isChecked():
+             self.load_operations(GetOperationsNotBq)
         else:
-            # état PartiallyChecked = ne pas filtrer sur ce critère
-            bq = None
+            if self.current_account is None:
+                QMessageBox.warning(self, "Attention", "Veuillez sélectionner un compte d'abord.")
+                return
+            self.pointage_btn.setEnabled(False)
+            selected_categories = set(self.categorie_filter.checkedItems())
+            selected_type_tiers = set(self.type_tiers_filter.checkedItems())
+            selected_sous_categories = set(self.sous_categorie_filter.checkedItems())
+            selected_tiers = [
+                self.tiers_nom_to_id[nom]
+                for nom in self.tiers_filter.checkedItems()
+                if nom in self.tiers_nom_to_id
+            ]
 
-        try:
-            QApplication.setOverrideCursor(QCursor(Qt.CursorShape.WaitCursor))
-            self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq,selected_type_tiers),0)
-        finally:
-            # Always restore the cursor to the default after the operation
-            QApplication.setOverrideCursor(QCursor(Qt.CursorShape.ArrowCursor)) # Example for PyQt/PySide
-            self.transaction_table.setColumnHidden(16,True)
+            selected_comptes = []
+            for nom in self.compte_filter.checkedItems():
+                if nom in self.comptes_nom_to_id:
+                    selected_comptes.append(self.comptes_nom_to_id[nom])
+
+            date_debut = int(self.date_debut_filter.date().toString("yyyyMMdd"))
+            date_fin = int(self.date_fin_filter.date().toString("yyyyMMdd"))
+            state = self.bq_filter.currentText()
+            if state == "Rapprochées":
+                # filtrer uniquement les opérations pointées
+                bq = True
+            elif state == "Non rapprochées":
+                # filtrer uniquement les opérations non pointées
+                bq = False
+            else:
+                # état PartiallyChecked = ne pas filtrer sur ce critère
+                bq = None
+
+            try:
+                QApplication.setOverrideCursor(QCursor(Qt.CursorShape.WaitCursor))
+                self.load_operations(GetFilteredOperations(date_debut,date_fin,selected_categories,selected_sous_categories,selected_tiers,selected_comptes,bq,selected_type_tiers),0)
+            finally:
+                # Always restore the cursor to the default after the operation
+                QApplication.setOverrideCursor(QCursor(Qt.CursorShape.ArrowCursor)) # Example for PyQt/PySide
+                self.transaction_table.setColumnHidden(16,True)
 
         
         
